@@ -24,13 +24,13 @@ parameters:
 resources:
   repositories:
   # Azure DevOps repository
-  - repository: sap-fpm-integration
+  - repository: sap-fpm-integration-pipelines
     type: git
     name: sap-fpm-integration/sap-fpm-integration-pipelines
 
 extends:
   # Filename in Azure DevOps Repository
-  template: azure-pipelines-sap-fpm-integration-devtest.yml@sap-fpm-integration
+  template: azure-pipelines-sap-fpm-integration-devtest.yml@sap-fpm-integration-pipelines
   # Image tag name for Fuse projects
   parameters:
     imagetag: ${{ parameters.imagetag }}

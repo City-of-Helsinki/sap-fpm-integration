@@ -1,0 +1,36 @@
+# Continuous integration (CI) triggers cause a pipeline to run whenever you push 
+# an update to the specified branches or you push specified tags.
+trigger:
+  batch: true
+  branches:
+    include:
+    - develop
+  paths:
+    exclude:
+    - README.md
+    
+pr: none
+
+# By default, use self-hosted agents
+pool: Default
+
+# Image tag name for Fuse projects
+parameters:
+- name: imagetag
+  displayName: Image tag to be built and deployed to dev-environment
+  type: string
+  default: latest
+
+resources:
+  repositories:
+  # Azure DevOps repository
+  - repository: sap-fpm-integration
+    type: git
+    name: sap-fpm-integration/sap-fpm-integration-pipelines
+
+extends:
+  # Filename in Azure DevOps Repository
+  template: azure-pipelines-sap-fpm-integration-devtest.yml@sap-fpm-integration-pipelines
+  # Image tag name for Fuse projects
+  parameters:
+    imagetag: ${{ parameters.imagetag }}

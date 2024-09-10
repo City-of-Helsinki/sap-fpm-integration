@@ -30,7 +30,7 @@ resources:
 
 extends:
   # Filename in Azure DevOps Repository
-  template: azure-pipelines-sap-fpm-integration-devtest.yml@sap-fpm-integration-pipelines
+  template: azure-pipelines-sap-fpm-integration-devtest.yml@sap-fpm-integration
   # Image tag name for Fuse projects
   parameters:
     imagetag: ${{ parameters.imagetag }}

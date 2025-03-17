@@ -22,7 +22,7 @@ public class FileAggregationStrategy implements AggregationStrategy {
                 System.out.println("SIZE: " + newExchange.getProperty("byYearAndMonth", Map.class).size());
             }
         }
-        newExchange.setProperty("keepReading", newExchange.getProperty("keepReading"));
+        newExchange.setProperty("keepReading", oldExchange.getProperty("keepReading"));
 
         System.out.println(oldExchange.getMessage().getHeader("CamelFileName"));
         System.out.println("new: " + newExchange.getMessage().getHeader("CamelFileName"));

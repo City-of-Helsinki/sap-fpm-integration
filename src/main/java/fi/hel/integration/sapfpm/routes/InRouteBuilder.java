@@ -1,29 +1,18 @@
 package fi.hel.integration.sapfpm.routes;
 
-import fi.hel.integration.sapfpm.config.AppConfig;
-
-import fi.hel.integration.sapfpm.model.ID022_FI_TOSITE.E1FIKPF;
 import fi.hel.integration.sapfpm.model.ID022_FI_TOSITE.FIDCCP02;
-import fi.hel.integration.sapfpm.model.ID022_FI_TOSITE.IDOC;
 import org.apache.camel.Exchange;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.builder.AggregationStrategies;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.model.ProcessorDefinition;
-import org.apache.camel.component.file.GenericFileOperationFailedException;
 
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /*Sapista FPM:lle:
@@ -32,17 +21,18 @@ BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa el
 KNA1 = asiakkaat, tälle ei perustietoliittymää eikä tule sotepelle käyttöön   (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 LFA1 = toimittajat, tälle on perustietoliittymä mutta ei tule sopete käyttöön (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin*/
+
+// ORD_OUT -> sisäisen tilauksen käsittelyyn SAPSISTILAUS
+// PART_OUT -> SAPKUMPPANI
+// WBS_OUT -> SAPPROJEKTI
+// ID022_FI_TOSITE -> SAPACTUAL
 @ApplicationScoped
 public class InRouteBuilder extends RouteBuilder {
-
-    @Inject
-    AppConfig appConfig;
 
     @Inject
     Logger log;
 
     CsvDataFormat csvDataFormat = new CsvDataFormat().setDelimiter(';');
-
 
     // TODO: read xml as maps, write out
 
@@ -116,8 +106,7 @@ public class InRouteBuilder extends RouteBuilder {
                 e.getIn().setBody(allVals);*/
             }).split(body()).to("direct:azure-out");
 
-
-        from("direct:azure-out")
+        from("direct:azure-out").id("azureOut")
             .setProperty(Exchange.CHARSET_NAME, constant("ISO-8859-1"))
             .marshal(csvDataFormat)
             .to("file:out")

@@ -16,10 +16,15 @@ smallrye:
         profile: local
 
 "%local":
-    app:
-        foo: true
+    palke:
+        azure:
+            sasToken: ""
+            accountName: ""
+            containerName: ""
 
 "%openshift":
-    app:
-        foo: false
-    
+    palke:
+        azure:
+            sasToken: ""
+            accountName: ""
+            containerName: ""

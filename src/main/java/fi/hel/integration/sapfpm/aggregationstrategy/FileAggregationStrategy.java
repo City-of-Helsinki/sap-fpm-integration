@@ -3,9 +3,15 @@ package fi.hel.integration.sapfpm.aggregationstrategy;
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.Exchange;
 
+import java.io.File;
 import java.util.Map;
 
 public class FileAggregationStrategy implements AggregationStrategy {
+
+    public final String aggregatedPropertyName;
+    public FileAggregationStrategy(String aggregatedPropertyName) {
+        this.aggregatedPropertyName = aggregatedPropertyName;
+    }
 
     @Override
     public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
@@ -16,11 +22,8 @@ public class FileAggregationStrategy implements AggregationStrategy {
 
             return oldExchange;
         } else {
-            System.out.println("byYearAndMonth oldexchange: " + oldExchange.getProperty("byYearAndMonth"));
-            newExchange.setProperty("byYearAndMonth", oldExchange.getProperty("byYearAndMonth", Map.class));
-            if (newExchange.getProperty("byYearAndMonth") != null) {
-                System.out.println("SIZE: " + newExchange.getProperty("byYearAndMonth", Map.class).size());
-            }
+            System.out.println("oldexchange: " + oldExchange.getProperty(aggregatedPropertyName));
+            newExchange.setProperty(aggregatedPropertyName, oldExchange.getProperty(aggregatedPropertyName));
         }
         newExchange.setProperty("keepReading", oldExchange.getProperty("keepReading"));
 

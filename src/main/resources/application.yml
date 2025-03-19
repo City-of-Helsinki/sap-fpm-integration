@@ -18,9 +18,9 @@ smallrye:
 "%local":
     palke:
         azure:
-            sasToken: ""
-            accountName: ""
-            containerName: ""
+            sasToken: "token"
+            accountName: "accName"
+            containerName: "container"
 
 "%openshift":
     palke:

@@ -15,13 +15,14 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class PartInRouteBuilder extends LoopingFileReader {
-    CsvDataFormat partCsvDataFormat = new CsvDataFormat().setDelimiter(';').setHeader(new String[] {
+    CsvDataFormat partCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "RCOMP", "NAME1"
     });
 
     // TODO: PART_OUT_167_SOTE
     // PALKE: PART_OUT_138_9500
     final static String IN_FILE_PREFIX = "PART_OUT_167_SOTE_";
+    final static String POLL_ENRICH_IN = "file:in";
 
     final static String AGGREGATED_PROPERTY = "partBody";
 
@@ -34,7 +35,7 @@ public class PartInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
-        createLoopingFileReaderRoute("PART_IN", IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-part",
+        createLoopingFileReaderRoute("PART_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-part",
                 AGGREGATED_PROPERTY)
                 .split(body()).process(e -> {
                     Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
@@ -69,7 +70,7 @@ public class PartInRouteBuilder extends LoopingFileReader {
 
                 e.setProperty(AGGREGATED_PROPERTY, prevLines);
                 e.getMessage().setBody(prevLines);
-            }).id("ProcessOrdOut");
+            }).id("ProcessPartOut");
 
         from("direct:part-csv-out").id("partAzureOut")
                 .marshal(partCsvDataFormat)

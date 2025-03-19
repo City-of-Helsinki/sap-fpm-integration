@@ -18,13 +18,14 @@ public class OrdInRouteBuilder extends LoopingFileReader {
     @Inject
     Logger log;
 
-    CsvDataFormat ordCsvDataFormat = new CsvDataFormat().setDelimiter(';').setHeader(new String[] {
+    static final String POLL_ENRICH_IN = "file:in";
+
+    CsvDataFormat ordCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
             "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT"
     });
 
     final static String IN_FILE_PREFIX = "ORD_OUT_";
 
-    // TODO: check values against spec
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> commonValues, Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> ord = new LinkedHashMap<>(); // order matters
         ord.put("BUKRS", valuesLine.get("BUKRS")); // maksupiste
@@ -38,7 +39,7 @@ public class OrdInRouteBuilder extends LoopingFileReader {
     @Override
     public void configure() throws Exception {
 
-        createLoopingFileReaderRoute("ORD_IN", IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-ord",
+        createLoopingFileReaderRoute("ORD_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-ord",
         "byYearAndMonth")
             .split(body()).process(e -> {
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
@@ -54,9 +55,9 @@ public class OrdInRouteBuilder extends LoopingFileReader {
             .setHeader("CamelFileName", simple("${headers.OutFileName}"))
             .to("direct:ord-csv-out");
 
-        from("direct:unmarshal-xml-and-process-ord")
-                .log("ORD IN :: ${headers.CamelFileName}")
-                .unmarshal().jacksonXml();
+        from("direct:unmarshal-xml-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
+            .log("ORD IN :: ${headers.CamelFileName}")
+            .unmarshal().jacksonXml().to("direct:process-ord-out");
 
         // ORD_OUT_167_SOTE*.xml
         // SAPSISTILAUS
@@ -76,7 +77,7 @@ public class OrdInRouteBuilder extends LoopingFileReader {
                 e.getMessage().setBody(byYearAndMonth);
             }).id("ProcessOrdOut");
 
-        from("direct:ord-csv-out").id("ordAzureOut")
+        from("direct:ord-csv-out").routeId("ordCsvOut")
                 .marshal(ordCsvDataFormat)
                 .to("direct:ord-file-out");
 

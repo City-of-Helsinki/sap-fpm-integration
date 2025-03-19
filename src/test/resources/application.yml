@@ -1,0 +1,10 @@
+smallrye:
+  config:
+    profile: test
+
+"%test":
+  palke:
+    azure:
+      sasToken: "token"
+      accountName: "acc"
+      containerName: "cont"

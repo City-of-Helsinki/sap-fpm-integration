@@ -3,13 +3,9 @@ package fi.hel.integration.sapfpm.routes.sapprojekti;
 import fi.hel.integration.sapfpm.routes.LoopingFileReader;
 import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.model.RouteDefinition;
-import org.jboss.logging.Logger;
 
 import java.util.*;
-import java.util.function.BiFunction;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
 
@@ -18,32 +14,31 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin
 @ApplicationScoped
 public class WBSInRouteBuilder extends LoopingFileReader {
-    @Inject
-    Logger log;
-
-    // TODO: check against spec
-    CsvDataFormat wbsCsvDataFormat = new CsvDataFormat().setDelimiter(';').setHeader(new String[] {
-        "MANDT", "PSPNR", "POSID", "POST1", "USR03"
+    CsvDataFormat wbsCsvDataFormat = new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(new String[] {
+        "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
     });
 
     final static String IN_FILE_PREFIX = "WBS_OUT_";
+    final static String POLL_ENRICH_IN = "file:in";
 
     final static String AGGREGATED_PROPERTY = "wbsBody";
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> commonValues, Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> project = new LinkedHashMap<>();
-        project.put("MANDT", commonValues.get("MANDT"));
-        project.put("PSPNR", valuesLine.get("PSPNR"));
+        project.put("PBUKR", valuesLine.get("PBUKR"));
         project.put("POSID", valuesLine.get("POSID"));
         project.put("POST1", valuesLine.get("POST1"));
-        project.put("USR03", valuesLine.get("USR03"));
+        project.put("STUFE", valuesLine.get("STUFE"));
+        project.put("ERDAT", valuesLine.get("ERDAT"));
+        project.put("AEDAT", valuesLine.get("AEDAT"));
+        project.put("TXT40", valuesLine.get("TXT40"));
         return project;
     }
 
     @Override
     public void configure() throws Exception {
 
-        createLoopingFileReaderRoute("WBS_IN", IN_FILE_PREFIX, "direct:unmarshal-and-process-wbs", AGGREGATED_PROPERTY)
+        createLoopingFileReaderRoute("WBS_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-wbs", AGGREGATED_PROPERTY)
             .to("direct:unmarshal-and-process-wbs")
             .split(body()).process(e -> {
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
@@ -80,7 +75,7 @@ public class WBSInRouteBuilder extends LoopingFileReader {
                 e.getMessage().setBody(byYearAndMonth);
             }).id("ProcessWBS");
 
-        from("direct:wbs-csv-out")
+        from("direct:wbs-csv-out").routeId("wbsCsvOut")
             .marshal(wbsCsvDataFormat)
             .to("direct:wbs-file-out");
 

@@ -18,4 +18,18 @@ public interface PalkeConfig {
 
     @WithName("ftp.host")
     Optional<String> ftpHost();
+
+    @WithName("ftp.user_ID138")
+    Optional<String> ftpUserId138();
+
+    @WithName("ftp.password_ID138")
+    Optional<String> ftpPasswordId138();
+
+    @WithName("ftp.user_ID166")
+    Optional<String> ftpUserId166();
+
+    @WithName("ftp.password_ID166")
+    Optional<String> ftpPasswordId166();
+
+
 }

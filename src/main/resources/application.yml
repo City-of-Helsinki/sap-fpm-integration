@@ -22,11 +22,11 @@ smallrye:
             accountName: "accName"
             containerName: "container"
         ftp:
-            host: "${PALKE-SFTP-HOST}"
-            user_ID138: "${PALKE-SFTP-USER-ID138}"
-            password_ID138: "${PALKE-SFTP-PASSWORD-ID138}"
-            user_ID166: "${PALKE-SFTP-USER-ID166}"
-            password_ID166: "${PALKE-SFT_PASSWORD-ID166}"
+            host: "${PALKE_SFTP_HOST}"
+            user_ID138: "${PALKE_SFTP_USER_ID138}"
+            password_ID138: "${PALKE_SFTP_PASSWORD_ID138}"
+            user_ID166: "${PALKE_SFTP_USER_ID166}"
+            password_ID166: "${PALKE_SFT_PASSWORD_ID166}"
 
 "%openshift":
     palke:

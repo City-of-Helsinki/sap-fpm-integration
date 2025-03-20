@@ -1,6 +1,5 @@
 package fi.hel.integration.sapfpm;
 
-import fi.hel.integration.sapfpm.routes.InRouteBuilder;
 import io.quarkus.test.junit.QuarkusTest;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.CamelContext;

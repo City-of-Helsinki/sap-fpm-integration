@@ -8,6 +8,7 @@ import org.apache.camel.dataformat.csv.CsvDataFormat;
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
+// TODO: saattaa olla PROJECT nimellä testissä!!!
 
 // WBS_OUT:n käsittelee Projektit ja projektin rakenneosat  (SAPPROJEKTI_PRPS, WBS_OUT.xml)
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
@@ -46,7 +47,6 @@ public class WBSInRouteBuilder extends LoopingFileReader {
                 String year = yearAndMonth.substring(0, 4);
                 String month = yearAndMonth.substring(4, 6);
                 if (month.startsWith("0")) month = month.substring(1);
-                // SAPACTUAL_PRPS_YYYY_M.csv
                 String prefix = getOutFileNamePrefix(e.getMessage().getHeader("CamelFileName", String.class));
                 e.getMessage().setHeader("OutFileName", prefix + "_" + year + "_" + month + ".csv");
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
@@ -84,10 +84,8 @@ public class WBSInRouteBuilder extends LoopingFileReader {
     }
 
     public String getOutFileNamePrefix(String fileInName) {
-        // SAPPROJEKTI ei näytä tarvitsevan vuoden / kuukauden mukaan kokoamista
-        // tarviiko kuitenkin tarkistaa vuosi / kuukausi jos esim. vanhoja filuja ensimmäisessä latauksessa
+        // SAPPROJEKTI ei tarvitse vuoden / kuukauden mukaan kokoamista
         return "SAPPROJEKTI_PRPS"; // vaiko SAPPROJEKTI.csv ???
-
     }
 }
 

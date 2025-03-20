@@ -4,6 +4,7 @@ import fi.hel.integration.sapfpm.routes.LoopingFileReader;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,17 +14,13 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // KNA1 = asiakkaat, tälle ei perustietoliittymää eikä tule sotepelle käyttöön   (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 // LFA1 = toimittajat, tälle on perustietoliittymä mutta ei tule sotepe käyttöön (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
-// ID022_FI_TOSITE_OUT_ >
-
+// ID022_FI_TOSITE_OUT_ > ID022 SOTE
+// ID025_FI_TOSITE_ -> ID025 Palke
+// IDXXX_FI_TOSITE -> IDXXX Kasko
+// YYYY_MM
 // <AWTYP>BKPF</AWTYP> ???
 
-// SAPACTUAL_BKPF_YYYY_M.csv // samassa kuin BKPF BSEG, FMGLEXA
-// SAPACTUAL_BSEG_YYYY_M.csv // samassa kuin BKPF BSEG, FMGLEXA
-// SAPACTUAL_FMGLFLEXA_YYYY_M.csv // samassa kuin BKPF BSEG, FMGLEXA
-// SAPACTUAL_KNA1_YYYY_M.csv // asiakkaat
-// SAPACTUAL_LFA1_YYYY_M.csv // toimittajat
-// SAPACTUAL_PRPS_YYYY_M.csv
-// SAPACTUAL_VIBDBE_YYYY_M.csv
+
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class ID022FITositeInRouteBuilder extends LoopingFileReader {
@@ -42,8 +39,6 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
         LinkedHashMap<String, Object> r = new LinkedHashMap<>(); // order matters
         Map<String, Object> E1FINBU = (Map<String, Object>) E1FISEG.get("E1FINBU");
         Map<String, Object> E1FISE2 = (Map<String, Object>) E1FISEG.get("E1FISE2");
-        System.out.println("E1FINBU: " + E1FINBU);
-        System.out.println("E1FISE2: " + E1FISE2);
         if (E1FINBU == null) E1FINBU = Map.of();
         if (E1FISE2 == null) E1FISE2 = Map.of();
         r.put("BUKRS", E1FIKPF.get("BUKRS")); // yritys
@@ -52,59 +47,50 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
         r.put("GJAHR", E1FIKPF.get("GJAHR")); // tilikausi
         r.put("POPER", E1FIKPF.get("MONAT") == null ? E1FIKPF.get("POPER") : E1FIKPF.get("MONAT")); // kirjauskausi
         r.put("BLART", E1FIKPF.get("BLART"));
-        // BUDAT + BLDAT -> into own file SAPACTAL_BPKF ???
         r.put("BLDAT", E1FIKPF.get("BLDAT"));
         r.put("BUDAT", E1FIKPF.get("BUDAT")); // kirjauspvm
         r.put("CPUDT", E1FIKPF.get("CPUDT")); // not in s4
         r.put("TCODE", E1FIKPF.get("TCODE"));
         r.put("XBLNR", E1FIKPF.get("XBLNR")); // viitetositenumero (maksuviite)
-        // NAME1 + KUNNR -> into own file SAPACTUAL_KNA1 ???
+
         r.put("KUNNR", E1FINBU.get("KUNNR")); // asiakasnumero
 
         r.put("LIFNR", E1FINBU.get("LIFNR")); // toimittajanumero
-        // NAME1 +  LIFNR -> into own file SAPACTUAL_LFA1 ???
-
-        r.put("LIFNR_NAME1", E1FINBU.get("LIFNR_NAME1")); // not in s4, // ???? WHERE IS IT
+        // TODO: recheck, doesn't make sense that LIFNR is in FINBU and name not!
+        r.put("LIFNR_NAME1", E1FIKPF.get("LIFNR_NAME1")); // not in s4
 
         r.put("EBELN", E1FISEG.get("EBELN"));
 
-        r.put("Attachment", E1FIKPF.get("RESERVE") == null ? E1FIKPF.get("Attachment") : E1FIKPF.get("RESERVE"));
+        r.put("Attachment", E1FIKPF.get("Attachment") == null ? E1FIKPF.get("RESERVE") : E1FIKPF.get("Attachment"));
 
-        // TODO: both in E1FIKPF.E1FISEG and E1FIKPF.E1FISET
         r.put("BUZEI", E1FISEG.get("BUZEI"));
 
         r.put("CO_BUZEI", E1FISEG.get("CO_BUZEI")); // not in s4
-        r.put("RACCT", E1FISEG.get("HKONT") == null ? E1FISEG.get("RACCT") : E1FISEG.get("HKONT"));
-        r.put("RCNTR", E1FISEG.get("KOSTL") == null ? E1FISEG.get("RCNTR") : E1FISEG.get("KOSTL"));
+        r.put("RACCT", E1FISEG.get("RACCT") == null ? E1FISEG.get("HKONT") : E1FISEG.get("RACCT"));
+        r.put("RCNTR", E1FISEG.get("RCNTR") == null ? E1FISEG.get("KOSTL") : E1FISEG.get("RCNTR"));
         r.put("PRCTR", E1FISEG.get("PRCTR")); // tulosyksikkö
 
-        // TODO: specd as FKBER but only FKBER_LONG is actually found
-        r.put("RFAREA", E1FISE2.get("FKBER_LONG") == null ? E1FISE2.get("RFAREA") : E1FISE2.get("FKBER_LONG"));
+        r.put("RFAREA", E1FISE2.get("RFAREA") == null ? (E1FISE2.get("FKBER") == null ? E1FISE2.get("FKBER_LONG") : E1FISE2.get("FKBER")) : E1FISE2.get("RFAREA"));
         r.put("AUFNR", E1FISEG.get("AUFNR")); // sisäinen tilaus
-        r.put("PS_PSPID", E1FISEG.get("PROJK") == null ? E1FISEG.get("PS_PSPID") : E1FISEG.get("PROJK"));
-        r.put("RASSC", E1FISEG.get("VBUND") == null ? E1FISEG.get("RASSC") : E1FISEG.get("VBUND"));
-        // TODO: WHERE IS IT???
+        r.put("PS_PSPID", E1FISEG.get("PS_PSPID") == null ? E1FISEG.get("PROJK") : E1FISEG.get("PS_PSPID"));
+        r.put("RASSC", E1FISEG.get("RASSC") == null ? E1FISEG.get("VBUND") : E1FISEG.get("RASSC"));
         r.put("SEGMENT", E1FISEG.get("SEGMENT")); // not in s4
 
         r.put("SGTXT", E1FISEG.get("SGTXT"));
 
-        // TODO: these 2 are in both E1FIKPF.E1FISEG and E1FIKPF.E1FISET
-        r.put("DRCRK", E1FISEG.get("SHKZG") == null ? E1FISEG.get("DRCRK") : E1FISEG.get("SHKZG"));
+        r.put("DRCRK", E1FISEG.get("DRCRK") == null ? E1FISEG.get("SHKZG") : E1FISEG.get("DRCRK"));
         r.put("MWSKZ", E1FISEG.get("MWSKZ"));
 
-        // TODO: WHERE IS IT ???
         r.put("VAT_PERCENT", E1FISEG.get("VAT_PERCENT")); // not in s4
 
-        r.put("HSL", E1FISEG.get("WRBTR") == null ? E1FISEG.get("HSL") : E1FISEG.get("WRBTR"));
+        r.put("HSL", E1FISEG.get("HSL") == null ? E1FISEG.get("WRBTR") : E1FISEG.get("HSL"));
 
-        // WHERE IS IT ???
-        r.put("PPRCTR", E1FISEG.get("PPRCT") == null ? E1FISEG.get("PPRCTR") : E1FISEG.get("PPRCT"));
+        r.put("PPRCTR", E1FISEG.get("PPRCTR") == null ? E1FISEG.get("PPRCT") : E1FISEG.get("PPRCTR"));
 
         r.put("MATNR", E1FISEG.get("MATNR"));
         r.put("EBELP", E1FISEG.get("EBELP"));
 
-        // WHERE IS IT ???
-        r.put("LAST_CHANGE_DATE_TIME", E1FISEG.get("LAST_CHANGE_DATE_TIME")); // not in s4
+        r.put("LAST_CHANGE_DATE_TIME", E1FIKPF.get("LAST_CHANGE_DATE_TIME")); // not in s4
         r.put("AUGBL", E1FISEG.get("AUGBL"));
         return r;
     }
@@ -163,7 +149,8 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
                         Map<String, Object> v = (LinkedHashMap<String, Object>) valuesObj;
                         return Stream.of(extractValues(e1Main, v));
                     }
-                }).toList();
+                    // TODO: batch and check ids in batches ?
+                }).filter(this::receiptNotProcessedEarlier).toList();
 
                 // take each line and map to GJAHR + MONAT
                 receipts.forEach(receipt -> {
@@ -189,20 +176,25 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
                 .log("File ${headers.CamelFileName} written");
     }
 
-    //
-    // TODO: split to several files
-    public String getOutFileNamePrefix(String fileInName) {
-        // FI_TOSITE ->
-        // SAPACTUAL_BKPF_YYYY_M.csv
-        // SAPACTUAL_BSEG_YYYY_M.csv
-        // SAPACTUAL_FMGLFLEXA_YYYY_M.csv
-        // SAPACTUAL_KNA1_YYYY_M.csv
-        // SAPACTUAL_LFA1_YYYY_M.csv
-        // SAPACTUAL_PRPS_YYYY_M.csv
-        // SAPACTUAL_VIBDBE_YYYY_M.csv
-        //
+    public String getReceiptId(LinkedHashMap<String, Object> receipt) {
+        return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
+                receipt.get("GJAHR") + "_" + receipt.get("MONAT");
+    }
 
-        return null;
+    // store the file name?
+    Map<String, Boolean> db = new HashMap<>();
+
+    public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
+        return !db.containsKey(getReceiptId(receipt));
+    }
+
+    public Stream<Boolean> receiptsNotProcessedEarlier(List<LinkedHashMap<String, Object>> receipts) {
+        return receipts.stream().map(r -> !db.containsKey(getReceiptId(r)));
+    }
+
+
+    public String getOutFileNamePrefix(String fileInName) {
+       return "SAPACTUAL";
     }
 }
 

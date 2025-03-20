@@ -42,9 +42,12 @@ public class InRouteBuilder extends RouteBuilder {
         log.info("Profile: {{smallrye.config.profile}}");
 
         // palke ftp ID138
-        // TODO: preSort by name and consume oldest first
-        from("ftp://{{palke.ftp.user_ID138}}@{{palke.ftp.host}}/password={{palke.ftp.password_ID138}}?noop=true&fileName=NON_EXISTING_FILE.txt")
-            .routeId("readKaskoFtp")
-            .log("ftp");
+        if (palkeConfig.ftpHost().isPresent()) {
+            log.info("starting sftp");
+            // TODO: preSort by name and consume oldest first
+            from("ftp://{{palke.ftp.user_ID138}}@{{palke.ftp.host}}/password={{palke.ftp.password_ID138}}?noop=true&fileName=NON_EXISTING_FILE.txt")
+                    .routeId("readKaskoFtp")
+                    .log("ftp");
+        }
     }
 }

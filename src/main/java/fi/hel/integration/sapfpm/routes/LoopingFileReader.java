@@ -9,7 +9,7 @@ public abstract class LoopingFileReader extends RouteBuilder {
 
     public ProcessorDefinition<?> createLoopingFileReaderRoute(String routeId, String pollEnrichIn, String fileFilter, String processingRouteTo, String aggregatedPropertyName) {
         // TODO:
-        return from("timer:start " + routeId + " ?period=30000").routeId(routeId)
+        return from("timer:start " + routeId + " ?period=600000").routeId(routeId)
             .log("start, keepReading: ${exchangeProperty.keepReading}")
             .setProperty("keepReading", simple("true", Boolean.class))
             .loopDoWhile(simple("${exchangeProperty.keepReading}"))

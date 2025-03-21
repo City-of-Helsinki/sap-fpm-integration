@@ -45,7 +45,7 @@ public class InRouteBuilder extends RouteBuilder {
         if (palkeConfig.ftpHost().isPresent()) {
             log.info("starting sftp");
             // TODO: preSort by name and consume oldest first
-            from("ftp://{{palke.ftp.user_ID138}}@{{palke.ftp.host}}?password={{palke.ftp.password_ID138}}&noop=true&download=false&ftpClient.dataTimeout=5000&fileName=NON_EXISTING_FILE.txt")
+            from("ftp://{{palke.ftp.user_ID138}}@{{palke.ftp.host}}?password={{palke.ftp.password_ID138}}&noop=true&download=false&ftpClient.dataTimeout=5000&passiveMode=true&include=RAW(*)")
                 .routeId("readKaskoFtp")
                 .log("ftp ${headers.CamelFileName}");
         }

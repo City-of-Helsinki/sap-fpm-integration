@@ -99,12 +99,10 @@ public class OrdInTest {
 
         Exchange res = producerTemplate.send("direct:unmarshal-xml-and-process-ord", ex);
 
-        Map<String, List<LinkedHashMap<String, Object>>> entry = res.getMessage().getBody(Map.class);
-        assertTrue(entry.containsKey("202410"));
-        List<LinkedHashMap<String, Object>> vals = entry.get("202410");
+        List<LinkedHashMap<String, Object>> vals =  res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
 
-        producerTemplate.sendBody("direct:ord-csv-out", entry.get("202410"));
+        producerTemplate.sendBody("direct:ord-csv-out", vals);
 
         mockFileOut.expectedMessageCount(1);
         mockFileOut.assertIsSatisfied();

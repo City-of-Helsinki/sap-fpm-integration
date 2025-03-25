@@ -38,7 +38,7 @@ public class WBSInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
-
+/*
         createLoopingFileReaderRoute("WBS_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-wbs", AGGREGATED_PROPERTY)
             .to("direct:unmarshal-and-process-wbs")
             .split(body()).process(e -> {
@@ -54,7 +54,7 @@ public class WBSInRouteBuilder extends LoopingFileReader {
             .log("processed ${headers.CamelFileName}, writing to Azure ${headers.OutFileName}")
             .setHeader("CamelFileName", simple("${headers.OutFileName}"))
             .to("direct:wbs-csv-out");
-
+*/
         from("direct:unmarshal-and-process-wbs")
             .log("WBS IN :: ${headers.CamelFileName}")
             .unmarshal().jacksonXml()

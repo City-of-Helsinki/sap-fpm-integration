@@ -18,8 +18,6 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // ID025_FI_TOSITE_ -> ID025 Palke
 // IDXXX_FI_TOSITE -> IDXXX Kasko
 // YYYY_MM
-// <AWTYP>BKPF</AWTYP> ???
-
 
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
@@ -97,6 +95,7 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
+        /*
         createLoopingFileReaderRoute("TOSITE_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-tosite",
                 "byYearAndMonth")
             .split(body()).process(e -> {
@@ -113,7 +112,7 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
             .log("processed ${headers.CamelFileName}, writing to Azure ${headers.OutFileName}")
             .setHeader("CamelFileName", simple("${headers.OutFileName}"))
             .to("direct:tosite-csv-out");
-
+*/
         from("direct:unmarshal-and-process-tosite")
             .log("TOSITE IN :: ${headers.CamelFileName}")
             .unmarshal().jacksonXml()

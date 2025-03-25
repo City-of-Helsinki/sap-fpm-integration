@@ -14,22 +14,16 @@ public class FileAggregationStrategy implements AggregationStrategy {
     }
 
     @Override
-    public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
-        if (newExchange == null) {
-            System.out.println("new is null");
-            oldExchange.setProperty("noMoreFiles", Boolean.TRUE);
-            oldExchange.setProperty("keepReading", Boolean.FALSE);
-
-            return oldExchange;
+    public Exchange aggregate(Exchange original, Exchange polled) {
+        if (polled == null) {
+            original.setProperty("pollWasEmpty", Boolean.TRUE);
+            original.getMessage().setBody(original.getProperty(aggregatedPropertyName));
+            return original;
         } else {
-            System.out.println("oldexchange: " + oldExchange.getProperty(aggregatedPropertyName));
-            newExchange.setProperty(aggregatedPropertyName, oldExchange.getProperty(aggregatedPropertyName));
+            polled.setProperty(aggregatedPropertyName, original.getProperty(aggregatedPropertyName));
+            polled.setProperty("pollWasEmpty", Boolean.FALSE);
         }
-        newExchange.setProperty("keepReading", oldExchange.getProperty("keepReading"));
 
-        System.out.println(oldExchange.getMessage().getHeader("CamelFileName"));
-        System.out.println("new: " + newExchange.getMessage().getHeader("CamelFileName"));
-
-        return newExchange;
+        return polled; // so the polled body can be processed and aggregated into
     }
 }

@@ -19,14 +19,25 @@ import java.util.stream.Collectors;
 /*Sapista FPM:lle:
 BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 
-KNA1 = asiakkaat, tälle ei perustietoliittymää eikä tule sotepelle käyttöön   (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
-LFA1 = toimittajat, tälle on perustietoliittymä mutta ei tule sopete käyttöön (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin*/
 
 // ORD_OUT -> sisäisen tilauksen käsittelyyn SAPSISTILAUS
+// ID167/203   ORD_OUT* Sisäiset tilaukset, uudet ja muuttuneet (myös esim. lukitustieto) yksi tiedosto per sisäinen tilaus
+
 // PART_OUT -> SAPKUMPPANI
+// ID167/210   PART_OUT* Kumppanit (kumppanitulosyksiköt) kaikki kumppanit, yksi tiedosto per päivä
+
 // WBS_OUT -> SAPPROJEKTI
+// // ID167/204   WBS_OUT* Projektit ja projektin rakenneosat, uudet ja muuttuneet (myös esim. lukitustiedosto) yksi tiedosto per päivä tiedosto sisältää kaikki uudet ja muuttuneet projektit
+
 // ID022_FI_TOSITE -> SAPACTUAL
+
+// CO_OUT ->
+
+// Toimintoalueell ei nähdä tarvetta, se ei ole käytössä Palkella (eikä Kaskolla) ja SOTEPE voi ylläpitää toistaiseksi käsin (jos hekään oikeasti käyttävät budjetoinnissa toimintoaluetta)
+// Samoin en näe tarvetta pääkirjatililataukselle, sen voi viedä suoraan FPM yhtenä latauksena sillä muutoksia tulee harvakseltaan
+
+
 @ApplicationScoped
 public class InRouteBuilder extends RouteBuilder {
 

@@ -11,20 +11,23 @@ import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
 
-// ORD_OUT_ _> SAPSISTILAUS
+// /203/ORD_OUT_*.xml _> SAPSISTILAUS
+// kaikki filut yhteen tiedostoon?
+// Sisäiset tilaukset, uudet ja muuttuneet (myös esim. lukitustieto)
+// tiedosto per sisäinen tilaus <- saattaa olla myös useita per tiedosto
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class OrdInRouteBuilder extends LoopingFileReader {
     @Inject
     Logger log;
 
-    static final String POLL_ENRICH_IN = "file:in";
+    static final String POLL_ENRICH_IN = "file:ordIn";
+    final static String IN_FILE_PREFIX = "ORD_OUT_";
+    final static String AGGREGATED_PROPERTY = "partBody";
 
     CsvDataFormat ordCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
             "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT"
     });
-
-    final static String IN_FILE_PREFIX = "ORD_OUT_";
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> commonValues, Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> ord = new LinkedHashMap<>(); // order matters
@@ -40,53 +43,47 @@ public class OrdInRouteBuilder extends LoopingFileReader {
     public void configure() throws Exception {
 
         createLoopingFileReaderRoute("ORD_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-ord",
-        "byYearAndMonth")
-            .split(body()).process(e -> {
-                Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
-                String yearAndMonth = yearAndMonthAndLines.getKey();
-                String year = yearAndMonth.substring(0, 4);
-                String month = yearAndMonth.substring(4, 6);
-                if (month.startsWith("0")) month = month.substring(1);
-                String prefix = getOutFileNamePrefix(e.getMessage().getHeader("CamelFileName", String.class));
-                e.getMessage().setHeader("OutFileName", prefix + "_" + year + "_" + month + ".csv");
-                e.getMessage().setBody(yearAndMonthAndLines.getValue());
-            })
-            .log("processed ${headers.CamelFileName}, writing to Azure ${headers.OutFileName}")
-            .setHeader("CamelFileName", simple("${headers.OutFileName}"))
+                AGGREGATED_PROPERTY)
+            .setHeader("CamelFileName", constant("SAPSISTILAUS.csv"))
+            .log("writing to Azure ${headers.CamelFileName}")
             .to("direct:ord-csv-out");
 
         from("direct:unmarshal-xml-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
-            .log("ORD IN :: ${headers.CamelFileName}")
-            .unmarshal().jacksonXml().to("direct:process-ord-out");
+            .unmarshal().jacksonXml().to("direct:process-ord");
 
         // ORD_OUT_167_SOTE*.xml
-        // SAPSISTILAUS
-        from("direct:process-ord-out")
+        // ORD_OUT_138_*.xml
+        // SAPSISTILAUS.csv
+        from("direct:process-ord")
             .process(e -> {
-                Tuple2<Map<String, Object>, List<LinkedHashMap<String, Object>>> commonValuesAndValues = extractValuesFromIDOC(e,  "EDI_DC40", "ZHKI_TARSISTILAUKSET", this::extractValues);
-                Map<String, Object> commonValues = commonValuesAndValues.getItem1();
+                Tuple2<Map<String, Object>, List<LinkedHashMap<String, Object>>> commonValuesAndValues = extractValuesFromIDOC(e,  null, "ZHKI_TARSISTILAUKSET", this::extractValues);
                 List<LinkedHashMap<String, Object>> valueLines = commonValuesAndValues.getItem2();
-
-                // TODO: GJAHR + MONAT
-                String CREDAT = (String) commonValues.get("CREDAT"); //20240820
-                String yearAndMonth = CREDAT.substring(0, 6);
-
-                Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = addToByYearAndMonthIfExistsOrCreate(e.getProperty("byYearAndMonth", Map.class), yearAndMonth, valueLines);
-                e.setProperty("byYearAndMonth", byYearAndMonth);
-
-                e.getMessage().setBody(byYearAndMonth);
-            }).id("ProcessOrdOut");
+                List<LinkedHashMap<String, Object>> prevLines = e.getProperty(AGGREGATED_PROPERTY, List.class);
+                if (prevLines == null) {
+                    prevLines = valueLines;
+                } else {
+                    prevLines = concatNewLinesToOld(prevLines, valueLines);
+                }
+                e.setProperty(AGGREGATED_PROPERTY, prevLines);
+                e.getMessage().setBody(prevLines); // needed?
+            }).id("ProcessOrd");
 
         from("direct:ord-csv-out").routeId("ordCsvOut")
                 .marshal(ordCsvDataFormat)
                 .to("direct:ord-file-out");
 
         from("direct:ord-file-out").id("ORDFileOut")
+            .log("Trying to write the file ${headers.CamelFileName}")
+                .onException(Exception.class)
+                    .maximumRedeliveries(10).redeliveryDelay(1000)
+                    .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
+                .end()
+            .to("file:ordOut?fileExist=Override")
             .log("File ${headers.CamelFileName} written");
+                //fileExist=Fail throws GenericFileOperationException
+                // could catch that and then append without header
+
     }
 
-    public String getOutFileNamePrefix(String fileInName) {
-        return "SAPSISTILAUS";//"SAPSISTILAUS_TO_FPM_"
-    }
 }
 

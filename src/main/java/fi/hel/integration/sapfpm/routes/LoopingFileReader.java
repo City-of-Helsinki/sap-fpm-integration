@@ -15,18 +15,18 @@ public abstract class LoopingFileReader extends RouteBuilder {
     long enrichTimeout = 1000;
 
     public ProcessorDefinition<?> createLoopingFileReaderRoute(String routeId, String pollEnrichIn, String fileFilter, String processingRouteTo, String aggregatedPropertyName) {
-        // TODO: make sure only 1 is started at a time
-        return from("timer:start-" + routeId + " ?period=" + pollingPeriod + "&delay=0").routeId(routeId)
-
+        String pollEnrichInWithParams = pollEnrichIn + "?charset=ISO-8859-1&include=RAW(" + fileFilter + ".*.xml)"
+               ;// + "&noop=true&idempotent=true"; // don't move files in testing phase
+        return from("direct:start-" + routeId).routeId(routeId).id(routeId)
             .setProperty("keepReading", simple("true", Boolean.class))
             .setProperty("pollEmptyCount", simple("0"))
             .process(e -> e.setProperty("processedFiles", new ArrayList<String>()))
             .loopDoWhile(simple("${exchangeProperty.pollEmptyCount} < 2"))
-                .pollEnrich(pollEnrichIn + "?charset=ISO-8859-1&include=RAW(" + fileFilter + ".*.xml)",
-                        enrichTimeout, new FileAggregationStrategy(aggregatedPropertyName))
+                .pollEnrich(pollEnrichInWithParams, enrichTimeout, new FileAggregationStrategy(aggregatedPropertyName))
                 // TODO: save into a list of processed files and move to arch after all processed
                 .choice()
                     .when().simple("${exchangeProperty.pollWasEmpty}")
+                     .log("poll was empty, empty count: ${exchangeProperty.pollEmptyCount}")
                         .setProperty("pollEmptyCount", simple("${exchangeProperty.pollEmptyCount}++"))
                     .otherwise()
                         .log("enriched ${headers.CamelFileName}")
@@ -39,10 +39,10 @@ public abstract class LoopingFileReader extends RouteBuilder {
             .process(e -> e.setProperty("processedFilesNotEmpty", !e.getProperty("processedFiles", List.class).isEmpty()))
             .choice()
                 .when(simple("${exchangeProperty.processedFilesNotEmpty}"))
-                .process(e -> {
-                    log.info("Processed files: ");
-                    log.info(String.join(", ", e.getProperty("processedFiles", List.class)));
-                });
+                    .process(e -> {
+                        log.info("Processed files: ");
+                        log.info(String.join(", ", e.getProperty("processedFiles", List.class)));
+                    });
     }
 
 }

@@ -42,6 +42,7 @@ public class OrdInRouteBuilder extends LoopingFileReader {
     @Override
     public void configure() throws Exception {
 
+        // process(e -> create a new file first, then append to it + clean ids)
         createLoopingFileReaderRoute("ORD_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-xml-and-process-ord",
                 AGGREGATED_PROPERTY)
             .setHeader("CamelFileName", constant("SAPSISTILAUS.csv"))
@@ -59,17 +60,14 @@ public class OrdInRouteBuilder extends LoopingFileReader {
                 Tuple2<Map<String, Object>, List<LinkedHashMap<String, Object>>> commonValuesAndValues = extractValuesFromIDOC(e,  null, "ZHKI_TARSISTILAUKSET", this::extractValues);
                 List<LinkedHashMap<String, Object>> valueLines = commonValuesAndValues.getItem2();
                 List<LinkedHashMap<String, Object>> prevLines = e.getProperty(AGGREGATED_PROPERTY, List.class);
-                if (prevLines == null) {
-                    prevLines = valueLines;
-                } else {
-                    prevLines = concatNewLinesToOld(prevLines, valueLines);
-                }
+                prevLines = prevLines == null ? valueLines : concatNewLinesToOld(prevLines, valueLines);
                 e.setProperty(AGGREGATED_PROPERTY, prevLines);
                 e.getMessage().setBody(prevLines); // needed?
             }).id("ProcessOrd");
 
         from("direct:ord-csv-out").routeId("ordCsvOut")
-                .marshal(ordCsvDataFormat)
+                // if file exists, append without header, else
+                .marshal(ordCsvDataFormat.setHeaderDisabled(true))
                 .to("direct:ord-file-out");
 
         from("direct:ord-file-out").id("ORDFileOut")
@@ -82,6 +80,7 @@ public class OrdInRouteBuilder extends LoopingFileReader {
             .log("File ${headers.CamelFileName} written");
                 //fileExist=Fail throws GenericFileOperationException
                 // could catch that and then append without header
+
 
     }
 

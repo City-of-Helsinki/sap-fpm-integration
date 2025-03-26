@@ -38,23 +38,13 @@ public class WBSInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
-/*
+
         createLoopingFileReaderRoute("WBS_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-wbs", AGGREGATED_PROPERTY)
             .to("direct:unmarshal-and-process-wbs")
-            .split(body()).process(e -> {
-                Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
-                String yearAndMonth = yearAndMonthAndLines.getKey();
-                String year = yearAndMonth.substring(0, 4);
-                String month = yearAndMonth.substring(4, 6);
-                if (month.startsWith("0")) month = month.substring(1);
-                String prefix = getOutFileNamePrefix(e.getMessage().getHeader("CamelFileName", String.class));
-                e.getMessage().setHeader("OutFileName", prefix + "_" + year + "_" + month + ".csv");
-                e.getMessage().setBody(yearAndMonthAndLines.getValue());
-            })
-            .log("processed ${headers.CamelFileName}, writing to Azure ${headers.OutFileName}")
-            .setHeader("CamelFileName", simple("${headers.OutFileName}"))
+            .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
+            .log("writing to Azure ${headers.CamelFileName}")
             .to("direct:wbs-csv-out");
-*/
+
         from("direct:unmarshal-and-process-wbs")
             .log("WBS IN :: ${headers.CamelFileName}")
             .unmarshal().jacksonXml()
@@ -63,16 +53,11 @@ public class WBSInRouteBuilder extends LoopingFileReader {
         from("direct:process-wbs")
             .process(e -> {
                 Tuple2<Map<String, Object>, List<LinkedHashMap<String, Object>>> commonValuesAndValues = extractValuesFromIDOC(e, "EDI_DC40", "ZHKI_PROJEKTIRAKENTEENOSA", this::extractValues);
-                Map<String, Object> commonValues = commonValuesAndValues.getItem1();
                 List<LinkedHashMap<String, Object>> valueLines = commonValuesAndValues.getItem2();
-                // TODO: check for uniqueness
-                String CREDAT = (String) commonValues.get("CREDAT"); //20240820
-                String yearAndMonth = CREDAT.substring(0, 6);
-
-                Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = addToByYearAndMonthIfExistsOrCreate(e.getProperty(AGGREGATED_PROPERTY, Map.class), yearAndMonth, valueLines);
-                e.setProperty(AGGREGATED_PROPERTY, byYearAndMonth);
-
-                e.getMessage().setBody(byYearAndMonth);
+                List<LinkedHashMap<String, Object>> prevLines = e.getProperty(AGGREGATED_PROPERTY, List.class);
+                prevLines = prevLines == null ? valueLines : concatNewLinesToOld(prevLines, valueLines);
+                e.setProperty(AGGREGATED_PROPERTY, prevLines);
+                e.getMessage().setBody(prevLines); // needed?
             }).id("ProcessWBS");
 
         from("direct:wbs-csv-out").routeId("wbsCsvOut")
@@ -80,12 +65,8 @@ public class WBSInRouteBuilder extends LoopingFileReader {
             .to("direct:wbs-file-out");
 
         from("direct:wbs-file-out").id("WBSFileOut")
+            .to("file:wbsOut?fileExist=Override")
             .log("File ${headers.CamelFileName} written");
-    }
-
-    public String getOutFileNamePrefix(String fileInName) {
-        // SAPPROJEKTI ei tarvitse vuoden / kuukauden mukaan kokoamista
-        return "SAPPROJEKTI_PRPS"; // vaiko SAPPROJEKTI.csv ???
     }
 }
 

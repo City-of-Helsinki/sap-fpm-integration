@@ -60,5 +60,8 @@ public class InRouteBuilder extends RouteBuilder {
                 .routeId("readKaskoFtp")
                 .log("ftp ${headers.CamelFileName}");
         }
+
+        from("timer://ordOnce?repeatCount=1").to("direct:start-ORD_IN");
+       // from("timer://tositeOnce?delay=0&repeatCount=1").to("direct:start-TOSITE_IN");
     }
 }

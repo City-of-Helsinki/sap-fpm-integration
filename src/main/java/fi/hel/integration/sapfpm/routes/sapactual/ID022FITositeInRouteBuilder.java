@@ -43,7 +43,7 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
         r.put("BELNR", E1FIKPF.get("BELNR")); // tositenumero
         r.put("CO_BELNR", E1FIKPF.get("CO_BELNR")); // not in S4
         r.put("GJAHR", E1FIKPF.get("GJAHR")); // tilikausi
-        r.put("POPER", E1FIKPF.get("MONAT") == null ? E1FIKPF.get("POPER") : E1FIKPF.get("MONAT")); // kirjauskausi
+        r.put("POPER", E1FIKPF.get("POPER") == null ? E1FIKPF.get("MONAT") : E1FIKPF.get("POPER")); // kirjauskausi
         r.put("BLART", E1FIKPF.get("BLART"));
         r.put("BLDAT", E1FIKPF.get("BLDAT"));
         r.put("BUDAT", E1FIKPF.get("BUDAT")); // kirjauspvm
@@ -51,8 +51,8 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
         r.put("TCODE", E1FIKPF.get("TCODE"));
         r.put("XBLNR", E1FIKPF.get("XBLNR")); // viitetositenumero (maksuviite)
 
+        // väärin speksissä
         r.put("KUNNR", E1FINBU.get("KUNNR")); // asiakasnumero
-
         r.put("LIFNR", E1FINBU.get("LIFNR")); // toimittajanumero
         // TODO: recheck, doesn't make sense that LIFNR is in FINBU and name not!
         r.put("LIFNR_NAME1", E1FIKPF.get("LIFNR_NAME1")); // not in s4
@@ -95,26 +95,26 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
-        /*
+        // process(e -> create a new file first, then append to it + clean ids)
+
         createLoopingFileReaderRoute("TOSITE_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-tosite",
-                "byYearAndMonth")
+                AGGREGATED_PROPERTY)
             .split(body()).process(e -> {
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
                 String yearAndMonth = yearAndMonthAndLines.getKey();
                 String year = yearAndMonth.substring(0, 4);
                 String month = yearAndMonth.substring(4, 6);
                 if (month.startsWith("0")) month = month.substring(1);
-                // TODO: split to several files
+
                 String prefix = getOutFileNamePrefix(e.getMessage().getHeader("CamelFileName", String.class));
                 e.getMessage().setHeader("OutFileName", prefix + "_" + year + "_" + month + ".csv");
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
-            .log("processed ${headers.CamelFileName}, writing to Azure ${headers.OutFileName}")
+            .log("Writing to Azure ${headers.OutFileName}")
             .setHeader("CamelFileName", simple("${headers.OutFileName}"))
             .to("direct:tosite-csv-out");
-*/
+
         from("direct:unmarshal-and-process-tosite")
-            .log("TOSITE IN :: ${headers.CamelFileName}")
             .unmarshal().jacksonXml()
             .to("direct:process-tosite");
 
@@ -149,11 +149,11 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
                         return Stream.of(extractValues(e1Main, v));
                     }
                     // TODO: batch and check ids in batches ?
+                    // TODO: filter by year and month? i.e. the file
                 }).filter(this::receiptNotProcessedEarlier).toList();
 
-                // take each line and map to GJAHR + MONAT
+                // take each line and map to GJAHR + POPER (MONAT)
                 receipts.forEach(receipt -> {
-                    System.out.println(receipt);
                     String year = (String) receipt.get("GJAHR");
                     if (year.length() < 2) year = "0" + year;
                     String month = (String) receipt.get("POPER");
@@ -161,6 +161,7 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
                     String yearAndMonth = year + month;
                     Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = addToByYearAndMonthIfExistsOrCreate(e.getProperty(AGGREGATED_PROPERTY, Map.class), yearAndMonth, List.of(receipt));
                     e.setProperty(AGGREGATED_PROPERTY, byYearAndMonth);
+                    db.put(getReceiptId(receipt), yearAndMonth);
                 });
 
                 e.getMessage().setBody(e.getProperty(AGGREGATED_PROPERTY));
@@ -172,19 +173,25 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
 
         //.setProperty(Exchange.CHARSET_NAME, constant("ISO-8859-1"))
         from("direct:tosite-file-out").id("tositeFileOut")
-                .log("File ${headers.CamelFileName} written");
+            .to("file:tositeOut")
+            .log("File ${headers.CamelFileName} written");
     }
 
     public String getReceiptId(LinkedHashMap<String, Object> receipt) {
         return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
-                receipt.get("GJAHR") + "_" + receipt.get("MONAT");
+                receipt.get("GJAHR") + "_" + receipt.get("POPER");
     }
 
-    // store the file name?
-    Map<String, Boolean> db = new HashMap<>();
+    // receipt id -> year + month (file name)
+    Map<String, String> db = new HashMap<>();
 
     public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
-        return !db.containsKey(getReceiptId(receipt));
+        String receiptId = getReceiptId(receipt);
+        boolean wasProcessedEarlier = db.containsKey(receiptId);
+        if (wasProcessedEarlier) {
+            log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
+        }
+        return !wasProcessedEarlier;
     }
 
     public Stream<Boolean> receiptsNotProcessedEarlier(List<LinkedHashMap<String, Object>> receipts) {

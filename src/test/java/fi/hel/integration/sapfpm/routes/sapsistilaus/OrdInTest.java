@@ -36,7 +36,7 @@ public class OrdInTest {
         Exchange ex = new DefaultExchange(ctx);
 
         AdviceWith.adviceWith(ctx, "ordCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:ord-file-out")
+            builder.interceptSendToEndpoint("direct:any-file-out")
                 .skipSendToOriginalEndpoint()
                 .to(mockFileOut.getEndpointUri());
         });

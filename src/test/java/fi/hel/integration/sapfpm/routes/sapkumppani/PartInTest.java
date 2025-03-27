@@ -35,7 +35,7 @@ public class PartInTest {
         Exchange ex = new DefaultExchange(ctx);
 
         AdviceWith.adviceWith(ctx, "partCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:part-file-out")
+            builder.interceptSendToEndpoint("direct:any-file-out")
                 .skipSendToOriginalEndpoint()
                 .to(mockFileOut.getEndpointUri());
         });

@@ -1,16 +1,16 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
-import fi.hel.integration.sapfpm.routes.LoopingFileReader;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.apache.camel.AggregationStrategy;
+import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 // KNA1 = asiakkaat, tälle ei perustietoliittymää eikä tule sotepelle käyttöön   (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 // LFA1 = toimittajat, tälle on perustietoliittymä mutta ei tule sotepe käyttöön (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
@@ -21,16 +21,15 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
-public class ID022FITositeInRouteBuilder extends LoopingFileReader {
+public class ID022FITositeInRouteBuilder extends RouteBuilder {
     CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
             "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
             "VAT_PERCENT","HSL","PPRCTR","MATNR","EBELP","LAST_CHANGE_DATETIME","AUGBL"
     });
 
+    // TODO: _TOSITE_ instead of ID022
     final static String IN_FILE_PREFIX = "ID022_FI_TOSITE_";
-    final static String POLL_ENRICH_IN = "file:in";
-    final static String AGGREGATED_PROPERTY = "receiptsByYearAndMonth";
 
     // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
@@ -95,29 +94,65 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
 
     @Override
     public void configure() throws Exception {
-        // process(e -> create a new file first, then append to it + clean ids)
+        // process(e -> create a new file first, then append to it in batches)
+        // // TODO: batch and check ids in batches ?
+//                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
+        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("tosteIn")
+            .to("direct:unmarshal-and-process-tosite")
+            .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
+                Set<String> oldProcessedReceiptIds;
+                Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
+                if (oldExchange == null) {
+                    // db.put(getReceiptId(receipt), yearAndMonth);
+                    oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> {
+                        return yearMonth.stream().map(this::getReceiptId);
+                    }).collect(Collectors.toSet());
+                    // TODO: set somewhere?
+                    return newExchange;
+                } else {
+                    Map<String, List<LinkedHashMap<String, Object>>> oldByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
+                    oldProcessedReceiptIds = oldByYearAndMonth.values().stream().flatMap(yearMonth ->
+                         yearMonth.stream().map(this::getReceiptId)
+                    ).collect(Collectors.toSet());
 
-        createLoopingFileReaderRoute("TOSITE_IN", POLL_ENRICH_IN, IN_FILE_PREFIX, "direct:unmarshal-and-process-tosite",
-                AGGREGATED_PROPERTY)
+                    newByYearAndMonth.forEach((yearMonthKey, newVals) -> {
+                        List<LinkedHashMap<String, Object>> oldVals = oldByYearAndMonth.get(yearMonthKey);
+                        if (oldVals == null) {
+                            oldByYearAndMonth.put(yearMonthKey, newVals);
+                        } else {
+                            List<LinkedHashMap<String, Object>> filteredNewVals = newVals.stream().filter(newV -> {
+                                boolean alreadyExists = oldProcessedReceiptIds.contains(getReceiptId(newV));
+                                if (alreadyExists) {
+                                    log.info("Receipt %s from %s already exists, ignoring".formatted(getReceiptId(newV), newExchange.getMessage().getHeader("CamelFileName", String.class)));
+                                }
+                                return !alreadyExists;
+                            }).toList();
+                            oldByYearAndMonth.put(yearMonthKey, concatNewLinesToOld(oldVals, filteredNewVals));
+                        }
+                    });
+
+                    return oldExchange;
+                }
+            }).constant(true).completionFromBatchConsumer()
             .split(body()).process(e -> {
+                // Map.entry -> each out YYYY_MM file out
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
                 String yearAndMonth = yearAndMonthAndLines.getKey();
                 String year = yearAndMonth.substring(0, 4);
                 String month = yearAndMonth.substring(4, 6);
                 if (month.startsWith("0")) month = month.substring(1);
 
-                String prefix = getOutFileNamePrefix(e.getMessage().getHeader("CamelFileName", String.class));
-                e.getMessage().setHeader("OutFileName", prefix + "_" + year + "_" + month + ".csv");
+                e.getMessage().setHeader("CamelFileName", "SAPACTUAL" + "_" + year + "_" + month + ".csv");
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
-            .log("Writing to Azure ${headers.OutFileName}")
-            .setHeader("CamelFileName", simple("${headers.OutFileName}"))
+            .log("Writing to Azure ${headers.CamelFileName}")
             .to("direct:tosite-csv-out");
 
         from("direct:unmarshal-and-process-tosite")
             .unmarshal().jacksonXml()
             .to("direct:process-tosite");
 
+        // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
             .process(e -> {
                 // get each E1FIKPF, from them each E1FISEG and map those
@@ -148,33 +183,25 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
                         Map<String, Object> v = (LinkedHashMap<String, Object>) valuesObj;
                         return Stream.of(extractValues(e1Main, v));
                     }
-                    // TODO: batch and check ids in batches ?
-                    // TODO: filter by year and month? i.e. the file
-                }).filter(this::receiptNotProcessedEarlier).toList();
+                }).toList();
 
+                Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = new HashMap<>();
                 // take each line and map to GJAHR + POPER (MONAT)
                 receipts.forEach(receipt -> {
                     String year = (String) receipt.get("GJAHR");
                     if (year.length() < 2) year = "0" + year;
                     String month = (String) receipt.get("POPER");
                     if (month.length() < 2) month = "0" + month;
-                    String yearAndMonth = year + month;
-                    Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = addToByYearAndMonthIfExistsOrCreate(e.getProperty(AGGREGATED_PROPERTY, Map.class), yearAndMonth, List.of(receipt));
-                    e.setProperty(AGGREGATED_PROPERTY, byYearAndMonth);
-                    db.put(getReceiptId(receipt), yearAndMonth);
+                    String yearAndMonthKey = year + month;
+                    addToByYearAndMonthIfExistsOrCreate(byYearAndMonth, yearAndMonthKey, List.of(receipt));
                 });
 
-                e.getMessage().setBody(e.getProperty(AGGREGATED_PROPERTY));
+                e.getMessage().setBody(byYearAndMonth);
             }).id("ProcessTositeOut");
 
         from("direct:tosite-csv-out").id("tositeAzureOut")
             .marshal(tositeCsvDataFormat)
-            .to("direct:tosite-file-out");
-
-        //.setProperty(Exchange.CHARSET_NAME, constant("ISO-8859-1"))
-        from("direct:tosite-file-out").id("tositeFileOut")
-            .to("file:tositeOut")
-            .log("File ${headers.CamelFileName} written");
+            .to("direct:any-file-out");
     }
 
     public String getReceiptId(LinkedHashMap<String, Object> receipt) {
@@ -192,15 +219,6 @@ public class ID022FITositeInRouteBuilder extends LoopingFileReader {
             log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
         }
         return !wasProcessedEarlier;
-    }
-
-    public Stream<Boolean> receiptsNotProcessedEarlier(List<LinkedHashMap<String, Object>> receipts) {
-        return receipts.stream().map(r -> !db.containsKey(getReceiptId(r)));
-    }
-
-
-    public String getOutFileNamePrefix(String fileInName) {
-       return "SAPACTUAL";
     }
 }
 

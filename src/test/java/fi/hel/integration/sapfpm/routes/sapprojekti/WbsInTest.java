@@ -38,10 +38,9 @@ public class WbsInTest {
         Exchange ex = new DefaultExchange(ctx);
 
         String CREDAT = "20250219";
-        String CREDAT_YEAR_MONTH = CREDAT.substring(0, 6);
 
         AdviceWith.adviceWith(ctx, "wbsCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:wbs-file-out")
+            builder.interceptSendToEndpoint("direct:any-file-out")
                     .skipSendToOriginalEndpoint()
                     .to(mockFileOut.getEndpointUri());
         });
@@ -149,13 +148,10 @@ public class WbsInTest {
 
         Exchange res = producerTemplate.send("direct:unmarshal-and-process-wbs", ex);
 
-        Map<String, List<LinkedHashMap<String, Object>>> entry = res.getMessage().getBody(Map.class);
-
-        assertTrue(entry.containsKey(CREDAT_YEAR_MONTH));
-        List<LinkedHashMap<String, Object>> vals = entry.get(CREDAT_YEAR_MONTH);
+        List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
 
-        producerTemplate.sendBody("direct:wbs-csv-out", entry.get(CREDAT_YEAR_MONTH));
+        producerTemplate.sendBody("direct:wbs-csv-out", vals);
 
         mockFileOut.expectedMessageCount(1);
         mockFileOut.assertIsSatisfied();

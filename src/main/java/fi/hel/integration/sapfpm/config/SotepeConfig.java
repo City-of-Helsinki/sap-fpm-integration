@@ -5,8 +5,8 @@ import io.smallrye.config.WithName;
 
 import java.util.Optional;
 
-@ConfigMapping(prefix = "palke")
-public interface PalkeConfig {
+@ConfigMapping(prefix = "sotepe")
+public interface SotepeConfig {
     @WithName("azure.sasToken")
     Optional<String> azureSasToken();
 
@@ -31,9 +31,4 @@ public interface PalkeConfig {
     @WithName("ftp.password_toteumat")
     Optional<String> ftpPasswordToteumat();
 
-    @WithName("ftp.user_co_toteumat")
-    Optional<String> ftpUserCoToteumat();
-
-    @WithName("ftp.password_co_toteumat")
-    Optional<String> ftpPasswordCoToteumat();
 }

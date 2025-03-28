@@ -18,7 +18,8 @@ public class AzureBlobOut extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        String azureParams = "operation=uploadBlockBlob&credentialType=AZURE_SAS&sasToken=RAW(%s)".formatted(palkeConfig.azureSasToken());
+        // TODO: build per each kasko, sotepe, palke
+        /*String azureParams = "operation=uploadBlockBlob&credentialType=AZURE_SAS&sasToken=RAW(%s)".formatted(palkeConfig.azureSasToken());
 
       //  from("file:testaz").to("direct:upload-blob-to-azure");
 
@@ -28,7 +29,7 @@ public class AzureBlobOut extends RouteBuilder {
             })
             .to("azure-storage-blob://%s/%s?%s".formatted(palkeConfig.azureAccountName(), palkeConfig.azureContainerName(), azureParams))
                 .log("uploaded");
-
+*/
         from("direct:any-file-out").id("AnyFileOut")
             .log("Trying to write file ${headers.CamelFileName}")
                 .onException(Exception.class)

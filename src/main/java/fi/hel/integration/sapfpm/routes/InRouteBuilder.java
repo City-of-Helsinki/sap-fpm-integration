@@ -44,11 +44,14 @@ public class InRouteBuilder extends RouteBuilder {
         return buildInParamsWithExclude("RAW((?!" + filePrefix + "){1}.*.xml)");
     }
 
-    @Inject
-    Logger log;
+    // TODO: move to mainConfig
+    public static String buildFtpParams(String filePrefix) {
+        return buildInParamsWithExclude("RAW((?!" + filePrefix + "){1}.*.xml)") +
+                "&passiveMode=true";
+    }
 
     @Inject
-    PalkeConfig palkeConfig;
+    Logger log;
 
     @Override
     public void configure() throws Exception {
@@ -67,25 +70,14 @@ ID167/210   PART_OUT* Kumppanit (kumppanitulosyksiköt) kaikki kumppanit, yksi t
 Toimintoalueell ei nähdä tarvetta, se ei ole käytössä Palkella (eikä Kaskolla) ja SOTEPE voi ylläpitää toistaiseksi käsin (jos hekään oikeasti käyttävät budjetoinnissa toimintoaluetta)
 ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per päivä*/
 
+        // SOTEPE ID022 tositteet
+
         // KASKO-ID015 tyhjä ???
         // KASKO-ID137 perustiedot
         // KASKO ID023 toteumatositteet
 
-        // TALPA ID022 tositteet
-
-        // PALKE ID166 tyhjä ???
+        // PALKE ID166 tyhjä ??? <-- toteumatositteet, palkelle myös CO toteutamatositteet
         // PALKE ID138 perustiedot
         // PALKE ID025 toteumatositteet
-        // palkelle myös CO toteutamatositteet
-        if (palkeConfig.ftpHost().isPresent()) {
-            log.info("starting sftp");
-            // TODO: preSort by name and consume oldest first
-            from("ftp://{{palke.ftp.user_ID138}}@{{palke.ftp.host}}?password={{palke.ftp.password_ID138}}&noop=true&download=false&ftpClient.dataTimeout=5000&passiveMode=true&includeExt=xml")
-                    .id("readKaskoFtp")
-                    .routeId("readKaskoFtp")
-                .log("ftp ${headers.CamelFileName}");
-        }
-
-
     }
 }

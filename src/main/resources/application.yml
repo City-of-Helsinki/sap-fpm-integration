@@ -23,10 +23,34 @@ smallrye:
             containerName: "container"
         ftp:
             host: "${PALKE_SFTP_HOST}"
-            user_ID138: "${PALKE_SFTP_USER_ID138}"
-            password_ID138: "${PALKE_SFTP_PASSWORD_ID138}"
-            user_ID166: "${PALKE_SFTP_USER_ID166}"
-            password_ID166: "${PALKE_SFT_PASSWORD_ID166}"
+            user_perustiedot: "${PALKE_SFTP_USER_ID138}"
+            password_perustiedot: "${PALKE_SFTP_PASSWORD_ID138}"
+            user_toteumat: "${PALKE_SFTP_USER_ID025}"
+            password_toteumat: "${PALKE_SFTP_PASSWORD_ID025}"
+            user_co_toteumat: "${PALKE_SFTP_USER_ID166}"
+            password_co_toteumat: "${PALKE_SFT_PASSWORD_ID166}"
+    kasko:
+        azure:
+            sasToken: "token"
+            accountName: "accName"
+            containerName: "container"
+        ftp:
+            host: "${KASKO_SFTP_HOST}"
+            user_perustiedot: "${KASKO_SFTP_USER_ID137}"
+            password_perustiedot: "${KASKO_SFTP_PASSWORD_ID137}"
+            user_toteumat: "${KASKO_SFTP_USER_ID023}"
+            password_toteumat: "${KASKO_SFTP_PASSWORD_ID023}"
+    sotepe:
+        azure:
+            sasToken: "token"
+            accountName: "accName"
+            containerName: "container"
+        ftp:
+            host: "${SOTEPE_SFTP_HOST}"
+            user_perustiedot: "${SOTEPE_SFTP_USER_ID167}"
+            password_perustiedot: "${SOTEPE_SFTP_PASSWORD_ID167}"
+            user_toteumat: "${SOTEPE_SFTP_USER_ID022}"
+            password_toteumat: "${SOTEPE_SFTP_PASSWORD_ID022}"
 
 "%openshift":
     palke:

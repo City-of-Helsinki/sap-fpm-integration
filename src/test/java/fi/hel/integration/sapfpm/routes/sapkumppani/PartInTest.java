@@ -33,10 +33,8 @@ public class PartInTest {
     @BeforeEach
     public void beforeAll() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "partCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                    .skipSendToOriginalEndpoint()
-                    .to(mockFileOut.getEndpointUri());
+        AdviceWith.adviceWith(ctx, "partCsvOut", b -> {
+            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri());
         });
     }
 

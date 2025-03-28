@@ -35,11 +35,8 @@ public class WbsInTest {
     @BeforeEach
     public void beforeAll() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "wbsCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                    .skipSendToOriginalEndpoint()
-                    .to(mockFileOut.getEndpointUri());
-        });
+        AdviceWith.adviceWith(ctx, "wbsCsvOut", b ->
+                b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri()));
     }
 
     @Test

@@ -33,11 +33,8 @@ public class OrdInTest {
     @BeforeEach
     public void beforeAll() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "ordCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                    .skipSendToOriginalEndpoint()
-                    .to(mockFileOut.getEndpointUri());
-        });
+        AdviceWith.adviceWith(ctx, "ordCsvOut", b ->
+            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri()));
     }
 
     @Test

@@ -35,10 +35,8 @@ public class TositeInTest {
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "tositeAzureOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                    .skipSendToOriginalEndpoint()
-                    .to(mockFileOut.getEndpointUri());
+        AdviceWith.adviceWith(ctx, "tositeAzureOut", b -> {
+            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri());
         });
     }
 

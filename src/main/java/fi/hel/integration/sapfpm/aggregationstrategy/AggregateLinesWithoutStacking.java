@@ -9,7 +9,7 @@ import java.util.List;
 
 import static fi.hel.integration.sapfpm.IDOCParser.concatNewLinesToOld;
 
-public class ProcessedLinesAggregationStrategy implements AggregationStrategy {
+public class AggregateLinesWithoutStacking implements AggregationStrategy {
 
     public static String PROCESSED_FILES_PROPERTY = "processedFiles";
 

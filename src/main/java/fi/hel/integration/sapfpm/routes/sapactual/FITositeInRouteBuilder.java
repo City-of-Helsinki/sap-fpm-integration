@@ -11,8 +11,8 @@ import java.util.stream.Stream;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
-// KNA1 = asiakkaat, tälle ei perustietoliittymää eikä tule sotepelle käyttöön   (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
-// LFA1 = toimittajat, tälle on perustietoliittymä mutta ei tule sotepe käyttöön (pieni varaus Kasko ja Palke en ole 100 % varma ovatko käyttäneet)
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParamsWithExclude;
+
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 // ID022_FI_TOSITE_OUT_ > ID022 SOTE
 // ID025_FI_TOSITE_ -> ID025 Palke
@@ -21,15 +21,12 @@ import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
-public class ID022FITositeInRouteBuilder extends RouteBuilder {
+public class FITositeInRouteBuilder extends RouteBuilder {
     CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
             "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
             "VAT_PERCENT","HSL","PPRCTR","MATNR","EBELP","LAST_CHANGE_DATETIME","AUGBL"
     });
-
-    // TODO: _TOSITE_ instead of ID022
-    final static String IN_FILE_PREFIX = "ID022_FI_TOSITE_";
 
     // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
@@ -92,22 +89,21 @@ public class ID022FITositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
+    final static String IN_FILE_EXCLUDE = "(?!FI_TOSITE_){1}.*.xml";
     @Override
     public void configure() throws Exception {
         // process(e -> create a new file first, then append to it in batches)
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
-        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("tosteIn")
+        from("file:in?" + buildInParamsWithExclude(IN_FILE_EXCLUDE)).id("tositeIn")
             .to("direct:unmarshal-and-process-tosite")
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
                 Set<String> oldProcessedReceiptIds;
                 Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
                 if (oldExchange == null) {
                     // db.put(getReceiptId(receipt), yearAndMonth);
-                    oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> {
-                        return yearMonth.stream().map(this::getReceiptId);
-                    }).collect(Collectors.toSet());
                     // TODO: set somewhere?
+                   // oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> yearMonth.stream().map(this::getReceiptId)).collect(Collectors.toSet());
                     return newExchange;
                 } else {
                     Map<String, List<LinkedHashMap<String, Object>>> oldByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
@@ -199,7 +195,7 @@ public class ID022FITositeInRouteBuilder extends RouteBuilder {
                 e.getMessage().setBody(byYearAndMonth);
             }).id("ProcessTositeOut");
 
-        from("direct:tosite-csv-out").id("tositeAzureOut")
+        from("direct:tosite-csv-out").routeId("tositeAzureOut")
             .marshal(tositeCsvDataFormat)
             .to("direct:any-file-out");
     }

@@ -1,6 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapprojekti;
 
-import fi.hel.integration.sapfpm.aggregationstrategy.ProcessedLinesAggregationStrategy;
+import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
@@ -39,7 +39,7 @@ public class WBSInRouteBuilder extends RouteBuilder {
         // include or antInclude only works with 1 file at a time
         from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("wbsIn")
             .to("direct:unmarshal-and-process-wbs")
-            .aggregate(new ProcessedLinesAggregationStrategy()).constant(true).completionFromBatchConsumer()
+            .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
             .to("direct:wbs-csv-out");
 

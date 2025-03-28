@@ -1,6 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapkumppani;
 
-import fi.hel.integration.sapfpm.aggregationstrategy.ProcessedLinesAggregationStrategy;
+import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
@@ -35,7 +35,7 @@ public class PartInRouteBuilder extends RouteBuilder {
         // include or antInclude only works with 1 file at a time
         from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("partIn")
             .to("direct:unmarshal-and-process-part")
-            .aggregate(new ProcessedLinesAggregationStrategy()).constant(true).completionFromBatchConsumer()
+            .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPKUMPPANI.csv"))
             .to("direct:part-csv-out");
 
@@ -46,7 +46,7 @@ public class PartInRouteBuilder extends RouteBuilder {
             extractValuesDirectlyFromXML(e, "Kumppaniyhtiö", this::extractValues)
         );
 
-        from("direct:part-csv-out").id("partCsvOut")
+        from("direct:part-csv-out").routeId("partCsvOut")
                 .marshal(partCsvDataFormat)
                 .to("direct:any-file-out");
     }

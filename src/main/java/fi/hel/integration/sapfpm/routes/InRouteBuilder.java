@@ -35,9 +35,13 @@ PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihi
 @ApplicationScoped
 public class InRouteBuilder extends RouteBuilder {
 
-    public static String buildInParams(String filePrefix) {
-        return "includeExt=xml&exclude=RAW((?!" + filePrefix + "){1}.*.xml)&noop=true&" +
+    public static String buildInParamsWithExclude(String excludeRegexp) {
+        return "includeExt=xml&exclude=" + excludeRegexp + "&noop=true&" +
                 "sortBy=file:name&charset=ISO-8859-1";
+    }
+
+    public static String buildInParams(String filePrefix) {
+        return buildInParamsWithExclude("RAW((?!" + filePrefix + "){1}.*.xml)");
     }
 
     @Inject

@@ -12,6 +12,7 @@ import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -23,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-@ApplicationScoped
 public class WbsInTest {
 
     @Inject
@@ -32,18 +32,22 @@ public class WbsInTest {
     @EndpointInject("mock:wbs-out")
     MockEndpoint mockFileOut;
 
+    @BeforeEach
+    public void beforeAll() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx, "wbsCsvOut", builder -> {
+            builder.interceptSendToEndpoint("direct:any-file-out")
+                    .skipSendToOriginalEndpoint()
+                    .to(mockFileOut.getEndpointUri());
+        });
+    }
+
     @Test
     void shouldParse_WBS_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
 
         String CREDAT = "20250219";
-
-        AdviceWith.adviceWith(ctx, "wbsCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                    .skipSendToOriginalEndpoint()
-                    .to(mockFileOut.getEndpointUri());
-        });
 
         mockFileOut.whenAnyExchangeReceived(e -> {
             InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);

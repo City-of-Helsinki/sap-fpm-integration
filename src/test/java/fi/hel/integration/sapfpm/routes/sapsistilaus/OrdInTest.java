@@ -11,6 +11,7 @@ import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -21,7 +22,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
-@ApplicationScoped
 public class OrdInTest {
 
     @Inject
@@ -30,16 +30,20 @@ public class OrdInTest {
     @EndpointInject("mock:ord-out")
     MockEndpoint mockFileOut;
 
+    @BeforeEach
+    public void beforeAll() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx, "ordCsvOut", builder -> {
+            builder.interceptSendToEndpoint("direct:any-file-out")
+                    .skipSendToOriginalEndpoint()
+                    .to(mockFileOut.getEndpointUri());
+        });
+    }
+
     @Test
     void shouldParse_ORD_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        AdviceWith.adviceWith(ctx, "ordCsvOut", builder -> {
-            builder.interceptSendToEndpoint("direct:any-file-out")
-                .skipSendToOriginalEndpoint()
-                .to(mockFileOut.getEndpointUri());
-        });
 
         mockFileOut.whenAnyExchangeReceived(e -> {
             InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
@@ -97,7 +101,7 @@ public class OrdInTest {
         ex.getMessage().setHeader("CamelFileName", "ORD_OUT_167_SOTE20241023-190022.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-xml-and-process-ord", ex);
+        Exchange res = producerTemplate.send("direct:unmarshal-and-process-ord", ex);
 
         List<LinkedHashMap<String, Object>> vals =  res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());

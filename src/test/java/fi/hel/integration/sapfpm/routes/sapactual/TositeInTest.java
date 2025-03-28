@@ -12,6 +12,7 @@ import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -23,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
-@ApplicationScoped
 public class TositeInTest {
 
     @Inject
@@ -32,16 +32,20 @@ public class TositeInTest {
     @EndpointInject("mock:tosite-out")
     MockEndpoint mockFileOut;
 
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx, "tositeAzureOut", builder -> {
+            builder.interceptSendToEndpoint("direct:any-file-out")
+                    .skipSendToOriginalEndpoint()
+                    .to(mockFileOut.getEndpointUri());
+        });
+    }
+
     @Test
     void shouldParse_Tosite_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        AdviceWith.adviceWith(ctx, "tositeAzureOut", builder -> {
-            builder.interceptSendToEndpoint("direct:tosite-file-out")
-                .skipSendToOriginalEndpoint()
-                .to(mockFileOut.getEndpointUri());
-        });
 
         String YEAR_MONTH = "202212";
 

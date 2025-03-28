@@ -1,6 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapsistilaus;
 
-import fi.hel.integration.sapfpm.aggregationstrategy.ProcessedLinesAggregationStrategy;
+import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -42,13 +42,12 @@ public class OrdInRouteBuilder extends RouteBuilder {
     public void configure() throws Exception {
         // include or antInclude only works with 1 file at a time
         from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("OrdIn")
-                .log("ORD ${headers.CamelFileName}")
-            .to("direct:unmarshal-xml-and-process-ord")
-            .aggregate(new ProcessedLinesAggregationStrategy()).constant(true).completionFromBatchConsumer()
+            .to("direct:unmarshal-and-process-ord")
+            .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPSISTILAUS.csv"))
             .to("direct:ord-csv-out");
 
-        from("direct:unmarshal-xml-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
+        from("direct:unmarshal-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
             .unmarshal().jacksonXml().to("direct:process-ord");
 
         // ORD_OUT_167_SOTE*.xml

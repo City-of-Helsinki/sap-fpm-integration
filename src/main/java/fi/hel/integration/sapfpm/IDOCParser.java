@@ -1,13 +1,11 @@
 package fi.hel.integration.sapfpm;
 
-import io.smallrye.mutiny.tuples.Tuple2;
 import org.apache.camel.Exchange;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 

@@ -176,7 +176,7 @@ public class FITositeInRouteBuilder extends RouteBuilder {
                         List<Map<String, Object>> receiptVals = receiptValList;
                         return receiptVals.stream().map(v -> extractValues(e1Main, v));
                     } else {
-                        Map<String, Object> v = (LinkedHashMap<String, Object>) valuesObj;
+                        Map<String, Object> v = (LinkedHashMap<String, Object>) receiptSegs;
                         return Stream.of(extractValues(e1Main, v));
                     }
                 }).toList();

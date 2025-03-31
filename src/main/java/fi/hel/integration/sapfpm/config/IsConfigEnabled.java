@@ -14,6 +14,9 @@ public class IsConfigEnabled {
     @Inject
     SotepeConfig sotepeConfig;
 
+    @Inject
+    LocalFileConfig localFileConfig;
+
     public boolean palkeFTPToteumatEnabled() {
         return palkeConfig.ftpPasswordToteumat().isPresent();
     }
@@ -43,6 +46,14 @@ public class IsConfigEnabled {
     }
 
     public boolean localPerustiedotEnabled() {
-        return !palkeFTPPerustiedotEnabled() && !kaskoFTPPerustiedotEnabled() && !sotepeFTPPerustiedotEnabled();
+        return localFileConfig.perustiedot().orElse(false);
+    }
+
+    public boolean localToteumatEnabled() {
+        return localFileConfig.toteumat().orElse(false);
+    }
+
+    public boolean localCoToteumatEnabled() {
+        return localFileConfig.coToteumat().orElse(false);
     }
 }

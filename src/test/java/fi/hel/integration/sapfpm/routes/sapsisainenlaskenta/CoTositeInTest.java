@@ -44,22 +44,20 @@ public class CoTositeInTest {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
 
-        String YEAR_MONTH = "202212";
-
         mockFileOut.whenAnyExchangeReceived(e -> {
-                    InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    c.writeTo(out);
-                    out.close();
-                    String data = out.toString();
-                    String expCsvHeader = "BELNR;BLDAT;BUDAT;CPUDT;BLART;" +
-                            "REFBN;VERSN;AWTYP;AWORG;" +
-                            "BUZEI;PERIO;WOGBTR;OBJNR;OBJ_TYPE;TYPE_NR;" +
-                            "PRCTR;GJAHR;KSTAR;BEKNZ;BUKRS;SGTXT;FKBER";
-                    String[] splitData = data.split("\r\n");
-                    assertEquals(expCsvHeader, splitData[0]);
-                    assertEquals("0011000001;20250215;20250215;20250216;38;9500381852;000;ZBKPF;5000099237;001;002;2.72-;OR009532100002;Sis. til.;009532100001;0009532100;2025;0000300040;H;9500;953210000220250215;", splitData[1]);
-                });
+            InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            c.writeTo(out);
+            out.close();
+            String data = out.toString();
+            String expCsvHeader = "BELNR;BLDAT;BUDAT;CPUDT;BLART;" +
+                    "REFBN;VERSN;AWTYP;AWORG;" +
+                    "BUZEI;PERIO;WOGBTR;OBJNR;OBJ_TYPE;TYPE_NR;" +
+                    "PRCTR;GJAHR;KSTAR;BEKNZ;BUKRS;SGTXT;FKBER";
+            String[] splitData = data.split("\r\n");
+            assertEquals(expCsvHeader, splitData[0]);
+            assertEquals("0011000001;20250215;20250215;20250216;38;9500381852;000;ZBKPF;5000099237;001;002;2.72-;OR009532100002;Sis. til.;009532100001;0009532100;2025;0000300040;H;9500;953210000220250215;", splitData[1]);
+        });
 
         String xmlIn = """
 <Atos_CODCMT xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TASDA8F90C87:740">
@@ -101,7 +99,7 @@ public class CoTositeInTest {
    </BUZEI>
    </ZCODCMT>
 </Atos_CODCMT>""";
-        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_20250219-000123-456.xml");
+        ex.getMessage().setHeader("CamelFileName", "ID016_CO_TOSITE_OUT_20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
         Exchange res = producerTemplate.send("direct:unmarshal-and-process-co-tosite", ex);

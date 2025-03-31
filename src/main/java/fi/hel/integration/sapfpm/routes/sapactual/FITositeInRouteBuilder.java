@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParamsWithExclude;
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
@@ -89,7 +88,7 @@ public class FITositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_EXCLUDE = "(?!FI_TOSITE_){1}.*.xml";
+    final static String IN_FILE_EXCLUDE = "RAW(^(?!.*FI_TOSITE_).+)";
     @Override
     public void configure() throws Exception {
         // process(e -> create a new file first, then append to it in batches)

@@ -50,7 +50,7 @@ public class COTositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_EXCLUDE = "(?!CO_TOSITE_){1}.*.xml";
+    final static String IN_FILE_EXCLUDE = "RAW(^(?!.*CO_TOSITE_).+)";
     @Override
     public void configure() throws Exception {
         // process(e -> create a new file first, then append to it in batches)

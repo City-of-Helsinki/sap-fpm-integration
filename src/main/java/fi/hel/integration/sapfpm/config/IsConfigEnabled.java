@@ -56,4 +56,16 @@ public class IsConfigEnabled {
     public boolean localCoToteumatEnabled() {
         return localFileConfig.coToteumat().orElse(false);
     }
+
+    public boolean localOrFTPPerustiedotEnabled() {
+        return localPerustiedotEnabled() || sotepeFTPPerustiedotEnabled() || palkeFTPPerustiedotEnabled() || kaskoFTPPerustiedotEnabled();
+    }
+
+    public boolean localOrFTPToteumatEnabled() {
+        return localToteumatEnabled() || sotepeFTPToteumatEnabled() || palkeFTPToteumatEnabled() || kaskoFTPToteumatEnabled();
+    }
+
+    public boolean localOrFTPCoToteumatEnabled() {
+        return localCoToteumatEnabled() || palkeFTPCoToteumatEnabled();
+    }
 }

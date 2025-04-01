@@ -1,6 +1,5 @@
 package fi.hel.integration.sapfpm.routes;
 
-import fi.hel.integration.sapfpm.config.PalkeConfig;
 import org.apache.camel.builder.RouteBuilder;
 
 
@@ -42,13 +41,14 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildInParams(String filePrefix) {
-        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + "){1}.*.xml)");
+        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)");
     }
+    public static String COMMON_FTP_PARAMS = "&passiveMode=true";
 
     // TODO: move to mainConfig
     public static String buildFtpParams(String filePrefix) {
-        return buildInParamsWithExclude("RAW((?!" + filePrefix + "){1}.*.xml)") +
-                "&passiveMode=true";
+        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
+                COMMON_FTP_PARAMS;
     }
 
     @Inject

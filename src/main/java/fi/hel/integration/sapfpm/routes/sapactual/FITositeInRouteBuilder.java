@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParamsWithExclude;
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 // ID022_FI_TOSITE_OUT_ > ID022 SOTE
@@ -88,13 +88,13 @@ public class FITositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_EXCLUDE = "RAW(^(?!.*FI_TOSITE_).+)";
+    final static String IN_FILE_PREFIX = ".*FI_TOSITE_";
     @Override
     public void configure() throws Exception {
         // process(e -> create a new file first, then append to it in batches)
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
-        from("file:in?" + buildInParamsWithExclude(IN_FILE_EXCLUDE)).id("tositeIn")
+        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("tositeIn")
             .to("direct:unmarshal-and-process-tosite")
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
                 Set<String> oldProcessedReceiptIds;
@@ -115,13 +115,18 @@ public class FITositeInRouteBuilder extends RouteBuilder {
                         if (oldVals == null) {
                             oldByYearAndMonth.put(yearMonthKey, newVals);
                         } else {
+                            ArrayList<String> receiptsAlreadyProcessed = new ArrayList<>();
                             List<LinkedHashMap<String, Object>> filteredNewVals = newVals.stream().filter(newV -> {
                                 boolean alreadyExists = oldProcessedReceiptIds.contains(getReceiptId(newV));
                                 if (alreadyExists) {
-                                    log.info("Receipt %s from %s already exists, ignoring".formatted(getReceiptId(newV), newExchange.getMessage().getHeader("CamelFileName", String.class)));
+                                    receiptsAlreadyProcessed.add(getReceiptId(newV));
                                 }
                                 return !alreadyExists;
                             }).toList();
+                            if (!receiptsAlreadyProcessed.isEmpty()) {
+                                log.info("File " + newExchange.getMessage().getHeader("CamelFileName", String.class) + " contained duplicates that will be ignored: ");
+                                log.info(String.join(", ", receiptsAlreadyProcessed));
+                            }
                             oldByYearAndMonth.put(yearMonthKey, concatNewLinesToOld(oldVals, filteredNewVals));
                         }
                     });
@@ -140,7 +145,6 @@ public class FITositeInRouteBuilder extends RouteBuilder {
                 e.getMessage().setHeader("CamelFileName", "SAPACTUAL" + "_" + year + "_" + month + ".csv");
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
-            .log("Writing to Azure ${headers.CamelFileName}")
             .to("direct:tosite-csv-out");
 
         from("direct:unmarshal-and-process-tosite")

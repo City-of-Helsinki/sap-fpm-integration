@@ -8,7 +8,7 @@ import org.apache.camel.dataformat.csv.CsvDataFormat;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParamsWithExclude;
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // ID***_CO_TOSITE_***20250217-000705-001
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
@@ -50,13 +50,15 @@ public class COTositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_EXCLUDE = "RAW(^(?!.*CO_TOSITE_).+)";
+    final static String IN_FILE_PREFIX = ".*CO_TOSITE_";
     @Override
     public void configure() throws Exception {
         // process(e -> create a new file first, then append to it in batches)
-        from("file:in?" + buildInParamsWithExclude(IN_FILE_EXCLUDE)).id("CoTositeIn")
+        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("CoTositeIn")
             .to("direct:unmarshal-and-process-co-tosite")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
+            // SAPSISLASKENTA ?
+                .setHeader("CamelFileName", constant("SAPSISAINENLASKENTA.csv"))
             .to("direct:co-tosite-csv-out");
 
         from("direct:unmarshal-and-process-co-tosite")

@@ -16,6 +16,10 @@ smallrye:
         profile: local
 
 "%local":
+    local-file:
+        perustiedot: true
+        toteumat: true
+        coToteumat: true
     palke:
         azure:
             sasToken: "token"

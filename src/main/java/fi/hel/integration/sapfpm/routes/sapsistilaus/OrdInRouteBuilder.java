@@ -2,7 +2,6 @@ package fi.hel.integration.sapfpm.routes.sapsistilaus;
 
 import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
-import fi.hel.integration.sapfpm.config.PalkeConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -28,14 +27,11 @@ public class OrdInRouteBuilder extends RouteBuilder {
     @Inject
     IsConfigEnabled mainConfig;
 
-    @Inject
-    PalkeConfig palkeConfig;
-
     final static String IN_FILE_PREFIX = "ORD_OUT_";
     final static String FTP_DIR = "203";
 
     CsvDataFormat ordCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
-            "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT"
+        "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT"
     });
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
@@ -48,7 +44,7 @@ public class OrdInRouteBuilder extends RouteBuilder {
         return ord;
     }
 
-    public void buildMainRoute(String fileOrFtpIn, String id) {
+    public void buildRoute(String fileOrFtpIn, String id) {
         // include or antInclude only works with 1 file at a time
         from(fileOrFtpIn).id(id)
             .to("direct:unmarshal-and-process-ord")
@@ -62,37 +58,40 @@ public class OrdInRouteBuilder extends RouteBuilder {
                 buildFtpParams(IN_FILE_PREFIX);
     }
 
+    public String buildFtpPerustiedotIn(String toimiala, String ftpDir) {
+        return "ftp://{{%s.ftp.user_perustiedot}}@{{%s.ftp.host}}/{{%s}}?password={{%s.ftp.password_perustiedot}}&".formatted(toimiala, toimiala, ftpDir, toimiala) +
+                buildFtpParams(IN_FILE_PREFIX);
+    }
+
     @Override
     public void configure() throws Exception {
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
-            buildMainRoute(buildFtpIn("palke"), "PalkeOrdFtpIn");
+            buildRoute(buildFtpIn("palke"), "PalkeOrdFtpIn");
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-            buildMainRoute(buildFtpIn("kasko"), "KaskoOrdFtpIn");
+            buildRoute(buildFtpIn("kasko"), "KaskoOrdFtpIn");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-            buildMainRoute(buildFtpIn("sotepe"), "SotepeOrdFtpIn");
+            buildRoute(buildFtpIn("sotepe"), "SotepeOrdFtpIn");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {
-            buildMainRoute("file:in?" + buildInParams(IN_FILE_PREFIX), "OrdIn");
+            buildRoute("file:in?" + buildInParams(IN_FILE_PREFIX), "OrdIn");
         }
 
-        // TODO: get from config
-        boolean disabled = false;
-         if (disabled) return;
+        if (mainConfig.localOrFTPPerustiedotEnabled()) {
+            from("direct:unmarshal-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
+                    .unmarshal().jacksonXml().to("direct:process-ord");
 
-        from("direct:unmarshal-and-process-ord").routeId("ORDUnmarshalXMLAndProcess")
-            .unmarshal().jacksonXml().to("direct:process-ord");
+            from("direct:process-ord").id("ProcessOrd")
+                    .setBody(e -> extractValuesFromIDOC(e,  "ZHKI_TARSISTILAUKSET", this::extractValues));
 
-        from("direct:process-ord").id("ProcessOrd")
-            .setBody(e -> extractValuesFromIDOC(e,  "ZHKI_TARSISTILAUKSET", this::extractValues));
-
-        from("direct:ord-csv-out").routeId("ordCsvOut")
-            .marshal(ordCsvDataFormat)
-            .to("direct:any-file-out");
+            from("direct:ord-csv-out").routeId("ordCsvOut")
+                    .marshal(ordCsvDataFormat)
+                    .to("direct:any-file-out");
+        }
 
     }
 

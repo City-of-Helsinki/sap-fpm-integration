@@ -316,7 +316,7 @@ public class TositeInTest {
         ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-and-process-tosite", ex);
+        Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
 
         Map<String, List<LinkedHashMap<String, Object>>> entry = res.getMessage().getBody(Map.class);
         assertTrue(entry.containsKey(YEAR_MONTH));

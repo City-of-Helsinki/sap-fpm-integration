@@ -1,8 +1,9 @@
 package fi.hel.integration.sapfpm.routes.sapprojekti;
 
 import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
+import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.camel.builder.RouteBuilder;
+
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
@@ -15,12 +16,11 @@ import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 // PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin
 @ApplicationScoped
-public class WBSInRouteBuilder extends RouteBuilder {
+public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     CsvDataFormat wbsCsvDataFormat = new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(new String[] {
         "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
     });
 
-    final static String IN_FILE_PREFIX = "WBS_OUT_";
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> project = new LinkedHashMap<>();
         project.put("PBUKR", valuesLine.get("PBUKR"));
@@ -34,18 +34,28 @@ public class WBSInRouteBuilder extends RouteBuilder {
     }
 
     @Override
-    public void configure() throws Exception {
+    public String getFilePrefix() {
+        return "(WBS_OUT_|PROJECT)";
+        //  ".*FI_TOSITE_"
+    }
 
-        // include or antInclude only works with 1 file at a time
-        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("wbsIn")
-            .to("direct:unmarshal-and-process-wbs")
+    @Override
+    public String getFtpDir() {
+        return "204";
+    }
+
+    @Override
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+        from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "wbsIn")
+            .to("direct:unmarshal-xml")
+            .to("direct:process-wbs")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
             .to("direct:wbs-csv-out");
+    }
 
-        from("direct:unmarshal-and-process-wbs")
-            .unmarshal().jacksonXml().to("direct:process-wbs");
-
+    @Override
+    public void buildSupportingRoutes() {
         from("direct:process-wbs").id("ProcessWBS")
             .setBody(e -> extractValuesFromIDOC(e,  "ZHKI_PROJEKTIRAKENTEENOSA", this::extractValues));
 

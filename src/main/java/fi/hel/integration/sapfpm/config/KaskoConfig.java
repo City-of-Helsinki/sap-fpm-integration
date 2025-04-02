@@ -19,15 +19,15 @@ public interface KaskoConfig {
     @WithName("ftp.host")
     Optional<String> ftpHost();
 
-    @WithName("ftp.user_perustiedot")
+    @WithName("ftp.perustiedot.user")
     Optional<String> ftpUserPerustiedot();
 
-    @WithName("ftp.password_perustiedot")
+    @WithName("ftp.perustiedot.password")
     Optional<String> ftpPasswordPerustiedot();
 
-    @WithName("ftp.user_toteumat")
+    @WithName("ftp.toteumat.user")
     Optional<String> ftpUserToteumat();
 
-    @WithName("ftp.password_toteumat")
+    @WithName("ftp.toteumat.password")
     Optional<String> ftpPasswordToteumat();
 }

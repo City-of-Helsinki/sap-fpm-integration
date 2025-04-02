@@ -19,7 +19,7 @@ smallrye:
     local-file:
         perustiedot: true
         toteumat: true
-        coToteumat: true
+        co_toteumat: true
     palke:
         azure:
             sasToken: "token"
@@ -27,12 +27,15 @@ smallrye:
             containerName: "container"
         ftp:
             host: "${PALKE_SFTP_HOST}"
-            user_perustiedot: "${PALKE_SFTP_USER_ID138}"
-            password_perustiedot: "${PALKE_SFTP_PASSWORD_ID138}"
-            user_toteumat: "${PALKE_SFTP_USER_ID025}"
-            password_toteumat: "${PALKE_SFTP_PASSWORD_ID025}"
-            user_co_toteumat: "${PALKE_SFTP_USER_ID166}"
-            password_co_toteumat: "${PALKE_SFT_PASSWORD_ID166}"
+            perustiedot:
+                user: "${PALKE_SFTP_USER_ID138}"
+                password: "${PALKE_SFTP_PASSWORD_ID138}"
+            toteumat:
+                user: "${PALKE_SFTP_USER_ID025}"
+                password: "${PALKE_SFTP_PASSWORD_ID025}"
+            co_toteumat:
+                user: "${PALKE_SFTP_USER_ID166}"
+                password: "${PALKE_SFT_PASSWORD_ID166}"
     kasko:
         azure:
             sasToken: "token"
@@ -40,10 +43,12 @@ smallrye:
             containerName: "container"
         ftp:
             host: "${KASKO_SFTP_HOST}"
-            user_perustiedot: "${KASKO_SFTP_USER_ID137}"
-            password_perustiedot: "${KASKO_SFTP_PASSWORD_ID137}"
-            user_toteumat: "${KASKO_SFTP_USER_ID023}"
-            password_toteumat: "${KASKO_SFTP_PASSWORD_ID023}"
+            perustiedot:
+                user: "${KASKO_SFTP_USER_ID137}"
+                password: "${KASKO_SFTP_PASSWORD_ID137}"
+            toteumat:
+                user: "${KASKO_SFTP_USER_ID023}"
+                password: "${KASKO_SFTP_PASSWORD_ID023}"
     sotepe:
         azure:
             sasToken: "token"
@@ -51,11 +56,12 @@ smallrye:
             containerName: "container"
         ftp:
             host: "${SOTEPE_SFTP_HOST}"
-            user_perustiedot: "${SOTEPE_SFTP_USER_ID167}"
-            password_perustiedot: "${SOTEPE_SFTP_PASSWORD_ID167}"
-            user_toteumat: "${SOTEPE_SFTP_USER_ID022}"
-            password_toteumat: "${SOTEPE_SFTP_PASSWORD_ID022}"
-
+            perustiedot:
+                user: "${SOTEPE_SFTP_USER_ID167}"
+                password: "${SOTEPE_SFTP_PASSWORD_ID167}"
+            toteumat:
+                user: "${SOTEPE_SFTP_USER_ID022}"
+                password: "${SOTEPE_SFTP_PASSWORD_ID022}"
 "%openshift":
     palke:
         azure:

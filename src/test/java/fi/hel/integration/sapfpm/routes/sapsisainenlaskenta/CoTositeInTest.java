@@ -102,7 +102,8 @@ public class CoTositeInTest {
         ex.getMessage().setHeader("CamelFileName", "ID016_CO_TOSITE_OUT_20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-and-process-co-tosite", ex);
+
+        Exchange res = producerTemplate.send("direct:process-co-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         producerTemplate.sendBody("direct:co-tosite-csv-out", vals);
 

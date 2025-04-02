@@ -1,19 +1,18 @@
 package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 
 import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
+import fi.hel.integration.sapfpm.routes.CoToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // ID***_CO_TOSITE_***20250217-000705-001
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
-public class COTositeInRouteBuilder extends RouteBuilder {
+public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
     CsvDataFormat coTositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "BELNR", "BLDAT", "BUDAT", "CPUDT", "BLART",
         "REFBN", "VERSN", "AWTYP", "AWORG", "BUZEI",
@@ -50,21 +49,20 @@ public class COTositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_PREFIX = ".*CO_TOSITE_";
     @Override
-    public void configure() throws Exception {
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         // process(e -> create a new file first, then append to it in batches)
-        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("CoTositeIn")
-            .to("direct:unmarshal-and-process-co-tosite")
+        from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "CoTositeIn")
+            .to("direct:unmarshal-xml")
+            .to("direct:process-co-tosite")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             // SAPSISLASKENTA ?
-                .setHeader("CamelFileName", constant("SAPSISAINENLASKENTA.csv"))
+            .setHeader("CamelFileName", constant("SAPSISAINENLASKENTA.csv"))
             .to("direct:co-tosite-csv-out");
+    }
 
-        from("direct:unmarshal-and-process-co-tosite")
-            .unmarshal().jacksonXml()
-            .to("direct:process-co-tosite");
-
+    @Override
+    public void buildSupportingRoutes() {
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-co-tosite")
             .process(e -> {
@@ -98,6 +96,16 @@ public class COTositeInRouteBuilder extends RouteBuilder {
         from("direct:co-tosite-csv-out").routeId("coTositeAzureOut")
             .marshal(coTositeCsvDataFormat)
             .to("direct:any-file-out");
+    }
+
+    @Override
+    public String getFilePrefix() {
+        return ".*CO_TOSITE_";
+    }
+
+    @Override
+    public String getFtpDir() {
+        return "201"; // TODO: check: /201/COS_OUT_...xml
     }
 }
 

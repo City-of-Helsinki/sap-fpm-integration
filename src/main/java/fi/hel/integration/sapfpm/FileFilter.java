@@ -18,14 +18,11 @@ public class FileFilter implements GenericFileFilter {
 
     public void setFileToExlude(Exchange e) {
         this.fileToExclude = e.getMessage().getHeader("CamelFileName", String.class);
-        System.out.println("set file to exlcud" + fileToExclude);
         this.fileFilterTxt = e.getProperty("fileFilterTxt", String.class);
     }
 
     @Override
     public boolean accept(GenericFile file) {
-        System.out.println("accept: " + file.getAbsoluteFilePath() + "/" + file.getFileName() + "<-> " + this.fileToExclude + " filterTxt: " +  this.fileFilterTxt);
-        System.out.println("accepted: " + (!this.fileToExclude.equals(file.getFileName()) && file.getFileName().matches(fileFilterTxt)));
         return !this.fileToExclude.equals(file.getFileName()) && file.getFileName().matches(fileFilterTxt);
     }
 }

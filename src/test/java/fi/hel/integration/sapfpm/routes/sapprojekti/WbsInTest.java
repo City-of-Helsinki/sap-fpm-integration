@@ -147,7 +147,7 @@ public class WbsInTest {
         ex.getMessage().setHeader("CamelFileName", "WBS_OUT_167_SOTE20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-and-process-wbs", ex);
+        Exchange res = producerTemplate.send("direct:process-wbs", producerTemplate.send("direct:unmarshal-xml", ex));
 
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());

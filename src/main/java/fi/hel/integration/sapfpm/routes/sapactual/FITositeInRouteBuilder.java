@@ -1,8 +1,8 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
+import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
-import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
@@ -20,7 +20,7 @@ import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
-public class FITositeInRouteBuilder extends RouteBuilder {
+public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
             "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
@@ -88,14 +88,14 @@ public class FITositeInRouteBuilder extends RouteBuilder {
         return r;
     }
 
-    final static String IN_FILE_PREFIX = ".*FI_TOSITE_";
     @Override
-    public void configure() throws Exception {
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         // process(e -> create a new file first, then append to it in batches)
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
-        from("file:in?" + buildInParams(IN_FILE_PREFIX)).id("tositeIn")
-            .to("direct:unmarshal-and-process-tosite")
+        from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "tositeIn")
+            .to("direct:unmarshal-xml")
+            .to("direct:process-tosite")
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
                 Set<String> oldProcessedReceiptIds;
                 Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
@@ -146,11 +146,37 @@ public class FITositeInRouteBuilder extends RouteBuilder {
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
             .to("direct:tosite-csv-out");
+    }
 
-        from("direct:unmarshal-and-process-tosite")
-            .unmarshal().jacksonXml()
-            .to("direct:process-tosite");
+    public String getReceiptId(LinkedHashMap<String, Object> receipt) {
+        return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
+                receipt.get("GJAHR") + "_" + receipt.get("POPER");
+    }
 
+    // receipt id -> year + month (file name)
+    Map<String, String> db = new HashMap<>();
+
+    public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
+        String receiptId = getReceiptId(receipt);
+        boolean wasProcessedEarlier = db.containsKey(receiptId);
+        if (wasProcessedEarlier) {
+            log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
+        }
+        return !wasProcessedEarlier;
+    }
+
+    @Override
+    public String getFilePrefix() {
+        return ".*FI_TOSITE_";
+    }
+
+    @Override
+    public String getFtpDir() {
+        return ""; // no dir
+    }
+
+    @Override
+    public void buildSupportingRoutes() {
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
             .process(e -> {
@@ -201,23 +227,6 @@ public class FITositeInRouteBuilder extends RouteBuilder {
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
             .marshal(tositeCsvDataFormat)
             .to("direct:any-file-out");
-    }
-
-    public String getReceiptId(LinkedHashMap<String, Object> receipt) {
-        return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
-                receipt.get("GJAHR") + "_" + receipt.get("POPER");
-    }
-
-    // receipt id -> year + month (file name)
-    Map<String, String> db = new HashMap<>();
-
-    public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
-        String receiptId = getReceiptId(receipt);
-        boolean wasProcessedEarlier = db.containsKey(receiptId);
-        if (wasProcessedEarlier) {
-            log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
-        }
-        return !wasProcessedEarlier;
     }
 }
 

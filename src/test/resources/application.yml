@@ -3,8 +3,13 @@ smallrye:
     profile: test
 
 "%test":
+  local-file:
+    perustiedot: true
+    toteumat: true
+    co_toteumat: true
   palke:
-    azure:
-      sasToken: "token"
-      accountName: "acc"
-      containerName: "cont"
+    ftp:
+      host: "${PALKE_SFTP_HOST}"
+      perustiedot:
+        user: "USER"
+        password: "PASS"

@@ -35,9 +35,8 @@ PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihi
 public class InRouteBuilder extends RouteBuilder {
 
     public static String buildInParamsWithExclude(String excludeRegexp) {
-       System.out.println("exclude: " + excludeRegexp);
         return "includeExt=xml&exclude=" + excludeRegexp + "&noop=true&" +
-                "sortBy=file:name&charset=ISO-8859-1";
+                "preSort=true&sortBy=file:name&charset=ISO-8859-1";
     }
 
     public static String buildInParams(String filePrefix) {
@@ -51,6 +50,31 @@ public class InRouteBuilder extends RouteBuilder {
                 COMMON_FTP_PARAMS;
     }
 
+    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix) {
+        return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
+                buildFtpParams(filePrefix);
+    }
+
+    public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix) {
+        return buildFtpIn("{{%s.ftp.%s.user}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.ftp.%s.password}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.ftp.host}}".formatted(toimiala),
+                ftpDir,
+                filePrefix);
+    }
+
+    public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {
+        return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix);
+    }
+
+    public static String buildFtpToteumatIn(String toimiala, String ftpDir, String filePrefix) {
+        return buildFtpIn("toteumat", toimiala, ftpDir, filePrefix);
+    }
+
+    public static String buildFtpCoToteumatIn(String toimiala, String ftpDir, String filePrefix) {
+        return buildFtpIn("co_toteumat", toimiala, ftpDir, filePrefix);
+    }
+
     @Inject
     Logger log;
 
@@ -58,6 +82,8 @@ public class InRouteBuilder extends RouteBuilder {
     public void configure() throws Exception {
 
         log.info("Profile: {{smallrye.config.profile}}");
+
+        from("direct:unmarshal-xml").unmarshal().jacksonXml();
 
         //SOTEPE ID167 perustiedot
         //  Samoin en näe tarvetta pääkirjatililataukselle, sen voi viedä suoraan FPM yhtenä latauksena sillä muutoksia tulee harvakseltaan

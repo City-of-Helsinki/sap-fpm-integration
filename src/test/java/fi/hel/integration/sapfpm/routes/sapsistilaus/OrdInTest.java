@@ -98,7 +98,7 @@ public class OrdInTest {
         ex.getMessage().setHeader("CamelFileName", "ORD_OUT_167_SOTE20241023-190022.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-and-process-ord", ex);
+        Exchange res = producerTemplate.send("direct:process-ord", producerTemplate.send("direct:unmarshal-xml", ex));
 
         List<LinkedHashMap<String, Object>> vals =  res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());

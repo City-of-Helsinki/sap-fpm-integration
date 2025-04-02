@@ -13,6 +13,6 @@ public interface LocalFileConfig {
     @WithName("toteumat")
     Optional<Boolean> toteumat();
 
-    @WithName("coToteumat")
+    @WithName("co_toteumat")
     Optional<Boolean> coToteumat();
 }

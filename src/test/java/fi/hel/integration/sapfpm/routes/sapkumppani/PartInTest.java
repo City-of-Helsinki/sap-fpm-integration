@@ -69,7 +69,7 @@ public class PartInTest {
         ex.getMessage().setHeader("CamelFileName", "PART_OUT_167_SOTE20241023-190022.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:unmarshal-and-process-part", ex);
+        Exchange res = producerTemplate.send("direct:process-part", producerTemplate.send("direct:unmarshal-xml", ex));
 
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());

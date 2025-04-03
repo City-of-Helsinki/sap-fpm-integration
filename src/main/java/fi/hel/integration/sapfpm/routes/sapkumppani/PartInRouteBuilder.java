@@ -41,11 +41,12 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-        from(fileOrFtpIn).id("PartIn" + (toimiala == null ? "" : toimiala))
+        from(fileOrFtpIn).id("PartIn" + toimiala)
             .to("direct:unmarshal-xml")
             .to("direct:process-part")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPKUMPPANI.csv"))
+            .setProperty("outDir", constant(toimiala))
             .to("direct:part-csv-out");
     }
 

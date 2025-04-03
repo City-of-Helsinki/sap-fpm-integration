@@ -31,17 +31,21 @@ public class AzureBlobOut extends RouteBuilder {
                 .log("uploaded");
 */
         from("direct:any-file-out").id("AnyFileOut")
-            .log("Trying to write file ${headers.CamelFileName}")
+            .choice()
+                .when(simple("${exchangeProperty.outDir} == null"))
+                    .setProperty("outDir", constant("out"))
+            .end()
+            .log("Trying to write file ${exchangeProperty.outDir}/${headers.CamelFileName}")
                 .onException(Exception.class)
                     .maximumRedeliveries(10).redeliveryDelay(1000)
                     .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
                 .end()
-            .to("file:out?fileExist=Override")
+            .toD("file:${exchangeProperty.outDir}?fileExist=Override")
                 .choice().when(simple("${exchangeProperty.processedFiles} != null"))
                     .log("Processed ${exchangeProperty.processedFiles.size()} files: ")
                     .log("${exchangeProperty.processedFiles}")
                 .end()
-            .log("Written ${headers.CamelFileName}");
+            .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
     }
 }
 

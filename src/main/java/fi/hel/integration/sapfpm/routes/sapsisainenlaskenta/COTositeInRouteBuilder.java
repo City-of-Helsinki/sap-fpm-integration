@@ -58,6 +58,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             // SAPSISLASKENTA ?
             .setHeader("CamelFileName", constant("SAPSISAINENLASKENTA.csv"))
+            .setProperty("outDir", constant(toimiala))
             .to("direct:co-tosite-csv-out");
     }
 

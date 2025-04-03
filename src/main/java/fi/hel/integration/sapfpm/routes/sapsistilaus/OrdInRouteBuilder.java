@@ -57,6 +57,7 @@ public class OrdInRouteBuilder extends PerustiedotRouteBuilder {
             .to("direct:process-ord")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPSISTILAUS.csv"))
+            .setProperty("outDir", constant(toimiala))
             .to("direct:ord-csv-out");
     }
 

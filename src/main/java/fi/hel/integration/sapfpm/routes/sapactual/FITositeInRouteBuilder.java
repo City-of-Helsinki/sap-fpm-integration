@@ -93,7 +93,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         // process(e -> create a new file first, then append to it in batches)
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
-        from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "tositeIn")
+        from(fileOrFtpIn).id(toimiala + "tositeIn")
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite")
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
@@ -145,6 +145,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 e.getMessage().setHeader("CamelFileName", "SAPACTUAL" + "_" + year + "_" + month + ".csv");
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
+            .setProperty("outDir", constant(toimiala))
             .to("direct:tosite-csv-out");
     }
 

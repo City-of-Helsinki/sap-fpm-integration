@@ -53,6 +53,7 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
             .to("direct:process-wbs")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
+            .setProperty("outDir", constant(toimiala))
             .to("direct:wbs-csv-out");
     }
 

@@ -42,12 +42,11 @@ public class InRouteBuilder extends RouteBuilder {
     public static String buildInParams(String filePrefix) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)");
     }
-    public static String COMMON_FTP_PARAMS = "&passiveMode=true";
 
     // TODO: move to mainConfig
     public static String buildFtpParams(String filePrefix) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
-                COMMON_FTP_PARAMS;
+                "&passiveMode=true&autoCreate=false";
     }
 
     public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix) {

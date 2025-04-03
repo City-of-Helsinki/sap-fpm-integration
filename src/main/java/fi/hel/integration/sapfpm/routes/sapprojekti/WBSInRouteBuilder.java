@@ -46,7 +46,9 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+        log.info("Starting wbs/project " + toimiala);
         from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "wbsIn")
+            .log("%s read ${headers.CamelFileName}".formatted(toimiala))
             .to("direct:unmarshal-xml")
             .to("direct:process-wbs")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()

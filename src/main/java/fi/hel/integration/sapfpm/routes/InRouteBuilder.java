@@ -36,7 +36,8 @@ public class InRouteBuilder extends RouteBuilder {
 
     public static String buildInParamsWithExclude(String excludeRegexp) {
         return "includeExt=xml&exclude=" + excludeRegexp + "&noop=true&" +
-                "preSort=true&sortBy=file:name&charset=ISO-8859-1";
+                "preSort=true&sortBy=file:name&charset=ISO-8859-1" +
+                "&browseLimit=1000";
     }
 
     public static String buildInParams(String filePrefix) {

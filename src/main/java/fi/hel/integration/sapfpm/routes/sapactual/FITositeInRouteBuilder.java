@@ -95,7 +95,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-            .log("Profile: {{smallrye.config.profile}}")
+            .log("read ${headers.CamelFileName}")
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite")
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {

@@ -81,9 +81,6 @@ public class InRouteBuilder extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-
-        log.info("Profile: {{smallrye.config.profile}}");
-
         from("direct:unmarshal-xml").unmarshal().jacksonXml();
 
         //SOTEPE ID167 perustiedot

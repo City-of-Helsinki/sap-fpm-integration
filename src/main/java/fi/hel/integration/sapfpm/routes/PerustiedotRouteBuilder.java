@@ -18,18 +18,22 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     @Override
     public void configure() throws Exception {
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
+            log.info("Starting palke ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
+            log.info("Starting kasko ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
+            log.info("Starting sotepe ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
-
+log.info("ENABLED: " + mainConfig.localPerustiedotEnabled());
         if (mainConfig.localPerustiedotEnabled()) {
+            log.info("Starting local perustiedot");
             buildMainRoute("file:in?" + buildInParams(getFilePrefix()), null);
         }
 

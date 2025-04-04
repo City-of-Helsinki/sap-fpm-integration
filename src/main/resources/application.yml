@@ -1,25 +1,12 @@
-#
-# To use the profile local, the configuration 
-# smallrye.config.profile=local has to be set 
-# into any valid ConfigSource.
-#
-# https://quarkus.io/guides/config-reference
-#
-# ./mvnw package -Pnative -Dquarkus.profile=local
-#
-# local dev usage:
-# ./mvnw -Dsmallrye.config.profile=local-dev quarkus:dev
+# ./mvnw quarkus:dev
 
-# on openshift overwrite this with env var SMALLRYE_CONFIG_PROFILE or via env var JAVA_OPTIONS=... -Dsmallrye..
-smallrye:
-    config:
-        profile: local
-
-"%local":
+"%dev":
     local-file:
         perustiedot: true
         toteumat: true
         co_toteumat: true
+
+"%prod":
     palke:
         azure:
             sasToken: "token"
@@ -62,9 +49,3 @@ smallrye:
             toteumat:
                 user: "${SOTEPE_SFTP_USER_ID022}"
                 password: "${SOTEPE_SFTP_PASSWORD_ID022}"
-"%openshift":
-    palke:
-        azure:
-            sasToken: ""
-            accountName: ""
-            containerName: ""

@@ -9,9 +9,6 @@ import org.apache.camel.dataformat.csv.CsvDataFormat;
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
-// TODO: saattaa olla PROJECT nimellä testissä!!!
-
 // WBS_OUT:n käsittelee Projektit ja projektin rakenneosat  (SAPPROJEKTI_PRPS, WBS_OUT.xml)
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 // PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin

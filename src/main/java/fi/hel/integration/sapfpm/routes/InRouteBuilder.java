@@ -49,6 +49,7 @@ public class InRouteBuilder extends RouteBuilder {
     public static String buildFtpParams(String filePrefix) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
                 "&passiveMode=true&autoCreate=false&disconnect=true&" +
+                "localWorkDirectory=/tmp&" +
                 "timeout=120000";
     }
 

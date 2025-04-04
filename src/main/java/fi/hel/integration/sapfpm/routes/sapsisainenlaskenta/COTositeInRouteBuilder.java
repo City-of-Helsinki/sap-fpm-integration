@@ -23,8 +23,8 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
     // ZCODCMT shared vals, ZCODCMT.BUZEI receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> ZCODCMT, Map<String, Object> BUZEI) {
         LinkedHashMap<String, Object> r = new LinkedHashMap<>(); // order matters
-        r.put("BELNR", ZCODCMT.get("BELNR"));
-        r.put("BLDAT", ZCODCMT.get("BLDAT"));
+        r.put("BELNR", ZCODCMT.get("BELNR")); // osa id:tä jos tarvitaan stac
+        r.put("BLDAT", ZCODCMT.get("BLDAT")); //
         r.put("BUDAT", ZCODCMT.get("BUDAT"));
         r.put("CPUDT", ZCODCMT.get("CPUDT"));
         r.put("BLART", ZCODCMT.get("BLART"));
@@ -34,13 +34,13 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
         r.put("AWORG", ZCODCMT.get("AWORG"));
 
         r.put("BUZEI", BUZEI.get("BUZEI"));
-        r.put("PERIO", BUZEI.get("PERIO"));
+        r.put("PERIO", BUZEI.get("PERIO"));    // osa id:tä, kirjauskuukausi
         r.put("WOGBTR", BUZEI.get("WOGBTR"));
         r.put("OBJNR", BUZEI.get("OBJNR"));
         r.put("OBJ_TYPE", BUZEI.get("OBJ_TYPE"));
         r.put("TYPE_NR", BUZEI.get("TYPE_NR"));
         r.put("PRCTR", BUZEI.get("PRCTR"));
-        r.put("GJAHR", BUZEI.get("GJAHR"));
+        r.put("GJAHR", BUZEI.get("GJAHR"));    // osa id:tä
         r.put("KSTAR", BUZEI.get("KSTAR"));
         r.put("BEKNZ", BUZEI.get("BEKNZ"));
         r.put("BUKRS", BUZEI.get("BUKRS"));
@@ -106,7 +106,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
 
     @Override
     public String getFtpDir() {
-        return "201"; // TODO: check: /201/COS_OUT_...xml
+        return ""; // no subdir
     }
 }
 

@@ -7,9 +7,3 @@ smallrye:
     perustiedot: true
     toteumat: true
     co_toteumat: true
-  palke:
-    ftp:
-      host: "${PALKE_SFTP_HOST}"
-      perustiedot:
-        user: "USER"
-        password: "PASS"

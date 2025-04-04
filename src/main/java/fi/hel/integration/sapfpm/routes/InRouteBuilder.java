@@ -35,8 +35,10 @@ PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihi
 public class InRouteBuilder extends RouteBuilder {
 
     public static String buildInParamsWithExclude(String excludeRegexp) {
-        return "includeExt=xml&exclude=" + excludeRegexp + "&noop=true&" +
-                "preSort=true&sortBy=file:name&charset=ISO-8859-1";
+        return "includeExt=xml&exclude=" + excludeRegexp + "&" +
+            "noop=true&" +
+            "removeOnFailure=false&" + // don't try to process the next file if one failed
+            "preSort=true&sortBy=file:name&charset=ISO-8859-1";
     }
 
     public static String buildInParams(String filePrefix) {
@@ -98,7 +100,6 @@ ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per
 
         // SOTEPE ID022 tositteet
 
-        // KASKO-ID015 tyhjä ???
         // KASKO-ID137 perustiedot
         // KASKO ID023 toteumatositteet
 

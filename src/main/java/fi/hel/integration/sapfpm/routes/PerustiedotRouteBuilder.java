@@ -31,7 +31,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             log.info("Starting sotepe ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
-log.info("ENABLED: " + mainConfig.localPerustiedotEnabled());
+
         if (mainConfig.localPerustiedotEnabled()) {
             log.info("Starting local perustiedot");
             buildMainRoute("file:in?" + buildInParams(getFilePrefix()), null);

@@ -139,7 +139,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     return oldExchange;
                 }
             }).constant(true).completionFromBatchConsumer()
-            .split(body()).process(e -> {
+            .split(body()).streaming().process(e -> {
                 // Map.entry -> each out YYYY_MM file out
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
                 String yearAndMonth = yearAndMonthAndLines.getKey();

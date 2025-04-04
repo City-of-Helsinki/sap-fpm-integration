@@ -37,6 +37,7 @@ public class InRouteBuilder extends RouteBuilder {
     public static String buildInParamsWithExclude(String excludeRegexp) {
         return "includeExt=xml&exclude=" + excludeRegexp + "&" +
             "noop=true&" +
+            "idempotent=true&idempotentEager=false&" + // wait until file complete until removed from idempotent repo
             "preSort=true&sortBy=file:name&charset=ISO-8859-1";
     }
 

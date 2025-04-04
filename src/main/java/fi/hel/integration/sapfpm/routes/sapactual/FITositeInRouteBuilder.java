@@ -91,13 +91,14 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+        onException(Exception.class)
+            .maximumRedeliveries(10).continued(false)
+        .end();
         // process(e -> create a new file first, then append to it in batches)
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-                .onException(Exception.class)
-                    .maximumRedeliveries(10).continued(false)
-                .end()
+
             .log("read ${headers.CamelFileName}")
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite")

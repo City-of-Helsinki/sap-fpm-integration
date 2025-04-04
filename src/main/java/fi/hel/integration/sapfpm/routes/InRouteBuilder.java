@@ -48,7 +48,8 @@ public class InRouteBuilder extends RouteBuilder {
     // TODO: move to mainConfig
     public static String buildFtpParams(String filePrefix) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
-                "&passiveMode=true&autoCreate=false&disconnect=true";
+                "&passiveMode=true&autoCreate=false&disconnect=true&" +
+                "timeout=120000";
     }
 
     public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix) {

@@ -88,7 +88,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         r.put("AUGBL", E1FISEG.get("AUGBL"));
         return r;
     }
-
+// ID022_FI_TOSITE_20250219-155226-508.xml.inprogress
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         onException(Exception.class)

@@ -117,7 +117,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 .setProperty("outDir", constant("wip/" + toimiala))
                 .to("direct:tosite-csv-out")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-                .process(e -> e.getMessage().setBody(null))
+                .process(e -> e.getMessage().setBody(""))
                 .choice()
                 // TODO: set a timeout instead, failed files will now be read in a new batch
                 .when(simple("${exchangeProperty.CamelBatchComplete}"))

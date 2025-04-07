@@ -3,6 +3,7 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
+import org.apache.camel.component.file.GenericFileOperationFailedException;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 
@@ -88,9 +89,13 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         r.put("AUGBL", E1FISEG.get("AUGBL"));
         return r;
     }
-// ID022_FI_TOSITE_20250219-155226-508.xml.inprogress
+
+    Map<String, String> db = new HashMap<>();
+
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+        String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
+        // receipt id -> year + month (file name)
         onException(Exception.class)
             .maximumRedeliveries(10).continued(false)
         .end();
@@ -98,7 +103,11 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         // // TODO: batch and check ids in batches ?
 //                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-
+            //if db is empty, create file here
+            .onException(GenericFileOperationFailedException.class)
+                .log("FTP read failed, retrying")
+                .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
+            .end()
             .log("read ${headers.CamelFileName}")
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite")
@@ -106,9 +115,11 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 Set<String> oldProcessedReceiptIds;
                 Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
                 if (oldExchange == null) {
+                    log.info("oldExchange is null, file: " + newExchange.getMessage().getHeader("CamelFileName"));
+
                     // db.put(getReceiptId(receipt), yearAndMonth);
-                    // TODO: set somewhere?
-                   // oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> yearMonth.stream().map(this::getReceiptId)).collect(Collectors.toSet());
+                    oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> yearMonth.stream().map(this::getReceiptId)).collect(Collectors.toSet());
+
                     return newExchange;
                 } else {
                     Map<String, List<LinkedHashMap<String, Object>>> oldByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
@@ -140,6 +151,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     return oldExchange;
                 }
             }).constant(true).completionFromBatchConsumer()
+
             .split(body()).streaming().process(e -> {
                 // Map.entry -> each out YYYY_MM file out
                 Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
@@ -152,6 +164,13 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 e.getMessage().setBody(yearAndMonthAndLines.getValue());
             })
             .setProperty("outDir", constant(toimiala))
+                // first create header files f
+        /*    .setProperty("fileExist", constant("Override"))
+            .setProperty("aggrBody", body())
+            .setBody(constant(csvHeader))
+            .to("direct:any-file-out")
+            .setBody(exchangeProperty("aggrBody"))
+            .setProperty("fileExist", constant("Append"))*/
             .to("direct:tosite-csv-out");
     }
 
@@ -160,8 +179,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 receipt.get("GJAHR") + "_" + receipt.get("POPER");
     }
 
-    // receipt id -> year + month (file name)
-    Map<String, String> db = new HashMap<>();
 
     public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
         String receiptId = getReceiptId(receipt);
@@ -232,7 +249,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             }).id("ProcessTositeOut");
 
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
-            .marshal(tositeCsvDataFormat)
+                .marshal(tositeCsvDataFormat)
+           // .marshal(tositeCsvDataFormat.setSkipHeaderRecord(true))
             .to("direct:any-file-out");
     }
 }

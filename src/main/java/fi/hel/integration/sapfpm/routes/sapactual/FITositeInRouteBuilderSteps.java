@@ -5,14 +5,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.component.file.GenericFileOperationFailedException;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
+import org.apache.camel.processor.aggregate.GroupedExchangeAggregationStrategy;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
+import static fi.hel.integration.sapfpm.IDOCParser.addToByYearAndMonthIfExistsOrCreate;
+import static fi.hel.integration.sapfpm.IDOCParser.concatNewLinesToOld;
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 // ID022_FI_TOSITE_OUT_ > ID022 SOTE
@@ -22,7 +22,7 @@ import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
-public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
+public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
             "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
@@ -96,90 +96,34 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-        boolean disabled = true;
-        if (disabled) return;
-
         String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
         onException(Exception.class)
             .maximumRedeliveries(10).continued(false)
             .end();
 
-        // process(e -> create a new file first, then append to it in batches)
-        // // TODO: batch and check ids in batches ?
-//                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-            //if db is empty, create file here
-            .onException(GenericFileOperationFailedException.class)
+                //if db is empty, create file here
+                .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
                 .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-            .end()
-            .log("read ${headers.CamelFileName}")
-            .to("direct:unmarshal-xml")
-            .to("direct:process-tosite")
-            .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
-                Set<String> oldProcessedReceiptIds;
-                Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
-                if (oldExchange == null) {
-                    log.info("oldExchange is null, file: " + newExchange.getMessage().getHeader("CamelFileName"));
-
-                    // db.put(getReceiptId(receipt), yearAndMonth);
-                    oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> yearMonth.stream().map(this::getReceiptId)).collect(Collectors.toSet());
-                    //processedReceiptIds.putAll(oldProcessedReceiptIds);
-                    return newExchange;
-                } else {
-
-                    Map<String, List<LinkedHashMap<String, Object>>> oldByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
-                    oldProcessedReceiptIds = oldByYearAndMonth.values().stream().flatMap(yearMonth ->
-                         yearMonth.stream().map(this::getReceiptId)
-                    ).collect(Collectors.toSet());
-
-                    newByYearAndMonth.forEach((yearMonthKey, newVals) -> {
-                        List<LinkedHashMap<String, Object>> oldVals = oldByYearAndMonth.get(yearMonthKey);
-                        if (oldVals == null) {
-                            oldByYearAndMonth.put(yearMonthKey, newVals);
-                        } else {
-                            ArrayList<String> receiptsAlreadyProcessed = new ArrayList<>();
-                            List<LinkedHashMap<String, Object>> filteredNewVals = newVals.stream().filter(newV -> {
-                                boolean alreadyExists = oldProcessedReceiptIds.contains(getReceiptId(newV));
-                                if (alreadyExists) {
-                                    receiptsAlreadyProcessed.add(getReceiptId(newV));
-                                }
-                                return !alreadyExists;
-                            }).toList();
-                            if (!receiptsAlreadyProcessed.isEmpty()) {
-                                log.info("File " + newExchange.getMessage().getHeader("CamelFileName", String.class) + " contained duplicates that will be ignored: ");
-                                log.info(String.join(", ", receiptsAlreadyProcessed));
-                            }
-                            oldByYearAndMonth.put(yearMonthKey, concatNewLinesToOld(oldVals, filteredNewVals));
-                        }
-                    });
-
-                    return oldExchange;
-                }
-            }).constant(true).completionFromBatchConsumer()
-
-            .split(body()).streaming().process(e -> {
-                // Map.entry -> each out YYYY_MM file out
-                Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
-                String yearAndMonth = yearAndMonthAndLines.getKey();
-                String year = yearAndMonth.substring(0, 4);
-                String month = yearAndMonth.substring(4, 6);
-                if (month.startsWith("0")) month = month.substring(1);
-
-                e.getMessage().setHeader("CamelFileName", "SAPACTUAL" + "_" + year + "_" + month + ".csv");
-                e.getMessage().setBody(yearAndMonthAndLines.getValue());
-            })
-            .setProperty("outDir", constant(toimiala))
-                // first create header files f
-        /*    .setProperty("fileExist", constant("Override"))
-            .setProperty("aggrBody", body())
-            .setBody(constant(csvHeader))
-            .to("direct:any-file-out")
-            .setBody(exchangeProperty("aggrBody"))
-            .setProperty("fileExist", constant("Append"))*/
-            .to("direct:tosite-csv-out");
+                .end()
+                .log("read ${headers.CamelFileName}")
+                .setProperty("originalCamelFileName", header("CamelFileName"))
+                .to("direct:unmarshal-xml")
+                .to("direct:process-tosite")
+                .process(e -> {
+                    e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
+                })
+                .setProperty("outDir", constant(toimiala))
+                .to("direct:tosite-csv-out")
+                .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+                .process(e -> e.getMessage().setBody(null))
+                .choice()
+                .when(simple("${exchangeProperty.CamelBatchComplete}"))
+                .log("Done! Group and write unique csvs");
     }
+
 
     public String getReceiptId(LinkedHashMap<String, Object> receipt) {
         return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
@@ -208,8 +152,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
     @Override
     public void buildSupportingRoutes() {
-        boolean disabled = true;
-        if (disabled) return;
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
             .process(e -> {
@@ -243,18 +185,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     }
                 }).toList();
 
-                Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = new HashMap<>();
-                // take each line and map to GJAHR + POPER (MONAT)
-                receipts.forEach(receipt -> {
-                    String year = (String) receipt.get("GJAHR");
-                    if (year.length() < 2) year = "0" + year;
-                    String month = (String) receipt.get("POPER");
-                    if (month.length() < 2) month = "0" + month;
-                    String yearAndMonthKey = year + month;
-                    addToByYearAndMonthIfExistsOrCreate(byYearAndMonth, yearAndMonthKey, List.of(receipt));
-                });
-
-                e.getMessage().setBody(byYearAndMonth);
+                e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
 
         from("direct:tosite-csv-out").routeId("tositeAzureOut")

@@ -104,10 +104,10 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
                 //if db is empty, create file here
-                .onException(GenericFileOperationFailedException.class)
+            .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
                 .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-                .end()
+            .end()
                 .log("read ${headers.CamelFileName}")
                 .setProperty("originalCamelFileName", header("CamelFileName"))
                 .to("direct:unmarshal-xml")
@@ -119,23 +119,24 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 .to("direct:tosite-csv-out")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(null))
-                .choice()
+               /* .choice()
                 .when(simple("${exchangeProperty.CamelBatchComplete}"))
-                .log("Done! Group and write unique csvs")
-                .loopDoWhile(body().isNotNull())
-                    .pollEnrich()
-                    .simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
-                            "includeExt=csv&preSort=true&sortBy=file:name&recursive=true")
-                    .choice()
-                    .when(body().isNotNull())
-                    .unmarshal(tositeCsvDataFormat).split(body()).streaming()
-                        .process(e -> {
-                           // log.info("klass: " + e.getMessage().getBody().getClass());
-                           // log.info("line: " + e.getMessage().getBody(String.class));
-                            // if exists ignore, else aggregate to map
-                        })
-                    .end()
-                    .end();
+                    .log("Done! Group and write unique csvs")
+                    .loopDoWhile(body().isNotNull())
+                        .pollEnrich()
+                        .simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
+                                "includeExt=csv&preSort=true&sortBy=file:name&recursive=true")
+                        .choice()
+                        .when(body().isNotNull())
+                        .unmarshal(tositeCsvDataFormat).split(body()).streaming()
+                            .process(e -> {
+                               // log.info("klass: " + e.getMessage().getBody().getClass());
+                               // log.info("line: " + e.getMessage().getBody(String.class));
+                                // if exists ignore, else aggregate to map
+                            })
+                        .end()
+                        .end();*/
+                .end();
     }
 
 

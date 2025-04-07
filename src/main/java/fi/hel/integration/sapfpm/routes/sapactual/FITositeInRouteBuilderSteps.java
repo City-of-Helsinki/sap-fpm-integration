@@ -115,13 +115,27 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 .process(e -> {
                     e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
                 })
-                .setProperty("outDir", constant(toimiala))
+                .setProperty("outDir", constant("wip/" + toimiala))
                 .to("direct:tosite-csv-out")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(null))
                 .choice()
                 .when(simple("${exchangeProperty.CamelBatchComplete}"))
-                .log("Done! Group and write unique csvs");
+                .log("Done! Group and write unique csvs")
+                .loopDoWhile(body().isNotNull())
+                    .pollEnrich()
+                    .simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
+                            "includeExt=csv&preSort=true&sortBy=file:name&recursive=true")
+                    .choice()
+                    .when(body().isNotNull())
+                    .unmarshal(tositeCsvDataFormat).split(body()).streaming()
+                        .process(e -> {
+                           // log.info("klass: " + e.getMessage().getBody().getClass());
+                           // log.info("line: " + e.getMessage().getBody(String.class));
+                            // if exists ignore, else aggregate to map
+                        })
+                    .end()
+                    .end();
     }
 
 

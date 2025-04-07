@@ -3,6 +3,7 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
+import org.apache.camel.Exchange;
 import org.apache.camel.component.file.GenericFileOperationFailedException;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.apache.camel.processor.aggregate.GroupedExchangeAggregationStrategy;
@@ -98,9 +99,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
-        onException(Exception.class)
-            .maximumRedeliveries(10).continued(false)
-            .end();
+        boolean initialStart = true;
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
                 //if db is empty, create file here
@@ -119,32 +118,41 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 .to("direct:tosite-csv-out")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(null))
-               /* .choice()
+                .choice()
+                // TODO: set a timeout instead, failed files will now be read in a new batch
                 .when(simple("${exchangeProperty.CamelBatchComplete}"))
+                // check if exception thrown, then wait for next batch
                     .log("Done! Group and write unique csvs")
-                    .loopDoWhile(body().isNotNull())
-                        .pollEnrich()
-                        .simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
-                                "includeExt=csv&preSort=true&sortBy=file:name&recursive=true")
-                        .choice()
-                        .when(body().isNotNull())
-                        .unmarshal(tositeCsvDataFormat).split(body()).streaming()
-                            .process(e -> {
-                               // log.info("klass: " + e.getMessage().getBody().getClass());
-                               // log.info("line: " + e.getMessage().getBody(String.class));
-                                // if exists ignore, else aggregate to map
-                            })
-                        .end()
-                        .end();*/
-                .end();
+                    .setProperty("keepReadingCsvs", constant(true))
+                .process(e -> e.setProperty("existingIds", new HashSet<String>()))
+                    .loopDoWhile(simple("${exchangeProperty.keepReadingCsvs}"))
+                        .pollEnrich().simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
+                        "includeExt=csv&preSort=true&sortBy=file:name").aggregationStrategy((original, resource) -> {
+                            if (resource == null) {
+                                original.setProperty("keepReadingCsvs", false);
+                                return original;
+                            } else {
+                                log.info("Enriched " + resource.getMessage().getHeader("CamelFileName"));
+                            }
+                            original.getIn().setBody(resource.getIn().getBody());
+                            return original;
+                        })
+                        .to("direct:read-and-filter-csv");
+                //.end();
     }
 
-
+    // TODO: is not unique per CSV LINE!!!! only per tosite
     public String getReceiptId(LinkedHashMap<String, Object> receipt) {
         return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
                 receipt.get("GJAHR") + "_" + receipt.get("POPER");
     }
 
+    public String getReceiptId(ArrayList<String> receiptCsvLine) {
+        return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
+                receiptCsvLine.get(3) + "_" + receiptCsvLine.get(4) + "_" +
+                // TODO: CHECK IF CAN BE USED! XBLNR
+                receiptCsvLine.get(10);
+    }
 
     public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
         String receiptId = getReceiptId(receipt);
@@ -167,6 +175,24 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
     @Override
     public void buildSupportingRoutes() {
+        from("direct:read-and-filter-csv")
+            .unmarshal(tositeCsvDataFormat.setSkipHeaderRecord(true)).split(body()).streaming()
+            .process(e -> {
+                Set<String> existingIds = e.getProperty("existingIds", Set.class);
+                if (existingIds == null) existingIds = new HashSet<>();
+                ArrayList<String> csvVals = e.getMessage().getBody(ArrayList.class);
+              //  log.info("line: " + csvVals);
+                String id = getReceiptId(csvVals);
+                if (!existingIds.contains(id)) {
+                   // log.info("processed " + id);
+                    existingIds.add(id);
+                } else {
+                    //log.info("skipping already existing " + id);
+                    e.getMessage().setBody("");
+                }
+                e.setProperty("existingIds", existingIds);
+            });//.aggregate();
+
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
             .process(e -> {

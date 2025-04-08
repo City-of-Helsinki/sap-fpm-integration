@@ -51,7 +51,9 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
             .setProperty("outDir", constant(toimiala))
+            .setProperty("fileUploadDir", constant("SAP/TEST"))
             .to("direct:wbs-csv-out");
+        //direct:upload-blob-to-azur
     }
 
     @Override

@@ -9,9 +9,9 @@
 "%prod":
     palke:
         azure:
-            sasToken: "token"
-            accountName: "accName"
-            containerName: "container"
+            sasToken: "${PALKE_SAS_TOKEN}"
+            accountName: "${PALKE_AZURE_ACCOUNT}"
+            containerName: "${PALKE_AZURE_CONTAINER}"
         ftp:
             host: "${PALKE_SFTP_HOST}"
             perustiedot:
@@ -25,9 +25,9 @@
                 password: "${PALKE_SFT_PASSWORD_ID166}"
     kasko:
         azure:
-            sasToken: "token"
-            accountName: "accName"
-            containerName: "container"
+            sasToken: "${KASKO_SAS_TOKEN}"
+            accountName: "${KASKO_AZURE_ACCOUNT}"
+            containerName: "${KASKO_AZURE_CONTAINER}"
         ftp:
             host: "${KASKO_SFTP_HOST}"
             perustiedot:
@@ -38,9 +38,9 @@
                 password: "${KASKO_SFTP_PASSWORD_ID023}"
     sotepe:
         azure:
-            sasToken: "token"
-            accountName: "accName"
-            containerName: "container"
+            sasToken: "${SOTEPE_SAS_TOKEN}"
+            accountName: "${SOTEPE_AZURE_ACCOUNT}"
+            containerName: "${SOTEPE_AZURE_CONTAINER}"
         ftp:
             host: "${SOTEPE_SFTP_HOST}"
             perustiedot:

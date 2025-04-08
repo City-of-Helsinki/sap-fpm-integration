@@ -50,6 +50,7 @@ public class InRouteBuilder extends RouteBuilder {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
                 "&passiveMode=true&autoCreate=false&disconnect=true&" +
                 "localWorkDirectory=/tmp&" +
+                "maximumReconnectAttempts=10&" +
                 "bridgeErrorHandler=true&" +
                 "timeout=120000";
     }

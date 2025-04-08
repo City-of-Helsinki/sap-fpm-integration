@@ -105,6 +105,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 //if db is empty, create file here
             .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
+
                 .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
             .end()
                 .log("read ${headers.CamelFileName}")

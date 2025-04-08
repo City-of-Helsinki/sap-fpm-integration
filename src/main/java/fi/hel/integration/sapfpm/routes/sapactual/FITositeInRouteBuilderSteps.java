@@ -24,11 +24,13 @@ import static fi.hel.integration.sapfpm.IDOCParser.concatNewLinesToOld;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
-    CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
-        "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
-            "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
-            "VAT_PERCENT","HSL","PPRCTR","MATNR","EBELP","LAST_CHANGE_DATETIME","AUGBL"
-    });
+    CsvDataFormat createTositeCsvDataFormat() {
+        return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[]{
+                "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
+                "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
+                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL"
+        });
+    }
 //
     // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
@@ -97,16 +99,12 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-        String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
+     //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
         boolean initialStart = true;
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-                //if db is empty, create file here
-                .log("${headers}")
-                .process(e -> {
-                    log.info("props: " + String.join(", " , e.getAllProperties().keySet()));
-                })
+            //if db is empty, clean dirs here: wip and out/)
             .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
                 .setProperty("errorThrown", constant(true))
@@ -119,19 +117,38 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             .process(e -> {
                 e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
             })
+            // aggregate exchanges here?
             .setProperty("outDir", constant("wip/" + toimiala))
             .to("direct:tosite-csv-out")
             .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
             .process(e -> e.getMessage().setBody(""))
+                // aggregate all processed file names into list
+            .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
+                List<String> fileNames;
+                if (oldExchange == null) {
+                    fileNames = new ArrayList<>();
+                } else {
+                    fileNames = oldExchange.getMessage().getBody(List.class);
+                    newExchange.setProperty("firstFileName", oldExchange.getProperty("firstFileName"));
+                }
+                fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
+                newExchange.getMessage().setBody(fileNames);
+                return newExchange;
+            }).constant(true).completionFromBatchConsumer().log("file name aggr done")
             .choice()
             // TODO: set a timeout instead, failed files will now be read in a new batch
             .when(simple("${exchangeProperty.CamelBatchComplete}"))
+
             // check if exception thrown, then wait for next batch
-                .log("Done! Group and write unique csvs, errors: ")
+                .log("Done! Group and write unique csvs")
+        // split each file name and process via pollEnrich
                 .setProperty("keepReadingCsvs", constant(true))
-            .process(e -> e.setProperty("existingIds", new HashSet<String>()))
+                .process(e -> {
+                    // all existing ids
+                    e.setProperty("existingIds", new HashSet<String>());
+                })
                 .loopDoWhile(simple("${exchangeProperty.keepReadingCsvs}"))
-                    .pollEnrich().simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
+                    .pollEnrich().simple("file:${exchangeProperty.outDir}?" +
                     "includeExt=csv&preSort=true&sortBy=file:name").aggregationStrategy((original, resource) -> {
                         if (resource == null) {
                             original.setProperty("keepReadingCsvs", false);
@@ -142,8 +159,18 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                         original.getIn().setBody(resource.getIn().getBody());
                         return original;
                     })
-                    .to("direct:read-and-filter-csv");
-            //.end();
+                    .to("direct:read-and-filter-csv")
+                    .split(body()).process(e -> {
+                        Map.Entry<String, List<ArrayList<String>>> body = e.getMessage().getBody(Map.Entry.class);
+                        e.getMessage().setHeader("CamelFileName", "SAPACTUAL_" + body.getKey() + ".csv");
+                        e.getMessage().setBody(body.getValue());
+                    })
+                    .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
+                    .setProperty("fileExist", constant("Append"))
+                    .setProperty("outDir", constant(toimiala))
+                    .to("direct:any-file-out")
+                .end()
+            .end();
     }
 
     // TODO: is not unique per CSV LINE!!!! only per tosite
@@ -155,6 +182,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     public String getReceiptId(ArrayList<String> receiptCsvLine) {
         if (receiptCsvLine.size() <= 10) {
             log.info("csv line is under sized: " + String.join(";", receiptCsvLine));
+            log.info("in file: ${headers.CamelFileName}");
             return String.join("_", receiptCsvLine); // use whole line as id
         }
         return String.join("_", receiptCsvLine); // use whole line as id
@@ -164,13 +192,12 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 receiptCsvLine.get(10);*/
     }
 
-    public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
-        String receiptId = getReceiptId(receipt);
-        boolean wasProcessedEarlier = db.containsKey(receiptId);
-        if (wasProcessedEarlier) {
-            log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
+    public String getYearAndMonth(ArrayList<String> receiptCsvLine) {
+        if (receiptCsvLine.size() <= 4) {
+            log.info("csv line is under sized 4: " + String.join(";", receiptCsvLine));
+            return "";
         }
-        return !wasProcessedEarlier;
+        return receiptCsvLine.get(4) + "_" + receiptCsvLine.get(3);
     }
 
     @Override
@@ -185,23 +212,50 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
     @Override
     public void buildSupportingRoutes() {
+
+        // 1 csv file -> file for each yyyy_mm
         from("direct:read-and-filter-csv")
-            .unmarshal(tositeCsvDataFormat.setSkipHeaderRecord(true)).split(body()).streaming()
-            .process(e -> {
-                Set<String> existingIds = e.getProperty("existingIds", Set.class);
-                if (existingIds == null) existingIds = new HashSet<>();
-                ArrayList<String> csvVals = e.getMessage().getBody(ArrayList.class);
-              //  log.info("line: " + csvVals);
-                String id = getReceiptId(csvVals);
-                if (!existingIds.contains(id)) {
-                   // log.info("processed " + id);
-                    existingIds.add(id);
-                } else {
-                    //log.info("skipping already existing " + id);
-                    e.getMessage().setBody("");
-                }
-                e.setProperty("existingIds", existingIds);
-            });//.aggregate();
+            .unmarshal(createTositeCsvDataFormat().setSkipHeaderRecord(false)).split(body()).streaming()
+                .aggregationStrategy((AggregationStrategy) (oldExchange, newExchange) -> {
+                    Set<String> existingIds;
+                    Map<String, List<ArrayList<String>>> aggregatedByYearAndMonth;
+                    ArrayList<String> csvVals = newExchange.getMessage().getBody(ArrayList.class);
+                    // oldExchange body is a map
+                    // newExchange is a csv line
+                    //  log.info("line: " + csvVals);
+                    String id = getReceiptId(csvVals);
+                    if (oldExchange == null) {
+                        log.info("FIRST LINE: " + csvVals);
+                        aggregatedByYearAndMonth = new HashMap<String, List<ArrayList<String>>>();
+                        existingIds =  newExchange.getProperty("existingIds", Set.class);
+                    } else {
+                        aggregatedByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
+                        existingIds =  oldExchange.getProperty("existingIds", Set.class);
+                        newExchange.setProperty("existingIds", existingIds);
+                    }
+
+                    if (!existingIds.contains(id)) {
+                        //log.info("processed " + id);
+                        existingIds.add(id);
+
+                        String lineYearAndMonth = getYearAndMonth(csvVals);
+                        List<ArrayList<String>> existingLines = aggregatedByYearAndMonth.get(lineYearAndMonth);
+                        if (existingLines == null) {
+                            existingLines = new ArrayList<>();
+                            existingLines.add(csvVals);
+                            aggregatedByYearAndMonth.put(lineYearAndMonth, existingLines);
+                        } else {
+                            existingLines.add(csvVals);
+                        }
+                    } else {
+                       // log.info("skipping already existing line from file " + newExchange.getMessage().getHeader("CamelFileName"));
+                        //log.info(id);
+                    }
+
+                    newExchange.getMessage().setBody(aggregatedByYearAndMonth);
+
+                    return newExchange;
+                }).process(e -> {});
 
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
@@ -239,9 +293,9 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
 
+        // writes each xml file into a corresponding csv file
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
-                .marshal(tositeCsvDataFormat)
-           // .marshal(tositeCsvDataFormat.setSkipHeaderRecord(true))
+            .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(true))
             .to("direct:any-file-out");
     }
 }

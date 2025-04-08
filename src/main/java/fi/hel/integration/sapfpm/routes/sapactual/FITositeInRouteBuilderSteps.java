@@ -105,11 +105,12 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
             //if db is empty, clean dirs here: wip and out/)
-            .onException(GenericFileOperationFailedException.class)
+           /* .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
                 .setProperty("errorThrown", constant(true))
+
                 .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-            .end()
+            .end()*/
             .log("read ${headers.CamelFileName}")
             .setProperty("originalCamelFileName", header("CamelFileName"))
             .to("direct:unmarshal-xml")
@@ -125,22 +126,20 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 // aggregate all processed file names into list
             .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
                 List<String> fileNames;
+                if (newExchange.getException() != null) {
+                    log.info("newEx had exc: " + newExchange.getException().getMessage());
+                }
                 if (oldExchange == null) {
                     fileNames = new ArrayList<>();
                 } else {
                     fileNames = oldExchange.getMessage().getBody(List.class);
-                    newExchange.setProperty("firstFileName", oldExchange.getProperty("firstFileName"));
                 }
                 fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
                 newExchange.getMessage().setBody(fileNames);
                 return newExchange;
-            }).constant(true).completionFromBatchConsumer().log("file name aggr done")
-            .choice()
-            // TODO: set a timeout instead, failed files will now be read in a new batch
-            .when(simple("${exchangeProperty.CamelBatchComplete}"))
-
-            // check if exception thrown, then wait for next batch
-                .log("Done! Group and write unique csvs")
+            }).constant(true).completionFromBatchConsumer()
+            .log("file name aggr done, files: ${body.size()}")
+            .log("Done! Group and write unique csvs")
         // split each file name and process via pollEnrich
                 .setProperty("keepReadingCsvs", constant(true))
                 .process(e -> {
@@ -214,15 +213,13 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     public void buildSupportingRoutes() {
 
         // 1 csv file -> file for each yyyy_mm
+        // oldExchange body is a map, newExchange is a csv line
         from("direct:read-and-filter-csv")
             .unmarshal(createTositeCsvDataFormat().setSkipHeaderRecord(false)).split(body()).streaming()
                 .aggregationStrategy((AggregationStrategy) (oldExchange, newExchange) -> {
                     Set<String> existingIds;
                     Map<String, List<ArrayList<String>>> aggregatedByYearAndMonth;
                     ArrayList<String> csvVals = newExchange.getMessage().getBody(ArrayList.class);
-                    // oldExchange body is a map
-                    // newExchange is a csv line
-                    //  log.info("line: " + csvVals);
                     String id = getReceiptId(csvVals);
                     if (oldExchange == null) {
                         log.info("FIRST LINE: " + csvVals);
@@ -235,7 +232,6 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                     }
 
                     if (!existingIds.contains(id)) {
-                        //log.info("processed " + id);
                         existingIds.add(id);
 
                         String lineYearAndMonth = getYearAndMonth(csvVals);
@@ -248,7 +244,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                             existingLines.add(csvVals);
                         }
                     } else {
-                       // log.info("skipping already existing line from file " + newExchange.getMessage().getHeader("CamelFileName"));
+                        log.info("skipping already existing line from file " + newExchange.getMessage().getHeader("CamelFileName"));
                         //log.info(id);
                     }
 

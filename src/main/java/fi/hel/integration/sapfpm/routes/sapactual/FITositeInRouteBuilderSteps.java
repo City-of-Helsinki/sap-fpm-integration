@@ -29,7 +29,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
             "VAT_PERCENT","HSL","PPRCTR","MATNR","EBELP","LAST_CHANGE_DATETIME","AUGBL"
     });
-
+//
     // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
         LinkedHashMap<String, Object> r = new LinkedHashMap<>(); // order matters
@@ -103,43 +103,47 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
                 //if db is empty, create file here
+                .log("${headers}")
+                .process(e -> {
+                    log.info("props: " + String.join(", " , e.getAllProperties().keySet()));
+                })
             .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
-
+                .setProperty("errorThrown", constant(true))
                 .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
             .end()
-                .log("read ${headers.CamelFileName}")
-                .setProperty("originalCamelFileName", header("CamelFileName"))
-                .to("direct:unmarshal-xml")
-                .to("direct:process-tosite")
-                .process(e -> {
-                    e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
-                })
-                .setProperty("outDir", constant("wip/" + toimiala))
-                .to("direct:tosite-csv-out")
-                .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-                .process(e -> e.getMessage().setBody(""))
-                .choice()
-                // TODO: set a timeout instead, failed files will now be read in a new batch
-                .when(simple("${exchangeProperty.CamelBatchComplete}"))
-                // check if exception thrown, then wait for next batch
-                    .log("Done! Group and write unique csvs")
-                    .setProperty("keepReadingCsvs", constant(true))
-                .process(e -> e.setProperty("existingIds", new HashSet<String>()))
-                    .loopDoWhile(simple("${exchangeProperty.keepReadingCsvs}"))
-                        .pollEnrich().simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
-                        "includeExt=csv&preSort=true&sortBy=file:name").aggregationStrategy((original, resource) -> {
-                            if (resource == null) {
-                                original.setProperty("keepReadingCsvs", false);
-                                return original;
-                            } else {
-                                log.info("Enriched " + resource.getMessage().getHeader("CamelFileName"));
-                            }
-                            original.getIn().setBody(resource.getIn().getBody());
+            .log("read ${headers.CamelFileName}")
+            .setProperty("originalCamelFileName", header("CamelFileName"))
+            .to("direct:unmarshal-xml")
+            .to("direct:process-tosite")
+            .process(e -> {
+                e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
+            })
+            .setProperty("outDir", constant("wip/" + toimiala))
+            .to("direct:tosite-csv-out")
+            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+            .process(e -> e.getMessage().setBody(""))
+            .choice()
+            // TODO: set a timeout instead, failed files will now be read in a new batch
+            .when(simple("${exchangeProperty.CamelBatchComplete}"))
+            // check if exception thrown, then wait for next batch
+                .log("Done! Group and write unique csvs, errors: ")
+                .setProperty("keepReadingCsvs", constant(true))
+            .process(e -> e.setProperty("existingIds", new HashSet<String>()))
+                .loopDoWhile(simple("${exchangeProperty.keepReadingCsvs}"))
+                    .pollEnrich().simple("file:${exchangeProperty.outDir}?noop=true&idempotent=true&idempotentEager=false&" +
+                    "includeExt=csv&preSort=true&sortBy=file:name").aggregationStrategy((original, resource) -> {
+                        if (resource == null) {
+                            original.setProperty("keepReadingCsvs", false);
                             return original;
-                        })
-                        .to("direct:read-and-filter-csv");
-                //.end();
+                        } else {
+                            log.info("Enriched " + resource.getMessage().getHeader("CamelFileName"));
+                        }
+                        original.getIn().setBody(resource.getIn().getBody());
+                        return original;
+                    })
+                    .to("direct:read-and-filter-csv");
+            //.end();
     }
 
     // TODO: is not unique per CSV LINE!!!! only per tosite
@@ -149,10 +153,15 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     }
 
     public String getReceiptId(ArrayList<String> receiptCsvLine) {
-        return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
+        if (receiptCsvLine.size() <= 10) {
+            log.info("csv line is under sized: " + String.join(";", receiptCsvLine));
+            return String.join("_", receiptCsvLine); // use whole line as id
+        }
+        return String.join("_", receiptCsvLine); // use whole line as id
+        /*return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
                 receiptCsvLine.get(3) + "_" + receiptCsvLine.get(4) + "_" +
                 // TODO: CHECK IF CAN BE USED! XBLNR
-                receiptCsvLine.get(10);
+                receiptCsvLine.get(10);*/
     }
 
     public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {

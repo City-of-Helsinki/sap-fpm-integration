@@ -8,6 +8,9 @@ import org.apache.camel.dataformat.csv.CsvDataFormat;
 import java.util.*;
 import java.util.stream.Stream;
 
+// CO_TOSITE MYÖS PER KAUDET !!! eli
+// yksilöivät BUKRS BELNR GJAHR PERIO (PERIO on MONAT)
+//
 
 // ID***_CO_TOSITE_***20250217-000705-001
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?

@@ -3,6 +3,8 @@ smallrye:
     profile: test
 
 "%test":
+  quarkus.datasource.sapactual:
+    db-kind: h2
   local-file:
     perustiedot: true
     toteumat: true

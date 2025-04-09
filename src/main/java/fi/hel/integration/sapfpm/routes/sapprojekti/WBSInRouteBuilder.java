@@ -45,11 +45,12 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         log.info("Starting wbs/project " + toimiala);
         from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "wbsIn")
+                // errorHandler(noErrorHandler())
             .log("%s read ${headers.CamelFileName}".formatted(toimiala))
             .to("direct:unmarshal-xml")
             .to("direct:process-wbs")
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
-            .setHeader("CamelFileName", constant("SAPPROJEKTI_PRPS.csv"))
+            .setHeader("CamelFileName", constant("SAPPROJEKTI.csv"))
             .setProperty("outDir", constant(toimiala))
             .setProperty("fileUploadDir", constant("SAP/TEST"))
             .to("direct:wbs-csv-out");

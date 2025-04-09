@@ -27,7 +27,9 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
         });
     }
 //
-    // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
+    // Uusi tosite alkaa <E1FIKPF> jonka jälkeen tulee rivitiedot
+    // Rivitieto <E1FISEG SEGMENT=""> eli tositteen liitetiedot
+    // kantaan: tosite <- rivitiedot
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
         LinkedHashMap<String, Object> r = new LinkedHashMap<>(); // order matters
         Map<String, Object> E1FINBU = (Map<String, Object>) E1FISEG.get("E1FINBU");
@@ -182,16 +184,16 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     }
 
     public String getReceiptId(ArrayList<String> receiptCsvLine) {
+        // if csv contains metadata for a receipt, they will cancel each other out
+        //
         if (receiptCsvLine.size() <= 10) {
             log.info("csv line is under sized: " + String.join(";", receiptCsvLine));
             log.info("in file: ${headers.CamelFileName}");
             return String.join("_", receiptCsvLine); // use whole line as id
         }
-        return String.join("_", receiptCsvLine); // use whole line as id
-        /*return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
-                receiptCsvLine.get(3) + "_" + receiptCsvLine.get(4) + "_" +
-                // TODO: CHECK IF CAN BE USED! XBLNR
-                receiptCsvLine.get(10);*/
+
+        return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
+                receiptCsvLine.get(3) + "_" + receiptCsvLine.get(4);
     }
 
     public String getYearAndMonth(ArrayList<String> receiptCsvLine) {
@@ -223,6 +225,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                     Set<String> existingIds;
                     Map<String, List<ArrayList<String>>> aggregatedByYearAndMonth;
                     ArrayList<String> csvVals = newExchange.getMessage().getBody(ArrayList.class);
+                    // get file name as well
                     String id = getReceiptId(csvVals);
                     if (oldExchange == null) {
                         aggregatedByYearAndMonth = new HashMap<String, List<ArrayList<String>>>();
@@ -233,6 +236,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                         newExchange.setProperty("existingIds", existingIds);
                     }
 
+                    // TODO: if inside the same file, allow, else filter out
                     if (!existingIds.contains(id)) {
                         existingIds.add(id);
 

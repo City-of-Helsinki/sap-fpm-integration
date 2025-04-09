@@ -1,5 +1,7 @@
 # ./mvnw quarkus:dev
 
+# db configs need to be in application.properties
+
 "%dev":
     local-file:
         perustiedot: true

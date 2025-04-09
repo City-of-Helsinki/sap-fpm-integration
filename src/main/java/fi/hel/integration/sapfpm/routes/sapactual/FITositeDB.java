@@ -10,7 +10,7 @@ public class FITositeDB extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        from("direct:write-tosite-to-db")
+        /*from("direct:write-tosite-to-db")
             .process(e -> {
                 //String fileName = e.getMessage().getHeader(FileConstants.FILE_NAME, String.class);
              //   Map<String, String> vals = e.getMessage().getBody(Map.class);
@@ -19,6 +19,6 @@ public class FITositeDB extends RouteBuilder {
             .setBody(constant(
                     "INSERT INTO TOSITE (fileName, BUKRS, BELNR, GJAHR, MONAT) VALUES " +
                           "(:?fileName, :?BUKRS, :?BELNR, :?GJAHR, :?MONAT)"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true");
+            .to("jdbc:sapactual?useHeadersAsParameters=true");*/
     }
 }

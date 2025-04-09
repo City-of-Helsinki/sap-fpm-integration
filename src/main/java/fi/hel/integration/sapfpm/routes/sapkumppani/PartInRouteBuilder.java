@@ -1,8 +1,10 @@
 package fi.hel.integration.sapfpm.routes.sapkumppani;
 
 import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
+import fi.hel.integration.sapfpm.config.PalkeConfig;
 import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
@@ -16,6 +18,9 @@ import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 // eli tässä ei tarvita kaikkien lukemista, viimeisin riittää
 @ApplicationScoped
 public class PartInRouteBuilder extends PerustiedotRouteBuilder {
+    @Inject
+    PalkeConfig palkeConfig;
+
     CsvDataFormat partCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
         "RCOMP", "NAME1"
     });
@@ -56,8 +61,17 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
             extractValuesDirectlyFromXML(e, "Kumppaniyhtiö", this::extractValues)
         );
 
-        from("direct:part-csv-out").routeId("partCsvOut")
-            .marshal(partCsvDataFormat)
-            .to("direct:any-file-out");
+        if (palkeConfig.azureAccountName().isPresent()) {
+            from("direct:part-csv-out").routeId("partCsvOut")
+                .marshal(partCsvDataFormat)
+                .to("direct:any-file-out")
+                .setProperty("uploadFileDir", constant("SAS/TEST"))
+                .to("direct:upload-blob-to-azure");
+
+        } else {
+            from("direct:part-csv-out").routeId("partCsvOut")
+                .marshal(partCsvDataFormat)
+                .to("direct:any-file-out");
+        }
     }
 }

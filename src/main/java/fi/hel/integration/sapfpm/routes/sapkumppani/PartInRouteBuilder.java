@@ -52,7 +52,12 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
             .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             .setHeader("CamelFileName", constant("SAPKUMPPANI.csv"))
             .setProperty("outDir", constant(toimiala))
-            .to("direct:part-csv-out");
+            .to("direct:part-csv-out")
+            .choice()
+                .when(simple("${exchangeProperty.outDir} == 'palke'"))
+                    .setProperty("uploadFileDir", constant("SAS/TEST"))
+                    .to("direct:upload-blob-to-azure-" + toimiala)
+            .end();
     }
 
     @Override
@@ -61,17 +66,9 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
             extractValuesDirectlyFromXML(e, "Kumppaniyhtiö", this::extractValues)
         );
 
-        if (palkeConfig.azureAccountName().isPresent()) {
-            from("direct:part-csv-out").routeId("partCsvOut")
-                .marshal(partCsvDataFormat)
-                .to("direct:any-file-out")
-                .setProperty("uploadFileDir", constant("SAS/TEST"))
-                .to("direct:upload-blob-to-azure");
+        from("direct:part-csv-out").routeId("partCsvOut")
+            .marshal(partCsvDataFormat)
+            .to("direct:any-file-out");
 
-        } else {
-            from("direct:part-csv-out").routeId("partCsvOut")
-                .marshal(partCsvDataFormat)
-                .to("direct:any-file-out");
-        }
     }
 }

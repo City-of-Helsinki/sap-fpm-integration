@@ -3,9 +3,14 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
+import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
+import org.apache.camel.language.simple.Simple;
+import org.h2.jdbc.JdbcResultSet;
+import org.h2.result.SimpleResult;
 
 import java.io.StreamTokenizer;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -19,7 +24,7 @@ import java.util.stream.Stream;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
-    CsvDataFormat createTositeCsvDataFormat() {
+    public static CsvDataFormat createTositeCsvDataFormat() {
         return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[]{
                 "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
                 "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
@@ -87,6 +92,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
         r.put("LAST_CHANGE_DATE_TIME", E1FIKPF.get("LAST_CHANGE_DATE_TIME")); // not in s4
         r.put("AUGBL", E1FISEG.get("AUGBL"));
+
         return r;
     }
     @Override
@@ -97,6 +103,11 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
         AtomicInteger processedFileAmount = new AtomicInteger(0);
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
+
+            .setProperty("originalBody", body())
+                .to("direct:init-tositerivi-db")
+                // choice, if processed, skip
+
             .choice()
             .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
                 .process(e -> {
@@ -106,7 +117,6 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                     }
                 })
             .end()
-            //if db is empty, clean dirs here: wip and out/)
            /* .onException(GenericFileOperationFailedException.class)
                 .log("FTP read failed, retrying")
                 .setProperty("errorThrown", constant(true))
@@ -117,6 +127,8 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             .setProperty("originalCamelFileName", header("CamelFileName"))
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite")
+            .log("total lines to insert: ${body.size()}")
+            .to("direct:insert-tositerivit-into-db")
             .process(e -> {
                 e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
             })
@@ -143,12 +155,35 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             .process(e -> {
                 int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
                 e.setProperty("processedFileAmount", newTotal);
-                e.setProperty("initialBatchSize", initialBatchSize.get());
+                int initial = initialBatchSize.get();
+                if (newTotal == initial) {
+                    log.info("resetting initial batch size to -1!");
+                    initialBatchSize.set(-1);
+                }
+                e.setProperty("initialBatchSize", initial);
             })
             .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
             .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
-                .log("Done! Group and write unique csvs")
-                .to("direct:stack-csvs")
+                .log("Done! Group and write unique csvs from db")
+                .to("direct:fetch-all-years-and-months-from-db")
+                    .split(body())
+                        .process(e -> {
+                            LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                            for (String s : row.keySet()) {
+                                ResultSet rs = (ResultSet) row.get(s);
+                                if (rs.next()) {
+                                    String month = rs.getString(1);
+                                    String year = rs.getString(2);
+                                    e.getMessage().setHeader("GJAHR", year);
+                                    e.getMessage().setHeader("POPER", month);
+                                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
+                                }
+                            }
+                        })
+                        .to("direct:fetch-tositerivit-from-db-by-year-and-month")
+                        .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
+                        .to("file:dbout")
+                    .end()
             .end();
 
         from("direct:stack-csvs")
@@ -294,6 +329,13 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
                 e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
+
+        from("direct:insert-tositerivit-into-db")
+            .split(body())
+                .to("direct:insert-tositerivi-into-db")
+            .end()
+                .log("derp ${headers.CamelFileName} ${body.size()}");
+
 
         // writes each xml file into a corresponding csv file
         from("direct:tosite-csv-out").routeId("tositeAzureOut")

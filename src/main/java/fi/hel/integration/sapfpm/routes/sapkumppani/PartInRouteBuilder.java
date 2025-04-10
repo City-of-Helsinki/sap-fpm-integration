@@ -69,6 +69,5 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
         from("direct:part-csv-out").routeId("partCsvOut")
             .marshal(partCsvDataFormat)
             .to("direct:any-file-out");
-
     }
 }

@@ -27,7 +27,8 @@ public class AzureBlobOut extends RouteBuilder {
             .setHeader(BlobConstants.BLOB_NAME, header(FileConstants.FILE_NAME))
             .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}".formatted(toimiala, toimiala) +
                     "?sasToken=RAW({{%s.azure.sasToken}})".formatted(toimiala) +
-                    "&operation=uploadBlockBlob&credentialType=AZURE_SAS" +
+                    "&credentialType=AZURE_SAS" +
+                    "&operation=uploadBlockBlob" +
                     "&fileDir=${exchangeProperty.uploadFileDir}")
             .log("uploaded ${header.CamelFileName} to Azure");
     }

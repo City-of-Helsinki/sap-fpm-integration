@@ -31,7 +31,7 @@ public abstract class ToteumatRouteBuilder extends RouteBuilder implements FtpOr
         }
 
         if (mainConfig.localToteumatEnabled()) {
-            buildMainRoute("file:in?" + buildInParams(getFilePrefix()), null);
+            buildMainRoute("file:in?" + buildInParams(getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPToteumatEnabled()) {

@@ -1,5 +1,6 @@
 package fi.hel.integration.sapfpm.routes;
 
+import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import org.apache.camel.builder.RouteBuilder;
 
 
@@ -84,9 +85,17 @@ public class InRouteBuilder extends RouteBuilder {
     @Inject
     Logger log;
 
+    @Inject
+    IsConfigEnabled mainConfig;
+
+
     @Override
     public void configure() throws Exception {
         from("direct:unmarshal-xml").unmarshal().jacksonXml();
+
+        if (mainConfig.localOrFTPPerustiedotEnabled()) {
+            buildLocalFileAppendingRoute();
+        }
 
         //SOTEPE ID167 perustiedot
         //  Samoin en näe tarvetta pääkirjatililataukselle, sen voi viedä suoraan FPM yhtenä latauksena sillä muutoksia tulee harvakseltaan
@@ -108,5 +117,20 @@ ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per
         // PALKE ID166 tyhjä ??? <-- toteumatositteet, palkelle myös CO toteutamatositteet
         // PALKE ID138 perustiedot
         // PALKE ID025 toteumatositteet
+    }
+
+    public void buildLocalFileAppendingRoute() {
+        from("direct:append-csv-to-main-csv").id("append-csv-to-main-csv")
+                .pollEnrich().simple("file:${exchangeProperty.wipFileDir}?fileName=RAW(${body})&noop=true&autoCreate=false")
+                .aggregationStrategy((oldExchange, readFileExchange) -> {
+                    if (readFileExchange == null) {
+                        log.error("READ FILE IS NULL!");
+                        oldExchange.getMessage().setBody("");
+                    } else {
+                        oldExchange.getMessage().setBody(readFileExchange.getMessage().getBody());
+                    }
+                    return oldExchange;
+                })
+                .to("direct:any-file-out");
     }
 }

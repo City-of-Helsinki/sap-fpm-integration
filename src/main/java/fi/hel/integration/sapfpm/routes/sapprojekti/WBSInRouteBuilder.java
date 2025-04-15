@@ -14,9 +14,11 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin
 @ApplicationScoped
 public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
-    CsvDataFormat wbsCsvDataFormat = new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(new String[] {
-        "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
-    });
+    CsvDataFormat wbsCsvDataFormat() {
+        return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(new String[] {
+            "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
+        });
+    }
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> project = new LinkedHashMap<>();
@@ -33,7 +35,6 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     @Override
     public String getFilePrefix() {
         return "(WBS_OUT_|PROJECT)";
-        //  ".*FI_TOSITE_"
     }
 
     @Override
@@ -43,28 +44,17 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
 
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-        log.info("Starting wbs/project " + toimiala);
-        from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "wbsIn")
-                // errorHandler(noErrorHandler())
-            .log("%s read ${headers.CamelFileName}".formatted(toimiala))
-            .to("direct:unmarshal-xml")
-            .to("direct:process-wbs")
-            .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
-            .setHeader("CamelFileName", constant("SAPPROJEKTI.csv"))
-            .setProperty("outDir", constant(toimiala))
-            .setProperty("fileUploadDir", constant("SAP/TEST"))
-            .to("direct:wbs-csv-out");
-        //direct:upload-blob-to-azur
+        buildFtpFileReadingRoute(from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "wbsIn"),
+            toimiala, "direct:process-wbs",
+            wbsCsvDataFormat().setSkipHeaderRecord(true),
+                wbsCsvDataFormat().setSkipHeaderRecord(false),
+                "SAPPROJEKTI.csv");
     }
 
     @Override
     public void buildSupportingRoutes() {
         from("direct:process-wbs").id("ProcessWBS")
             .setBody(e -> extractValuesFromIDOC(e,  "ZHKI_PROJEKTIRAKENTEENOSA", this::extractValues));
-
-        from("direct:wbs-csv-out").routeId("wbsCsvOut")
-            .marshal(wbsCsvDataFormat)
-            .to("direct:any-file-out");
     }
 }
 

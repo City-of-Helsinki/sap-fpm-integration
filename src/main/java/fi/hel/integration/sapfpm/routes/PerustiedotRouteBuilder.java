@@ -108,13 +108,28 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                     e.setProperty("writeOut", false);
                     processedFileNames.clear();
                     initialBatchSize.set(-1);
-                }).log("DONE! SEND ${headers.CamelFileName} to AZURE!")
+                })
+                .pollEnrich()
+                    .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false")
+                    .aggregationStrategy((oldExchange, readFileExchange) -> {
+                        if (readFileExchange == null) {
+                            log.error("READ MAIN FILE IS NULL!");
+                            oldExchange.getMessage().setBody(null);
+                        } else {
+                            oldExchange.getMessage().setBody(readFileExchange.getMessage().getBody());
+                        }
+                        return oldExchange;
+                    })
                 .choice()
-                   .when(simple("${exchangeProperty.outDir} == 'palke'"))
-                        .setProperty("uploadFileDir", constant("SAP/TEST"))
-                        .log("SEND ${headers.CamelFileName} to PALKE AZURE!")
-                .end();
-                //  .to("direct:upload-blob-to-azure-" + toimiala)
+                    .when(body().isNull())
+                        .log("Not sending empty file to Azure! ${headers.CamelFileName}")
+                    .otherwise()
+                        .choice()
+                           .when(simple("${exchangeProperty.outDir} == 'palke'"))
+                                .setProperty("uploadFileDir", constant("SAP/TEST"))
+                                .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to PALKE AZURE!")
+                                .to("direct:upload-blob-to-azure-" + toimiala)
+                            .end();
 
     }
 

@@ -6,6 +6,7 @@ import org.apache.camel.builder.RouteBuilder;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.apache.camel.component.file.FileConstants;
 import org.jboss.logging.Logger;
 
 
@@ -121,12 +122,13 @@ ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per
 
     public void buildLocalFileAppendingRoute() {
         from("direct:append-csv-to-main-csv").id("append-csv-to-main-csv")
-                .pollEnrich().simple("file:${exchangeProperty.wipFileDir}?fileName=RAW(${body})&noop=true&autoCreate=false")
+                .pollEnrich().simple("file:${exchangeProperty.wipFileDir}?fileName=RAW(${body})&autoCreate=false")
                 .aggregationStrategy((oldExchange, readFileExchange) -> {
                     if (readFileExchange == null) {
                         log.error("READ FILE IS NULL!");
                         oldExchange.getMessage().setBody("");
                     } else {
+                        oldExchange.setProperty("originalFileName", readFileExchange.getMessage().getHeader(FileConstants.FILE_NAME));
                         oldExchange.getMessage().setBody(readFileExchange.getMessage().getBody());
                     }
                     return oldExchange;

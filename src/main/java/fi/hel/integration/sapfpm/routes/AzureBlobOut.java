@@ -53,17 +53,20 @@ public class AzureBlobOut extends RouteBuilder {
                 .when(simple("${exchangeProperty.fileExist} == null"))
                 .setProperty("fileExist", constant("Override"))
             .end()
-            .log("Trying to write file ${exchangeProperty.outDir}/${headers.CamelFileName}")
-                .onException(Exception.class)
-                    .maximumRedeliveries(10).redeliveryDelay(1000)
-                    .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
-                .end()
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(1000)
+                .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
+            .end()
             .toD("file:${exchangeProperty.outDir}?fileExist=${exchangeProperty.fileExist}")
                 .choice().when(simple("${exchangeProperty.processedFiles} != null"))
                     .log("Processed ${exchangeProperty.processedFiles.size()} files: ")
                     .log("${exchangeProperty.processedFiles}")
                 .end()
-            .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
+                .choice()
+                    .when(simple("${exchangeProperty.fileExist} == 'Append'"))
+                    .log("Appended ${exchangeProperty.originalFileName} to ${exchangeProperty.outDir}/${headers.CamelFileName}")
+                .otherwise()
+                    .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
     }
 }
 

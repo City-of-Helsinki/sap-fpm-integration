@@ -1,6 +1,5 @@
 package fi.hel.integration.sapfpm.routes.sapprojekti;
 
-import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 

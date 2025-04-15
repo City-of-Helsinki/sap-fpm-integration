@@ -24,13 +24,17 @@ public class AzureBlobOut extends RouteBuilder {
     public void createAzureBlobUploadingRoute(String toimiala) {
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure")
             .log("uploading ${header.CamelFileName} to Azure ${exchangeProperty.uploadFileDir}")
-            .setHeader(BlobConstants.BLOB_NAME, header(FileConstants.FILE_NAME))
-            .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}/${exchangeProperty.uploadFileDir}".formatted(toimiala, toimiala) +
+            .process(e -> {
+                e.getMessage().setHeader(BlobConstants.BLOB_NAME,
+            e.getProperty("uploadFileDir") + "/" + e.getMessage().getHeader(FileConstants.FILE_NAME));
+            })
+           // .setHeader(BlobConstants.BLOB_NAME, header(FileConstants.FILE_NAME))
+            .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}".formatted(toimiala, toimiala) +
                     "?sasToken=RAW({{%s.azure.sasToken}})".formatted(toimiala) +
                     "&credentialType=AZURE_SAS" +
                     "&operation=uploadBlockBlob")
-                    //"&fileDir=${exchangeProperty.uploadFileDir}")
-            .log("uploaded ${header.CamelFileName} to  %s Azure ${exchangeProperty.uploadFileDir}".formatted(toimiala));
+            .log("uploaded ${header.CamelFileName} to %s Azure ${exchangeProperty.uploadFileDir}".formatted(toimiala))
+        .to("direct:list-azure-blobs");
     }
 
     @Override
@@ -39,6 +43,14 @@ public class AzureBlobOut extends RouteBuilder {
         if (palkeConfig.azureAccountName().isPresent()) {
             log.info("palke azure uploading enabled");
             createAzureBlobUploadingRoute("palke");
+/*
+            String toimiala = "palke";
+            from("direct:list-azure-blobs").id("list-blobs-azure")
+                .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}/${exchangeProperty.uploadFileDir}".formatted(toimiala, toimiala) +
+                        "?sasToken=RAW({{%s.azure.sasToken}})".formatted(toimiala) +
+                        "&credentialType=AZURE_SAS" +
+                        "&operation=listBlobs")
+                .split(body()).log("${body.getName()}");*/
         }
 
         from("direct:any-file-out").id("AnyFileOut")

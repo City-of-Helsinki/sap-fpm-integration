@@ -55,8 +55,7 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
             .to("direct:part-csv-out")
             .choice()
                 .when(simple("${exchangeProperty.outDir} == 'palke'"))
-                  //  .setProperty("uploadFileDir", constant("SAS/TEST"))
-                .setProperty("uploadFileDir", constant("SAS"))
+                    .setProperty("uploadFileDir", constant("SAS/TEST"))
                     .to("direct:upload-blob-to-azure-" + toimiala)
             .end();
     }

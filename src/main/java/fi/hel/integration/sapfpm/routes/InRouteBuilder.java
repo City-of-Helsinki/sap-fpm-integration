@@ -38,7 +38,8 @@ public class InRouteBuilder extends RouteBuilder {
         return "includeExt=xml&exclude=" + excludeRegexp + "&" +
             "noop=true&" +
             "idempotent=true&idempotentEager=false&" + // wait until file complete until removed from idempotent repo
-            "preSort=true&sortBy=file:name&charset=ISO-8859-1";
+            "preSort=true&sortBy=file:name";
+        //&charset=ISO-8859-1";
     }
 
     public static String buildInParams(String filePrefix) {

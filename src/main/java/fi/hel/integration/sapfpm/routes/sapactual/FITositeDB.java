@@ -4,6 +4,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS TOSITERIVI(
   id bigint NOT NULL AUTO_INCREMENT,
   createdTimestamp TIMESTAMP default now() not null,
   fileName varchar(255) not null,
+  toimiala varchar(255) not null,
 BUKRS varchar(255) not null,
 BELNR varchar(255) not null,
 CO_BELNR varchar(255) default '',
@@ -61,6 +63,7 @@ AUGBL varchar(255) default '',
 primary key (id),
 CONSTRAINT TOSITERIVIUNIQUE UNIQUE NULLS NOT DISTINCT (
 filename,
+toimiala,
 BUKRS,
 BELNR,
 CO_BELNR,
@@ -103,6 +106,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
   createdTimestamp TIMESTAMP default now() not null,
   processedTimestamp TIMESTAMP,
   filename varchar(255) not null,
+  toimiala varchar(255) not null,
   primary key (filename)
 );
 """
@@ -119,6 +123,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                         jdbcParams.put(keyVal.getKey(), keyVal.getValue());
                     }
                 }
+                jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
                 jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
                 e.setProperty("originalBody", body);
                 e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
@@ -128,20 +133,21 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(simple(
                     "INSERT INTO TOSITERIVI (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
            //.log("Inserted, updated: ${headers.CamelJdbcUpdateCount}")
-            .onException(Exception.class)
-                .log("Failed to insert tositerivi into the db!")
-                .handled(true)
+            .onException(SQLIntegrityConstraintViolationException.class)
+                .onWhen(simple("${exception.message} contains 'Unique index or primary key violation'"))
+                    .log("Failed to insert tositerivi into the db due to a duplicate in ${headers.CamelFileName}!")
+                    .handled(true)
             .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:fetch-all-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT(POPER, GJAHR) FROM TOSITERIVI"))
+            .setBody(constant("SELECT DISTINCT(TOIMIALA, POPER, GJAHR) FROM TOSITERIVI"))
                 .to("jdbc:sapactual?useHeadersAsParameters=true");
 
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
-            .setBody(constant("SELECT * FROM TOSITERIVI WHERE GJAHR = :?GJAHR AND POPER = :?POPER"))
+            .setBody(constant("SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER"))
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("db fetch size: ${body.size()}");
     }

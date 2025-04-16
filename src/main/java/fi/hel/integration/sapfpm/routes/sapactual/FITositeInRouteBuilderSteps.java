@@ -31,7 +31,7 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL"
         });
     }
-//
+
     // Uusi tosite alkaa <E1FIKPF> jonka jälkeen tulee rivitiedot
     // Rivitieto <E1FISEG SEGMENT=""> eli tositteen liitetiedot
     // kantaan: tosite <- rivitiedot
@@ -97,146 +97,97 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
     }
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-     //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
+        if (toimiala == null) {
+            log.error("toimiala is null!");
+            return;
+        }
+        //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         AtomicInteger processedFileAmount = new AtomicInteger(0);
 
         from(fileOrFtpIn).id(toimiala + "tositeIn")
-
+            .setHeader("toimiala", constant(toimiala))
             .setProperty("originalBody", body())
-                .to("direct:init-tositerivi-db")
+            .to("direct:init-tositerivi-db")
                 // choice, if processed, skip
-
             .choice()
-            .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
-                .process(e -> {
-                    if (initialBatchSize.get() == -1) {
-                        initialBatchSize.set(e.getProperty("CamelBatchSize", Integer.class));
-                        log.info("set initial batch size to " + initialBatchSize.get());
-                    }
-                })
+                .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
+                    .process(e -> {
+                        if (initialBatchSize.get() == -1) {
+                            initialBatchSize.set(e.getProperty("CamelBatchSize", Integer.class));
+                            log.info("set initial batch size to " + initialBatchSize.get());
+                        }
+                    })
             .end()
-           /* .onException(GenericFileOperationFailedException.class)
-                .log("FTP read failed, retrying")
-                .setProperty("errorThrown", constant(true))
+                /* .onException(GenericFileOperationFailedException.class)
+                     .log("FTP read failed, retrying")
+                     .setProperty("errorThrown", constant(true))
 
-                .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-            .end()*/
-            .log("read ${headers.CamelFileName}")
-            .setProperty("originalCamelFileName", header("CamelFileName"))
-            .to("direct:unmarshal-xml")
-            .to("direct:process-tosite")
-            .log("total lines to insert: ${body.size()}")
-            .to("direct:insert-tositerivit-into-db")
-            .process(e -> {
-                e.getMessage().setHeader("CamelFileName", e.getMessage().getHeader("CamelFileName", String.class).replace(".xml", ".csv"));
-            })
-            .setProperty("outDir", constant("wip/" + toimiala))
-            .to("direct:tosite-csv-out")
-            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-            .process(e -> e.getMessage().setBody(""))
+                     .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
+                 .end()*/
+                .log("read ${headers.CamelFileName}")
+                .setProperty("originalCamelFileName", header("CamelFileName"))
+                .to("direct:unmarshal-xml")
+                .to("direct:process-tosite")
+                .log("total lines to insert: ${body.size()}")
+                .to("direct:insert-tositerivit-into-db")
+                .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+                .process(e -> e.getMessage().setBody(""))
                 // aggregate all processed file names into list
-            .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
-                List<String> fileNames;
-                if (oldExchange == null) {
-                    fileNames = new ArrayList<>();
-                } else {
-                    fileNames = oldExchange.getMessage().getBody(List.class);
-                }
-                if (newExchange.getException() != null) {
-                    log.info("newEx had exc: " + newExchange.getException().getMessage());
-                } else {
-                    fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
-                }
-                newExchange.getMessage().setBody(fileNames);
-                return newExchange;
-            }).constant(true).completionFromBatchConsumer()
-            .process(e -> {
-                int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
-                e.setProperty("processedFileAmount", newTotal);
-                int initial = initialBatchSize.get();
-                if (newTotal == initial) {
-                    log.info("resetting initial batch size to -1!");
-                    initialBatchSize.set(-1);
-                }
-                e.setProperty("initialBatchSize", initial);
-            })
-            .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
-            .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
+                .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
+                    List<String> fileNames;
+                    if (oldExchange == null) {
+                        fileNames = new ArrayList<>();
+                    } else {
+                        fileNames = oldExchange.getMessage().getBody(List.class);
+                    }
+                    if (newExchange.getException() != null) {
+                        log.info("newEx had exc: " + newExchange.getException().getMessage());
+                    } else {
+                        fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
+                    }
+                    newExchange.getMessage().setBody(fileNames);
+                    return newExchange;
+                }).constant(true).completionFromBatchConsumer()
+                .process(e -> {
+                    int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
+                    e.setProperty("processedFileAmount", newTotal);
+                    int initial = initialBatchSize.get();
+                    if (newTotal == initial) {
+                        log.info("resetting initial batch size to -1!");
+                        initialBatchSize.set(-1);
+                    }
+                    e.setProperty("initialBatchSize", initial);
+                })
+                .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
+                .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
                 .log("Done! Group and write unique csvs from db")
                 .to("direct:fetch-all-years-and-months-from-db")
-                    .split(body())
-                        .process(e -> {
-                            LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                            for (String s : row.keySet()) {
-                                ResultSet rs = (ResultSet) row.get(s);
-                                if (rs.next()) {
-                                    String month = rs.getString(1);
-                                    String year = rs.getString(2);
-                                    e.getMessage().setHeader("GJAHR", year);
-                                    e.getMessage().setHeader("POPER", month);
-                                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
-                                }
-                            }
-                        })
-                        .to("direct:fetch-tositerivit-from-db-by-year-and-month")
-                        .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
-                        .to("file:dbout")
-                    .end()
-            .end();
+                .split(body())
+                .process(e -> {
+                    LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                    for (String s : row.keySet()) {
+                        ResultSet rs = (ResultSet) row.get(s);
+                        if (rs.next()) {
+                            // first is toimiala
+                            String month = rs.getString(2);
+                            String year = rs.getString(3);
+                            e.getMessage().setHeader("GJAHR", year);
+                            e.getMessage().setHeader("POPER", month);
+                            e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
+                        }
+                    }
+                })
+                // create file first by writing only the header into the file, then stream and append
+                .to("direct:fetch-tositerivit-from-db-by-year-and-month")
+                // streaming() // skipHeaderRecord(true) and write
+                .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
+                .toD("file:dbout/${headers.toimiala}")
+                .log("written ${headers.toimiala}/${headers.CamelFileName}")
+                .end()
+                .end();
 
-        from("direct:stack-csvs")
-            .setProperty("keepReadingCsvs", constant(true))
-            .process(e -> {
-                // all existing ids
-                e.setProperty("existingIds", new HashSet<String>());
-            })
-            .loopDoWhile(simple("${exchangeProperty.keepReadingCsvs}"))
-            .pollEnrich().simple("file:${exchangeProperty.outDir}?" +
-                    "includeExt=csv&preSort=true&sortBy=file:name").aggregationStrategy((original, resource) -> {
-                if (resource == null) {
-                    original.setProperty("keepReadingCsvs", false);
-                    return original;
-                } else {
-                    log.info("Enriched " + resource.getMessage().getHeader("CamelFileName"));
-                }
-                original.getIn().setBody(resource.getIn().getBody());
-                return original;
-            })
-            .to("direct:read-and-filter-csv")
-            .split(body()).process(e -> {
-                Map.Entry<String, List<ArrayList<String>>> body = e.getMessage().getBody(Map.Entry.class);
-                e.getMessage().setHeader("CamelFileName", "SAPACTUAL_" + body.getKey() + ".csv");
-                e.getMessage().setBody(body.getValue());
-            })
-            .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
-            .setProperty("fileExist", constant("Append"))
-            .setProperty("outDir", constant(toimiala))
-            .to("direct:any-file-out")
-            .end()
-            .end().log("stacking done");
-    }
-
-    public String getReceiptId(ArrayList<String> receiptCsvLine) {
-        // if csv contains metadata for a receipt, they will cancel each other out
-        //
-        if (receiptCsvLine.size() <= 10) {
-            log.info("csv line is under sized: " + String.join(";", receiptCsvLine));
-            log.info("in file: ${headers.CamelFileName}");
-            return String.join("_", receiptCsvLine); // use whole line as id
-        }
-
-        return receiptCsvLine.get(0) + "_" +receiptCsvLine.get(1) + "_" +
-                receiptCsvLine.get(3) + "_" + receiptCsvLine.get(4);
-    }
-
-    public String getYearAndMonth(ArrayList<String> receiptCsvLine) {
-        if (receiptCsvLine.size() <= 4) {
-            log.info("csv line is under sized 4: " + String.join(";", receiptCsvLine));
-            return "";
-        }
-        return receiptCsvLine.get(4) + "_" + receiptCsvLine.get(3);
     }
 
     @Override
@@ -251,48 +202,6 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
 
     @Override
     public void buildSupportingRoutes() {
-
-        // 1 csv file -> file for each yyyy_mm
-        // oldExchange body is a map, newExchange is a csv line
-        from("direct:read-and-filter-csv")
-            .unmarshal(createTositeCsvDataFormat().setSkipHeaderRecord(false)).split(body()).streaming()
-                .aggregationStrategy((AggregationStrategy) (oldExchange, newExchange) -> {
-                    Set<String> existingIds;
-                    Map<String, List<ArrayList<String>>> aggregatedByYearAndMonth;
-                    ArrayList<String> csvVals = newExchange.getMessage().getBody(ArrayList.class);
-                    // get file name as well
-                    String id = getReceiptId(csvVals);
-                    if (oldExchange == null) {
-                        aggregatedByYearAndMonth = new HashMap<String, List<ArrayList<String>>>();
-                        existingIds =  newExchange.getProperty("existingIds", Set.class);
-                    } else {
-                        aggregatedByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
-                        existingIds =  oldExchange.getProperty("existingIds", Set.class);
-                        newExchange.setProperty("existingIds", existingIds);
-                    }
-
-                    // TODO: if inside the same file, allow, else filter out
-                    if (!existingIds.contains(id)) {
-                        existingIds.add(id);
-
-                        String lineYearAndMonth = getYearAndMonth(csvVals);
-                        List<ArrayList<String>> existingLines = aggregatedByYearAndMonth.get(lineYearAndMonth);
-                        if (existingLines == null) {
-                            existingLines = new ArrayList<>();
-                            existingLines.add(csvVals);
-                            aggregatedByYearAndMonth.put(lineYearAndMonth, existingLines);
-                        } else {
-                            existingLines.add(csvVals);
-                        }
-                    } else {
-                        log.info("skipping already existing line from file " + newExchange.getMessage().getHeader("CamelFileName"));
-                        //log.info(id);
-                    }
-
-                    newExchange.getMessage().setBody(aggregatedByYearAndMonth);
-
-                    return newExchange;
-                }).process(e -> {});
 
         // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
@@ -334,10 +243,8 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             .split(body())
                 .to("direct:insert-tositerivi-into-db")
             .end()
-                .log("derp ${headers.CamelFileName} ${body.size()}");
+                .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
 
-
-        // writes each xml file into a corresponding csv file
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
             .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(true))
             .to("direct:any-file-out");

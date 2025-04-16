@@ -29,34 +29,12 @@ public class WbsInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:wbs-out")
-    MockEndpoint mockFileOut;
-
-    @BeforeEach
-    public void beforeAll() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "wbsCsvOut", b ->
-                b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri()));
-    }
-
     @Test
     void shouldParse_WBS_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
 
         String CREDAT = "20250219";
-
-        mockFileOut.whenAnyExchangeReceived(e -> {
-            InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            c.writeTo(out);
-            out.close();
-            String data = out.toString();
-            assertEquals(
-"PBUKR;POSID;POST1;STUFE;ERDAT;AEDAT;TXT40\r\n" +
-"1000;1024200;Post1 text öää; 1;20111231;20250218;ZZZZ ZZZZ\r\n" +
-"9000;posid2; Vapaa teksti ; 5;20250218;00000000;VAPA\r\n", data);
-        });
 
         String xmlIn = """
             <ZHKI_PROJEKTIRAKENTEENOSA>
@@ -152,10 +130,12 @@ public class WbsInTest {
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
 
-        producerTemplate.sendBody("direct:wbs-csv-out", vals);
+        ex.getMessage().setBody(vals);
+        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Wbs-palke", ex);
+        assertEquals("1000;1024200;Post1 text öää; 1;20111231;20250218;ZZZZ ZZZZ\r\n" +
+                        "9000;posid2; Vapaa teksti ; 5;20250218;00000000;VAPA\r\n", resCsv.getMessage().getBody(String.class));
 
-        mockFileOut.expectedMessageCount(1);
-        mockFileOut.assertIsSatisfied();
+
     }
 
 }

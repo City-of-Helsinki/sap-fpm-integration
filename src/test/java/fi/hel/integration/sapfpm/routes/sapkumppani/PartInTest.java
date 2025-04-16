@@ -27,32 +27,10 @@ public class PartInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:part-out")
-    MockEndpoint mockFileOut;
-
-    @BeforeEach
-    public void beforeAll() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "partCsvOut", b -> {
-            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri());
-        });
-    }
-
     @Test
     void shouldParse_PART_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        mockFileOut.whenAnyExchangeReceived(e -> {
-            InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            c.writeTo(out);
-            String data = out.toString();
-            out.close();
-            assertEquals("RCOMP;NAME1\r\n" +
-                   "000001;Valtio ( virastot ja laitokse\r\n" +
-                   "000002;Kunnat\r\n", data);
-        });
 
         String xmlIn = """
 <Kumppanit xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TAS1C232228B2827D2C086F:740">
@@ -74,9 +52,11 @@ public class PartInTest {
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
 
-        producerTemplate.sendBody("direct:part-csv-out", vals);
-        mockFileOut.expectedMessageCount(1);
-        mockFileOut.assertIsSatisfied();
+        ex.getMessage().setBody(vals);
+        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Part-palke", ex);
+
+        assertEquals("000001;Valtio ( virastot ja laitokse\r\n" +
+                "000002;Kunnat\r\n", resCsv.getMessage().getBody(String.class));
     }
 
 }

@@ -43,7 +43,7 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
 
     @Override
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
-        buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "wbs",
+        buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "Wbs",
             toimiala, "direct:process-wbs",
             wbsCsvDataFormat().setSkipHeaderRecord(true),
                 wbsCsvDataFormat().setSkipHeaderRecord(false),

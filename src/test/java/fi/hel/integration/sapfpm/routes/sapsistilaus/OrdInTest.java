@@ -27,31 +27,10 @@ public class OrdInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:ord-out")
-    MockEndpoint mockFileOut;
-
-    @BeforeEach
-    public void beforeAll() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "ordCsvOut", b ->
-            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri()));
-    }
-
     @Test
     void shouldParse_ORD_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        mockFileOut.whenAnyExchangeReceived(e -> {
-            InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            c.writeTo(out);
-            String data = out.toString();
-            out.close();
-            assertEquals("BUKRS;AUART;AUFNR;KTEXT;STTXT\r\n" +
-                   "3900;3901;3963110753;Asumisen tuki/0753;VAPA\r\n" +
-                   "3900;3901;3974190310;LAKOSO Etelä-Itä kotipalvelu/0310;VAPA\r\n", data);
-        });
 
         String xmlIn = """
     <ZHKI_TARSISTILAUKSET>
@@ -103,10 +82,12 @@ public class OrdInTest {
         List<LinkedHashMap<String, Object>> vals =  res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
 
-        producerTemplate.sendBody("direct:ord-csv-out", vals);
-
-        mockFileOut.expectedMessageCount(1);
-        mockFileOut.assertIsSatisfied();
+        ex.getMessage().setBody(vals);
+        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Ord-palke", ex);
+        assertEquals(
+                "3900;3901;3963110753;Asumisen tuki/0753;VAPA\r\n" +
+                        "3900;3901;3974190310;LAKOSO Etelä-Itä kotipalvelu/0310;VAPA\r\n",
+                resCsv.getMessage().getBody(String.class));
     }
 
 }

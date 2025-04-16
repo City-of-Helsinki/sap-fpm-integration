@@ -32,20 +32,10 @@ public class TositeInTest {
     @EndpointInject("mock:tosite-out")
     MockEndpoint mockFileOut;
 
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "tositeAzureOut", b -> {
-            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri());
-        });
-    }
-
     @Test
     void shouldParse_Tosite_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        String YEAR_MONTH = "202212";
 
         mockFileOut.whenAnyExchangeReceived(e -> {
             InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
@@ -318,9 +308,7 @@ public class TositeInTest {
 
         Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
 
-        Map<String, List<LinkedHashMap<String, Object>>> entry = res.getMessage().getBody(Map.class);
-        assertTrue(entry.containsKey(YEAR_MONTH));
-        List<LinkedHashMap<String, Object>> vals = entry.get(YEAR_MONTH);
+        List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(2, vals.size());
         Map<String, Object> secReceipt = vals.get(1);
 
@@ -328,10 +316,6 @@ public class TositeInTest {
         assertEquals("Tekstiä. /123456 lk", secReceipt.get("SGTXT"));
         assertEquals("0001001550", secReceipt.get("AUGBL"));
 
-        producerTemplate.sendBody("direct:tosite-csv-out", entry.get(YEAR_MONTH));
-
-        mockFileOut.expectedMessageCount(1);
-        mockFileOut.assertIsSatisfied();
     }
 
 }

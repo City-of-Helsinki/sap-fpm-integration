@@ -59,8 +59,14 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         Set<String> processedFileNames = new HashSet<>();
 
+        String marshalHeaderlessCsvRouteURI = "direct:marshal-headerless-csv-" + idPrefix + "-" + toimiala;
+
+        from(marshalHeaderlessCsvRouteURI).id(idPrefix + "-marshalHeaderlessCsv")
+                .log("DERP ${body}")
+            .marshal(csvDataFormatWithoutHeader).log("SMERP: ${body}");
+
         from(fromURI).id(idPrefix + "-" + toimiala)
-            .log("read ${headers.CamelFileName}")
+            .log("%s %s read ${headers.CamelFileName}".formatted(idPrefix, toimiala))
             .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
             .choice()
             .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
@@ -73,7 +79,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             .end()
                 .to("direct:unmarshal-xml")
                 .to(processRouteURI)
-                .marshal(csvDataFormatWithoutHeader)
+                .to(marshalHeaderlessCsvRouteURI)
                 .setProperty("fileExist", constant("Override"))
                 .setProperty("wipFileDir", constant("wip/" + toimiala))
                 .setProperty("outDir", exchangeProperty("wipFileDir"))
@@ -125,10 +131,11 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                         .choice()
                            .when(simple("${exchangeProperty.outDir} == 'palke'"))
                                 .setProperty("uploadFileDir", constant("SAP/TEST"))
-                                .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to PALKE AZURE!")
-                                .setProperty("fileExist", constant("Overwrite"))
+                                .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
+                                .setProperty("fileExist", constant("Override"))
                                 .to(isLocal ? "direct:any-file-out" : "direct:upload-blob-to-azure-" + toimiala)
-                            .end();
+                            .end()
+                        .log("Done!");
 
     }
 

@@ -1,19 +1,20 @@
 package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
+import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.apache.camel.model.RouteDefinition;
+import org.apache.camel.spi.IdempotentRepository;
 import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildFtpPerustiedotIn;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 
 public abstract class PerustiedotRouteBuilder extends RouteBuilder implements FtpOrFileRouteBuilder {
@@ -28,22 +29,22 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     public void configure() throws Exception {
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
             log.info("Starting palke ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("palke"), "palke");
+            buildMainRoute(false, ftpPerustiedotIn("palke"), "palke");
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
             log.info("Starting kasko ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
+            buildMainRoute(false, ftpPerustiedotIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
             log.info("Starting sotepe ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
+            buildMainRoute(false ,ftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {
             log.info("Starting local perustiedot");
-            buildMainRoute("file:in?" + buildInParams(getFilePrefix()), "palke");
+            buildMainRoute(true,"file:in?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPPerustiedotEnabled()) {
@@ -53,15 +54,12 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
 
-    public void buildFtpFileReadingRoute(RouteDefinition from, String toimiala, String processRouteURI, CsvDataFormat csvDataFormatWithoutHeader,
+    public void buildFtpFileReadingRoute(boolean isLocal, String fromURI, String idPrefix, String toimiala, String processRouteURI, CsvDataFormat csvDataFormatWithoutHeader,
                                          CsvDataFormat csvDataFormatWithHeader, String outFinalFileName) {
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
-        MemoryIdempotentRepository memoryIdempotentRepo = new MemoryIdempotentRepository();
-        memoryIdempotentRepo.setCacheSize(2000);
         Set<String> processedFileNames = new HashSet<>();
 
-        from
-            .idempotentConsumer(header(FileConstants.FILE_NAME), memoryIdempotentRepo)
+        from(fromURI).id(idPrefix + "-" + toimiala)
             .log("read ${headers.CamelFileName}")
             .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
             .choice()
@@ -128,7 +126,8 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                            .when(simple("${exchangeProperty.outDir} == 'palke'"))
                                 .setProperty("uploadFileDir", constant("SAP/TEST"))
                                 .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to PALKE AZURE!")
-                                .to("direct:upload-blob-to-azure-" + toimiala)
+                                .setProperty("fileExist", constant("Overwrite"))
+                                .to(isLocal ? "direct:any-file-out" : "direct:upload-blob-to-azure-" + toimiala)
                             .end();
 
     }

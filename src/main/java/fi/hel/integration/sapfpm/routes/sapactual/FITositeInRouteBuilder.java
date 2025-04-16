@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildInParams;
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 // ID022_FI_TOSITE_OUT_ > ID022 SOTE
@@ -95,7 +94,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     Map<String, String> processedReceiptIds = new HashMap<>();
 
     @Override
-    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+    public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
         boolean disabled = true;
         if (disabled) return;
 

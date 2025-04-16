@@ -1,6 +1,5 @@
 package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 
-import fi.hel.integration.sapfpm.aggregationstrategy.AggregateLinesWithoutStacking;
 import fi.hel.integration.sapfpm.routes.CoToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
@@ -53,12 +52,12 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
     }
 
     @Override
-    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
-        // process(e -> create a new file first, then append to it in batches)
+    public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
+        //  create a new file first, then append to it in batches)
         from(fileOrFtpIn).id((toimiala == null ? "" : toimiala) + "CoTositeIn")
             .to("direct:unmarshal-xml")
             .to("direct:process-co-tosite")
-            .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
+           // .aggregate(new AggregateLinesWithoutStacking()).constant(true).completionFromBatchConsumer()
             // SAPSISLASKENTA ?
             .setHeader("CamelFileName", constant("SAPSISAINENLASKENTA.csv"))
             .setProperty("outDir", constant(toimiala))

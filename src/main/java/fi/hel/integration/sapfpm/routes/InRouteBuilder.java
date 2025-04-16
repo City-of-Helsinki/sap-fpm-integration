@@ -1,13 +1,19 @@
 package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Named;
 import org.apache.camel.builder.RouteBuilder;
 
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.component.file.FileConstants;
+import org.apache.camel.spi.IdempotentRepository;
+import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 import org.jboss.logging.Logger;
+
+import static fi.hel.integration.sapfpm.IdempotentRepositoryProvider.idempotentRepositoryParam;
 
 
 
@@ -44,10 +50,6 @@ public class InRouteBuilder extends RouteBuilder {
         //&charset=ISO-8859-1";
     }
 
-    public static String buildInParams(String filePrefix) {
-        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)");
-    }
-
     // TODO: move to mainConfig
     public static String buildFtpParams(String filePrefix) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
@@ -68,7 +70,7 @@ public class InRouteBuilder extends RouteBuilder {
                 "{{%s.ftp.%s.password}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.host}}".formatted(toimiala),
                 ftpDir,
-                filePrefix);
+                filePrefix) + idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {
@@ -81,6 +83,23 @@ public class InRouteBuilder extends RouteBuilder {
 
     public static String buildFtpCoToteumatIn(String toimiala, String ftpDir, String filePrefix) {
         return buildFtpIn("co_toteumat", toimiala, ftpDir, filePrefix);
+    }
+
+    public static String buildLocalIn(String perusOrToteumat, String toimiala, String filePrefix) {
+        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
+                idempotentRepositoryParam(perusOrToteumat, toimiala);
+    }
+
+    public static String buildLocalPerustiedotIn(String toimiala, String filePrefix) {
+        return buildLocalIn("perustiedot", toimiala, filePrefix);
+    }
+
+    public static String buildLocalCoToteumatIn(String toimiala, String filePrefix) {
+        return buildLocalIn("co_toteumat", toimiala, filePrefix);
+    }
+
+    public static String buildLocalToteumatIn(String toimiala, String filePrefix) {
+        return buildLocalIn("toteumat", toimiala, filePrefix);
     }
 
     @Inject

@@ -69,7 +69,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
         String marshalHeaderlessCsvRouteURI = "direct:marshal-headerless-csv-" + idPrefix + "-" + toimiala;
 
-        from(marshalHeaderlessCsvRouteURI).id(idPrefix + "-marshalHeaderlessCsv")
+        from(marshalHeaderlessCsvRouteURI).id(idPrefix + toimiala + "-marshalHeaderlessCsv")
             .marshal(csvDataFormatWithoutHeader);
 
         from(fromURI).id(idPrefix + "-" + toimiala)

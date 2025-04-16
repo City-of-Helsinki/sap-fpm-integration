@@ -2,9 +2,6 @@ package fi.hel.integration.sapfpm.routes.sapsistilaus;
 
 import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.jboss.logging.Logger;
 
 import java.util.*;
 
@@ -17,17 +14,9 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // tuplat: FPM hoitaa
 @ApplicationScoped
 public class OrdInRouteBuilder extends PerustiedotRouteBuilder {
-    @Inject
-    Logger log;
-
-    public CsvDataFormat csvDataFormat() {
-        return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
-                "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT"
-        });
+    public String[] createCsvHeader() {
+        return new String[] { "BUKRS", "AUART", "AUFNR", "KTEXT", "STTXT" };
     }
-
-    CsvDataFormat withHeader = csvDataFormat().setSkipHeaderRecord(false);
-    CsvDataFormat withoutHeader = csvDataFormat().setSkipHeaderRecord(true);
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> ord = new LinkedHashMap<>(); // order matters
@@ -52,9 +41,7 @@ public class OrdInRouteBuilder extends PerustiedotRouteBuilder {
     @Override
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
         buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "Ord",
-                toimiala, "direct:process-ord",
-                withoutHeader,
-                withHeader, "SAPSISTILAUS.csv");
+                toimiala, "direct:process-ord", "SAPSISTILAUS.csv");
     }
 
     public void buildSupportingRoutes() {

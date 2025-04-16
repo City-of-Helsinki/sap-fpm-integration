@@ -2,7 +2,6 @@ package fi.hel.integration.sapfpm.routes.sapkumppani;
 
 import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
 
@@ -13,10 +12,8 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // eli tässä ei tarvita kaikkien lukemista, viimeisin riittää
 @ApplicationScoped
 public class PartInRouteBuilder extends PerustiedotRouteBuilder {
-    public CsvDataFormat partCsvDataFormat() {
-        return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
-            "RCOMP", "NAME1"
-        });
+    public String[] createCsvHeader() {
+        return new String[] { "RCOMP", "NAME1" };
     }
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
@@ -41,10 +38,7 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
     @Override
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
         buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "Part",
-                toimiala, "direct:process-part",
-                partCsvDataFormat().setSkipHeaderRecord(true),
-                partCsvDataFormat().setSkipHeaderRecord(false),
-                "SAPKUMPPANI.csv");
+                toimiala, "direct:process-part", "SAPKUMPPANI.csv");
     }
 
     @Override

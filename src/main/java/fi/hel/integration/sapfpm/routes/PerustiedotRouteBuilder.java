@@ -21,6 +21,12 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     @Inject
     IsConfigEnabled mainConfig;
 
+    abstract public String[] createCsvHeader();
+
+    public CsvDataFormat createCsvDataFormat() {
+        return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(createCsvHeader());
+    }
+
     public String ftpPerustiedotIn(String toimiala) {
         return buildFtpPerustiedotIn(toimiala, getFtpDir(), getFilePrefix());
     }
@@ -54,16 +60,17 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
 
-    public void buildFtpFileReadingRoute(boolean isLocal, String fromURI, String idPrefix, String toimiala, String processRouteURI, CsvDataFormat csvDataFormatWithoutHeader,
-                                         CsvDataFormat csvDataFormatWithHeader, String outFinalFileName) {
+    public void buildFtpFileReadingRoute(boolean isLocal, String fromURI, String idPrefix, String toimiala, String processRouteURI, String outFinalFileName) {
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         Set<String> processedFileNames = new HashSet<>();
+
+        CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
+        CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
 
         String marshalHeaderlessCsvRouteURI = "direct:marshal-headerless-csv-" + idPrefix + "-" + toimiala;
 
         from(marshalHeaderlessCsvRouteURI).id(idPrefix + "-marshalHeaderlessCsv")
-                .log("DERP ${body}")
-            .marshal(csvDataFormatWithoutHeader).log("SMERP: ${body}");
+            .marshal(csvDataFormatWithoutHeader);
 
         from(fromURI).id(idPrefix + "-" + toimiala)
             .log("%s %s read ${headers.CamelFileName}".formatted(idPrefix, toimiala))

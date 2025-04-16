@@ -3,8 +3,6 @@ package fi.hel.integration.sapfpm.routes.sapprojekti;
 import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import org.apache.camel.dataformat.csv.CsvDataFormat;
-
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
@@ -13,10 +11,10 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin
 @ApplicationScoped
 public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
-    CsvDataFormat wbsCsvDataFormat() {
-        return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(new String[] {
-            "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
-        });
+    public String[] createCsvHeader() {
+        return new String[] {
+                "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
+        };
     }
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
@@ -44,10 +42,7 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     @Override
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
         buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "Wbs",
-            toimiala, "direct:process-wbs",
-            wbsCsvDataFormat().setSkipHeaderRecord(true),
-                wbsCsvDataFormat().setSkipHeaderRecord(false),
-                "SAPPROJEKTI.csv");
+            toimiala, "direct:process-wbs", "SAPPROJEKTI.csv");
     }
 
     @Override

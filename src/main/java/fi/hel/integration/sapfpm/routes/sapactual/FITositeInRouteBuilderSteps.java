@@ -11,6 +11,7 @@ import org.h2.result.SimpleResult;
 
 import java.io.StreamTokenizer;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -24,12 +25,12 @@ import java.util.stream.Stream;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
-    public static CsvDataFormat createTositeCsvDataFormat() {
-        return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[]{
+    public String[] createCsvHeader() {
+        return new String[]{
                 "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
                 "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
                 "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL"
-        });
+        };
     }
 
     // Uusi tosite alkaa <E1FIKPF> jonka jälkeen tulee rivitiedot
@@ -101,6 +102,10 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
             log.error("toimiala is null!");
             return;
         }
+
+        CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
+        CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
+
         //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
@@ -179,12 +184,20 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                         }
                     }
                 })
+                .setProperty("fileExist", constant("Override"))
+                .setProperty("outDir", constant(toimiala))
+                .setBody(constant(""))
+                .marshal(csvDataFormatWithHeader)
+                .to("direct:any-file-out")
                 // create file first by writing only the header into the file, then stream and append
                 .to("direct:fetch-tositerivit-from-db-by-year-and-month")
+                .process(e -> {
+                    e.getMessage().setBody(filterUniqueRows(e.getMessage().getBody(ArrayList.class)));
+                })
                 // streaming() // skipHeaderRecord(true) and write
-                .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(false))
-                .toD("file:dbout/${headers.toimiala}")
-                .log("written ${headers.toimiala}/${headers.CamelFileName}")
+                .setProperty("fileExist", constant("Append"))
+                .marshal(csvDataFormatWithoutHeader)
+                .to("direct:any-file-out")
                 .end()
                 .end();
 
@@ -246,8 +259,53 @@ public class FITositeInRouteBuilderSteps extends ToteumatRouteBuilder {
                 .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
 
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
-            .marshal(createTositeCsvDataFormat().setSkipHeaderRecord(true))
+            .marshal(createCsvDataFormat().setSkipHeaderRecord(true))
             .to("direct:any-file-out");
+    }
+
+    public String getReceiptIdWithoutTime(Map<String, Object> receipt) {
+        return receipt.get("BUKRS") + "_" + receipt.get("BELNR");
+    }
+
+    public String getReceiptId(Map<String, Object> receipt) {
+        return getReceiptIdWithoutTime(receipt) + "_" +
+                receipt.get("GJAHR") + "_" + receipt.get("POPER");
+    }
+
+    public List<Map<String, Object>> filterUniqueRows(List<Map<String, Object>> rows) {
+        log.info("rows.size: " + rows.size());
+        // id -> filename -> List of rows
+        Map<String, Map<String, List<Map<String, Object>>>> idToFileName = new HashMap<>();
+        rows.stream().forEach(row -> {
+            String receiptId = getReceiptIdWithoutTime(row);
+            String fileName = (String)row.get("FILENAME");
+            Map<String, List<Map<String, Object>>> perFileName = idToFileName.get(receiptId);
+            if (perFileName == null) {
+                perFileName = new HashMap<>();
+                List<Map<String, Object>> fileNameRows = new ArrayList<>();
+                fileNameRows.add(row);
+                perFileName.put(fileName, fileNameRows);
+                idToFileName.put(receiptId, perFileName);
+            } else {
+                List<Map<String, Object>> fileNameRows = perFileName.computeIfAbsent(fileName, k -> new ArrayList<>());
+                fileNameRows.add(row);
+            }
+        });
+
+        var filtered = idToFileName.values().stream().flatMap(perFileName -> {
+            Optional<String> latestFileNameOpt;
+            if (perFileName.size() == 1) {
+                latestFileNameOpt = perFileName.keySet().stream().findFirst();
+            } else {
+                latestFileNameOpt = perFileName.keySet().stream().max(Comparator.naturalOrder());
+                log.info("the row is in several files as a duplicate, selecting the latest file " + latestFileNameOpt);
+            }
+            String latestFileName = latestFileNameOpt.get();
+            return perFileName.get(latestFileName).stream();
+        }).toList();
+
+        log.info("filtered rows size: " + filtered.size());
+        return filtered;
     }
 }
 

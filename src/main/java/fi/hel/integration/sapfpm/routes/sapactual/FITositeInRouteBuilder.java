@@ -22,11 +22,14 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 // tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
-    CsvDataFormat tositeCsvDataFormat = new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(new String[] {
-        "BUKRS","BELNR","CO_BELNR","GJAHR","POPER","BLART","BLDAT","BUDAT","CPUDT","TCODE","XBLNR","KUNNR","LIFNR","LIFNR_NAME1",
-            "EBELN","Attachment","BUZEI","CO_BUZEI","RACCT","RCNTR","PRCTR","RFAREA","AUFNR","PS_PSPID","RASSC","SEGMENT","SGTXT","DRCRK","MWSKZ",
-            "VAT_PERCENT","HSL","PPRCTR","MATNR","EBELP","LAST_CHANGE_DATETIME","AUGBL"
-    });
+    @Override
+    public String[] createCsvHeader() {
+        return new String[]{
+                "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
+                "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
+                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL"
+        };
+    }
 
     // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
@@ -97,7 +100,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
         boolean disabled = true;
         if (disabled) return;
-
+/*
         String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
         // receipt id -> year + month (file name)
         onException(Exception.class)
@@ -176,8 +179,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             .setBody(constant(csvHeader))
             .to("direct:any-file-out")
             .setBody(exchangeProperty("aggrBody"))
-            .setProperty("fileExist", constant("Append"))*/
-            .to("direct:tosite-csv-out");
+            .setProperty("fileExist", constant("Append"))
+            .to("direct:tosite-csv-out"); */
     }
 
     public String getReceiptId(LinkedHashMap<String, Object> receipt) {
@@ -210,6 +213,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         boolean disabled = true;
         if (disabled) return;
         // read from xml and process to a map by year and month, then in aggregation phase filter out
+        /*
         from("direct:process-tosite")
             .process(e -> {
                 // get each E1FIKPF, from them each E1FISEG and map those
@@ -259,7 +263,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         from("direct:tosite-csv-out").routeId("tositeAzureOut")
                 .marshal(tositeCsvDataFormat)
            // .marshal(tositeCsvDataFormat.setSkipHeaderRecord(true))
-            .to("direct:any-file-out");
+            .to("direct:any-file-out");*/
     }
 }
 

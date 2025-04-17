@@ -3,26 +3,17 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.AggregationStrategy;
-import org.apache.camel.component.file.GenericFileOperationFailedException;
+import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 
+import java.sql.ResultSet;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static fi.hel.integration.sapfpm.IDOCParser.*;
-
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
-// ID022_FI_TOSITE_OUT_ > ID022 SOTE
-// ID025_FI_TOSITE_ -> ID025 Palke
-// IDXXX_FI_TOSITE -> IDXXX Kasko
-// YYYY_MM
-
-// tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
-    @Override
     public String[] createCsvHeader() {
         return new String[]{
                 "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
@@ -31,7 +22,9 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         };
     }
 
-    // E1FIKPF shared vals, E1FIKPF.E1FISEG receipt vals
+    // Uusi tosite alkaa <E1FIKPF> jonka jälkeen tulee rivitiedot
+    // Rivitieto <E1FISEG SEGMENT=""> eli tositteen liitetiedot
+    // kantaan: tosite <- rivitiedot
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> E1FIKPF, Map<String, Object> E1FISEG) {
         LinkedHashMap<String, Object> r = new LinkedHashMap<>(); // order matters
         Map<String, Object> E1FINBU = (Map<String, Object>) E1FISEG.get("E1FINBU");
@@ -89,113 +82,118 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         r.put("LAST_CHANGE_DATE_TIME", E1FIKPF.get("LAST_CHANGE_DATE_TIME")); // not in s4
         r.put("AUGBL", E1FISEG.get("AUGBL"));
+
         return r;
     }
-
-    Map<String, String> db = new HashMap<>();
-
-    Map<String, String> processedReceiptIds = new HashMap<>();
-
     @Override
     public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
-        boolean disabled = true;
-        if (disabled) return;
-/*
-        String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
-        // receipt id -> year + month (file name)
-        onException(Exception.class)
-            .maximumRedeliveries(10).continued(false)
-            .end();
-
-        // process(e -> create a new file first, then append to it in batches)
-        // // TODO: batch and check ids in batches ?
-//                // TODO: filter by year and month? i.e. the file.filter(this::receiptNotProcessedEarlier).toList();
-        from(fileOrFtpIn).id(toimiala + "tositeIn")
-            //if db is empty, create file here
-            .onException(GenericFileOperationFailedException.class)
-                .log("FTP read failed, retrying")
-                .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-            .end()
-            .log("read ${headers.CamelFileName}")
-            .to("direct:unmarshal-xml")
-            .to("direct:process-tosite")
-            .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
-                Set<String> oldProcessedReceiptIds;
-                Map<String, List<LinkedHashMap<String, Object>>> newByYearAndMonth = newExchange.getMessage().getBody(Map.class);
-                if (oldExchange == null) {
-                    log.info("oldExchange is null, file: " + newExchange.getMessage().getHeader("CamelFileName"));
-
-                    // db.put(getReceiptId(receipt), yearAndMonth);
-                    oldProcessedReceiptIds = newByYearAndMonth.values().stream().flatMap(yearMonth -> yearMonth.stream().map(this::getReceiptId)).collect(Collectors.toSet());
-                    //processedReceiptIds.putAll(oldProcessedReceiptIds);
-                    return newExchange;
-                } else {
-
-                    Map<String, List<LinkedHashMap<String, Object>>> oldByYearAndMonth = oldExchange.getMessage().getBody(Map.class);
-                    oldProcessedReceiptIds = oldByYearAndMonth.values().stream().flatMap(yearMonth ->
-                         yearMonth.stream().map(this::getReceiptId)
-                    ).collect(Collectors.toSet());
-
-                    newByYearAndMonth.forEach((yearMonthKey, newVals) -> {
-                        List<LinkedHashMap<String, Object>> oldVals = oldByYearAndMonth.get(yearMonthKey);
-                        if (oldVals == null) {
-                            oldByYearAndMonth.put(yearMonthKey, newVals);
-                        } else {
-                            ArrayList<String> receiptsAlreadyProcessed = new ArrayList<>();
-                            List<LinkedHashMap<String, Object>> filteredNewVals = newVals.stream().filter(newV -> {
-                                boolean alreadyExists = oldProcessedReceiptIds.contains(getReceiptId(newV));
-                                if (alreadyExists) {
-                                    receiptsAlreadyProcessed.add(getReceiptId(newV));
-                                }
-                                return !alreadyExists;
-                            }).toList();
-                            if (!receiptsAlreadyProcessed.isEmpty()) {
-                                log.info("File " + newExchange.getMessage().getHeader("CamelFileName", String.class) + " contained duplicates that will be ignored: ");
-                                log.info(String.join(", ", receiptsAlreadyProcessed));
-                            }
-                            oldByYearAndMonth.put(yearMonthKey, concatNewLinesToOld(oldVals, filteredNewVals));
-                        }
-                    });
-
-                    return oldExchange;
-                }
-            }).constant(true).completionFromBatchConsumer()
-
-            .split(body()).streaming().process(e -> {
-                // Map.entry -> each out YYYY_MM file out
-                Map.Entry<String, List<Map<String, Object>>> yearAndMonthAndLines = e.getMessage().getBody(Map.Entry.class);
-                String yearAndMonth = yearAndMonthAndLines.getKey();
-                String year = yearAndMonth.substring(0, 4);
-                String month = yearAndMonth.substring(4, 6);
-                if (month.startsWith("0")) month = month.substring(1);
-
-                e.getMessage().setHeader("CamelFileName", "SAPACTUAL" + "_" + year + "_" + month + ".csv");
-                e.getMessage().setBody(yearAndMonthAndLines.getValue());
-            })
-            .setProperty("outDir", constant(toimiala))
-                // first create header files f
-        /*    .setProperty("fileExist", constant("Override"))
-            .setProperty("aggrBody", body())
-            .setBody(constant(csvHeader))
-            .to("direct:any-file-out")
-            .setBody(exchangeProperty("aggrBody"))
-            .setProperty("fileExist", constant("Append"))
-            .to("direct:tosite-csv-out"); */
-    }
-
-    public String getReceiptId(LinkedHashMap<String, Object> receipt) {
-        return receipt.get("BUKRS") + "_" + receipt.get("BELNR") + "_" +
-                receipt.get("GJAHR") + "_" + receipt.get("POPER");
-    }
-
-
-    public boolean receiptNotProcessedEarlier(LinkedHashMap<String, Object> receipt) {
-        String receiptId = getReceiptId(receipt);
-        boolean wasProcessedEarlier = db.containsKey(receiptId);
-        if (wasProcessedEarlier) {
-            log.info("Receipt %s was processed earlier, excluding it".formatted(receiptId));
+        if (toimiala == null) {
+            log.error("toimiala is null!");
+            return;
         }
-        return !wasProcessedEarlier;
+
+        CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
+        CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
+
+        String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-Tosite-%s".formatted(toimiala);
+        from(marshalHeaderlessCsvURI).routeId("tositeHeaderlessCsv")
+            .marshal(csvDataFormatWithoutHeader);
+
+        //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
+        // receipt id -> year + month (file name)
+        AtomicInteger initialBatchSize = new AtomicInteger(-1);
+        AtomicInteger processedFileAmount = new AtomicInteger(0);
+
+        from(fileOrFtpIn).id(toimiala + "tositeIn")
+            .setHeader("toimiala", constant(toimiala))
+            .setProperty("originalBody", body())
+            .to("direct:init-tositerivi-db")
+                // choice, if processed, skip
+            .choice()
+                .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
+                    .process(e -> {
+                        if (initialBatchSize.get() == -1) {
+                            initialBatchSize.set(e.getProperty("CamelBatchSize", Integer.class));
+                            log.info("set initial batch size to " + initialBatchSize.get());
+                        }
+                    })
+            .end()
+                /* .onException(GenericFileOperationFailedException.class)
+                     .log("FTP read failed, retrying")
+                     .setProperty("errorThrown", constant(true))
+
+                     .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
+                 .end()*/
+                .log("read ${headers.CamelFileName}")
+                .setProperty("originalCamelFileName", header("CamelFileName"))
+                .to("direct:unmarshal-xml")
+                .to("direct:process-tosite")
+                .log("total lines to insert: ${body.size()}")
+                .to("direct:insert-tositerivit-into-db")
+                .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+                .process(e -> e.getMessage().setBody(""))
+                // aggregate all processed file names into list
+                .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
+                    List<String> fileNames;
+                    if (oldExchange == null) {
+                        fileNames = new ArrayList<>();
+                    } else {
+                        fileNames = oldExchange.getMessage().getBody(List.class);
+                    }
+                    if (newExchange.getException() != null) {
+                        log.info("newEx had exc: " + newExchange.getException().getMessage());
+                    } else {
+                        fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
+                    }
+                    newExchange.getMessage().setBody(fileNames);
+                    return newExchange;
+                }).constant(true).completionFromBatchConsumer()
+                .process(e -> {
+                    int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
+                    e.setProperty("processedFileAmount", newTotal);
+                    int initial = initialBatchSize.get();
+                    if (newTotal == initial) {
+                        log.info("resetting initial batch size to -1!");
+                        initialBatchSize.set(-1);
+                    }
+                    e.setProperty("initialBatchSize", initial);
+                })
+                .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
+                .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
+                .log("Done! Group and write unique csvs from db")
+                .to("direct:fetch-all-years-and-months-from-db")
+                .split(body())
+                .process(e -> {
+                    LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                    for (String s : row.keySet()) {
+                        ResultSet rs = (ResultSet) row.get(s);
+                        if (rs.next()) {
+                            // first is toimiala
+                            String month = rs.getString(2);
+                            String year = rs.getString(3);
+                            e.getMessage().setHeader("GJAHR", year);
+                            e.getMessage().setHeader("POPER", month);
+                            e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
+                        }
+                    }
+                })
+                .setProperty("fileExist", constant("Override"))
+                .setProperty("outDir", constant(toimiala))
+                .setBody(constant(""))
+                .marshal(csvDataFormatWithHeader)
+                .to("direct:any-file-out")
+                // create file first by writing only the header into the file, then stream and append
+                .to("direct:fetch-tositerivit-from-db-by-year-and-month")
+                .process(e -> {
+                    e.getMessage().setBody(filterUniqueRows(e.getMessage().getBody(ArrayList.class)));
+                })
+                // streaming() // skipHeaderRecord(true) and write
+                .setProperty("fileExist", constant("Append"))
+                .to(marshalHeaderlessCsvURI)
+                .to("direct:any-file-out")
+                .end()
+                .end();
+
     }
 
     @Override
@@ -210,10 +208,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
     @Override
     public void buildSupportingRoutes() {
-        boolean disabled = true;
-        if (disabled) return;
+
         // read from xml and process to a map by year and month, then in aggregation phase filter out
-        /*
         from("direct:process-tosite")
             .process(e -> {
                 // get each E1FIKPF, from them each E1FISEG and map those
@@ -246,24 +242,59 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     }
                 }).toList();
 
-                Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth = new HashMap<>();
-                // take each line and map to GJAHR + POPER (MONAT)
-                receipts.forEach(receipt -> {
-                    String year = (String) receipt.get("GJAHR");
-                    if (year.length() < 2) year = "0" + year;
-                    String month = (String) receipt.get("POPER");
-                    if (month.length() < 2) month = "0" + month;
-                    String yearAndMonthKey = year + month;
-                    addToByYearAndMonthIfExistsOrCreate(byYearAndMonth, yearAndMonthKey, List.of(receipt));
-                });
-
-                e.getMessage().setBody(byYearAndMonth);
+                e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
 
-        from("direct:tosite-csv-out").routeId("tositeAzureOut")
-                .marshal(tositeCsvDataFormat)
-           // .marshal(tositeCsvDataFormat.setSkipHeaderRecord(true))
-            .to("direct:any-file-out");*/
+        from("direct:insert-tositerivit-into-db")
+            .split(body())
+                .to("direct:insert-tositerivi-into-db")
+            .end()
+                .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
+    }
+
+    public String getReceiptIdWithoutTime(Map<String, Object> receipt) {
+        return receipt.get("BUKRS") + "_" + receipt.get("BELNR");
+    }
+
+    public String getReceiptId(Map<String, Object> receipt) {
+        return getReceiptIdWithoutTime(receipt) + "_" +
+                receipt.get("GJAHR") + "_" + receipt.get("POPER");
+    }
+
+    public List<Map<String, Object>> filterUniqueRows(List<Map<String, Object>> rows) {
+        // id -> filename -> List of rows
+        Map<String, Map<String, List<Map<String, Object>>>> idToFileName = new HashMap<>();
+        // or order by file name and keep track of what was added to the file
+        rows.stream().forEach(row -> {
+            String receiptId = getReceiptIdWithoutTime(row);
+            String fileName = (String)row.get("FILENAME");
+            Map<String, List<Map<String, Object>>> perFileName = idToFileName.get(receiptId);
+            if (perFileName == null) {
+                perFileName = new HashMap<>();
+                List<Map<String, Object>> fileNameRows = new ArrayList<>();
+                fileNameRows.add(row);
+                perFileName.put(fileName, fileNameRows);
+                idToFileName.put(receiptId, perFileName);
+            } else {
+                List<Map<String, Object>> fileNameRows = perFileName.computeIfAbsent(fileName, k -> new ArrayList<>());
+                fileNameRows.add(row);
+            }
+        });
+
+        var filtered = idToFileName.values().stream().flatMap(perFileName -> {
+            Optional<String> latestFileNameOpt;
+            if (perFileName.size() == 1) {
+                latestFileNameOpt = perFileName.keySet().stream().findFirst();
+            } else {
+                latestFileNameOpt = perFileName.keySet().stream().max(Comparator.naturalOrder());
+                log.info("the row is in files %s as a duplicate, selecting the latest file %s".formatted(perFileName.keySet(), latestFileNameOpt));
+            }
+            String latestFileName = latestFileNameOpt.get();
+            return perFileName.get(latestFileName).stream();
+        }).toList();
+
+        log.info("filtered rows size: " + filtered.size());
+        return filtered;
     }
 }
 

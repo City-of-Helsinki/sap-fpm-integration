@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class FITositeDB extends RouteBuilder {
 
     @Inject
-    FITositeInRouteBuilderSteps tositeInRoute;
+    FITositeInRouteBuilder tositeInRoute;
 
     @Override
     public void configure() throws Exception {
@@ -92,7 +92,8 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 .to("jdbc:sapactual?useHeadersAsParameters=true");
 
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
-            .setBody(constant("SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER"))
+            .setBody(constant("SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER " +
+                    "ORDER BY FILENAME DESC")) // latest first
             // outputType=StreamList split(body()).streaming()
                 .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("db fetch size: ${body.size()}");

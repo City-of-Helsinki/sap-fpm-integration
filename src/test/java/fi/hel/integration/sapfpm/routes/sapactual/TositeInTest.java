@@ -275,7 +275,9 @@ public class TositeInTest {
 
         Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
 
-        List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
+        List<List<LinkedHashMap<String, Object>>> resReceipts = res.getMessage().getBody(List.class);
+        assertEquals(1, resReceipts.size());
+        List<LinkedHashMap<String, Object>> vals = resReceipts.get(0);
         assertEquals(2, vals.size());
         Map<String, Object> secReceipt = vals.get(1);
 
@@ -305,13 +307,13 @@ public class TositeInTest {
         String xmlIn = "<FIDCCP02><IDOC><E1FIKPF><BUKRS>3900</BUKRS><E1FISEG><TEST>1</TEST></E1FISEG></E1FIKPF></IDOC></FIDCCP02>";
         ex.getMessage().setBody(xmlIn);
         Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
-        ex.getMessage().setBody(res.getMessage().getBody());
+        ex.getMessage().setBody(res.getMessage().getBody(List.class).getFirst());
         Exchange emptyCsv = producerTemplate.send("direct:marshal-headerless-csv-Tosite-palke", ex);
         assertEquals(tositeRoute.createCsvHeader().length, emptyCsv.getMessage().getBody(String.class).split(";").length);
     }
 
     public Map<String, Object> createReceipt(String fileName, String gjahr, String poper, String bukrs, String belnr) {
-        return Map.of("FILENAME", fileName,"GJAHR", gjahr, "POPER", poper, "BUKRS", bukrs, "BELNR", belnr);
+        return Map.of("fileName", fileName,"GJAHR", gjahr, "POPER", poper, "BUKRS", bukrs, "BELNR", belnr);
     }
 
     @Test
@@ -338,6 +340,6 @@ public class TositeInTest {
         resRows = tositeRoute.filterUniqueRows(rows);
         assertEquals(1, resRows.size());
         assertSame(rows.get(0), resRows.get(0));
-        assertEquals(file2, resRows.get(0).get("FILENAME"));
+        assertEquals(file2, resRows.get(0).get("fileName"));
     }
 }

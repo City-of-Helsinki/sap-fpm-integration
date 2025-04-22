@@ -128,8 +128,11 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .setProperty("originalCamelFileName", header("CamelFileName"))
                 .to("direct:unmarshal-xml")
                 .to("direct:process-tosite")
-                .log("total lines to insert: ${body.size()}")
-                .to("direct:insert-tositerivit-into-db")
+                .log("receipts to insert: ${body.size()}")
+                .split(body())
+                    .log("receipt metadata to insert: ${body.size()}")
+                    .to("direct:insert-tositerivit-into-db")
+                .end()
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(""))
                 // aggregate all processed file names into list
@@ -165,17 +168,11 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .split(body())
                 .process(e -> {
                     LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                    for (String s : row.keySet()) {
-                        ResultSet rs = (ResultSet) row.get(s);
-                        if (rs.next()) {
-                            // first is toimiala
-                            String month = rs.getString(2);
-                            String year = rs.getString(3);
-                            e.getMessage().setHeader("GJAHR", year);
-                            e.getMessage().setHeader("POPER", month);
-                            e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
-                        }
-                    }
+                    String year = (String)row.get("GJAHR");
+                    String month = (String)row.get("POPER");
+                    e.getMessage().setHeader("GJAHR", year);
+                    e.getMessage().setHeader("POPER", month);
+                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
                 })
                 .setProperty("fileExist", constant("Override"))
                 .setProperty("outDir", constant(toimiala))
@@ -209,7 +206,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     @Override
     public void buildSupportingRoutes() {
 
-        // read from xml and process to a map by year and month, then in aggregation phase filter out
         from("direct:process-tosite")
             .process(e -> {
                 // get each E1FIKPF, from them each E1FISEG and map those
@@ -226,30 +222,25 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     Map<String, Object> v = (LinkedHashMap<String, Object>) valuesObj;
                     allE1fikpf = List.of(v);
                 }
-                // list of linkedhashmaps where each map -> csv line
+
+                // receipt -> receipt metadata
                 // E1FIKPF contains commonValues and E1FIKPF.E1FISET also some common stuff
                 // E1FIKPF can contain multiple E1FISEG segments
                 // E1FIKPF can maybe contain multiple E1FISET but usually only 1
                 // E1FISEG can contain E1FISE2 or E1FINBU
-                List<LinkedHashMap<String, Object>> receipts = allE1fikpf.stream().flatMap(e1Main -> {
+                List<List<LinkedHashMap<String, Object>>> receipts = allE1fikpf.stream().map(e1Main -> {
                     Object receiptSegs = e1Main.get("E1FISEG");
                     if (receiptSegs instanceof List receiptValList) {
                         List<Map<String, Object>> receiptVals = receiptValList;
-                        return receiptVals.stream().map(v -> extractValues(e1Main, v));
+                        return receiptVals.stream().map(v -> extractValues(e1Main, v)).toList();
                     } else {
                         Map<String, Object> v = (LinkedHashMap<String, Object>) receiptSegs;
-                        return Stream.of(extractValues(e1Main, v));
+                        return List.of(extractValues(e1Main, v));
                     }
                 }).toList();
 
                 e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
-
-        from("direct:insert-tositerivit-into-db")
-            .split(body())
-                .to("direct:insert-tositerivi-into-db")
-            .end()
-                .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
     }
 
     public String getReceiptIdWithoutTime(Map<String, Object> receipt) {
@@ -267,7 +258,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         // or order by file name and keep track of what was added to the file
         rows.stream().forEach(row -> {
             String receiptId = getReceiptIdWithoutTime(row);
-            String fileName = (String)row.get("FILENAME");
+            String fileName = (String)row.get("fileName");
             Map<String, List<Map<String, Object>>> perFileName = idToFileName.get(receiptId);
             if (perFileName == null) {
                 perFileName = new HashMap<>();

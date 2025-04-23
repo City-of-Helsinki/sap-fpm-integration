@@ -127,12 +127,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .log("read ${headers.CamelFileName}")
                 .setProperty("originalCamelFileName", header("CamelFileName"))
                 .to("direct:unmarshal-xml")
-                .to("direct:process-tosite")
-                .log("receipts to insert: ${body.size()}")
-                .split(body())
-                    .log("receipt metadata to insert: ${body.size()}")
-                    .to("direct:insert-tositerivit-into-db")
-                .end()
+                .to("direct:process-tosite-file-contents")
+                .to("direct:insert-file-and-contents-into-db")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(""))
                 // aggregate all processed file names into list
@@ -206,7 +202,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     @Override
     public void buildSupportingRoutes() {
 
-        from("direct:process-tosite")
+        from("direct:process-tosite-file-contents")
             .process(e -> {
                 // get each E1FIKPF, from them each E1FISEG and map those
                 Map<String, Map<String, Object>> xmlRoot = e.getIn().getBody(Map.class);

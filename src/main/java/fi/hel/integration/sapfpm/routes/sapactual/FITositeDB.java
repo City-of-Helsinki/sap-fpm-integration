@@ -58,8 +58,7 @@ primary key (id)
                 .to("jdbc:sapactual")
                 .setBody(constant("""
 CREATE TABLE IF NOT EXISTS SAPFILE(
-  createdTimestamp TIMESTAMP default CURRENT_TIMESTAMP not null,
-  processedTimestamp TIMESTAMP,
+  processedTimestamp TIMESTAMP default CURRENT_TIMESTAMP not null,
   filename varchar(255) not null,
   toimiala varchar(10) not null,
   primary key (filename)
@@ -67,6 +66,19 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 """))
                 .to("jdbc:sapactual")
                 .setBody(exchangeProperty("originalBody"));
+
+        from("direct:insert-file-and-contents-into-db")
+            .onException(SQLIntegrityConstraintViolationException.class)
+                .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
+                .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
+                .handled(true)
+            .end()
+            .log("receipts to insert: ${body.size()}")
+            .to("direct:insert-sapfile-into-db")
+            .split(body())
+                .log("receipt metadata to insert: ${body.size()}")
+                .to("direct:insert-tositerivit-into-db")
+            .end();
 
         from("direct:insert-tositerivit-into-db")
             .onException(SQLIntegrityConstraintViolationException.class)
@@ -80,7 +92,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                                 e.getMessage().setHeader("firstReceipt", firstReceipt)
                         , () -> e.getMessage().removeHeader("firstReceipt"));
             })
-            .transacted()
+            .transacted("PROPAGATION_REQUIRES_NEW")
             .to("direct:insert-tosite-into-db")
             .split(body())
                 .to("direct:insert-tositerivi-into-db")
@@ -133,6 +145,25 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
+
+
+        from("direct:insert-sapfile-into-db")
+            .errorHandler(noErrorHandler()) // propagate errors to calling route
+            .process(e -> {
+                Map<String, String> jdbcParams = Map.of(
+                "fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class),
+                "toimiala", e.getMessage().getHeader("toimiala", String.class)
+                );
+                e.setProperty("originalBody", e.getMessage().getBody());
+                e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
+                e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+            })
+            .setBody(simple(
+                    "INSERT INTO SAPFILE (fileName, toimiala) VALUES (${exchangeProperty.sqlNamedParams})"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+            .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+            .setBody(exchangeProperty("originalBody"));
+
 
         from("direct:fetch-all-years-and-months-from-db")
             .setBody(constant("SELECT DISTINCT TOIMIALA, POPER, GJAHR FROM TOSITERIVI"))

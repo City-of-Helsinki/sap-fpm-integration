@@ -273,7 +273,7 @@ public class TositeInTest {
         ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
-        Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
+        Exchange res = producerTemplate.send("direct:process-tosite-file-contents", producerTemplate.send("direct:unmarshal-xml", ex));
 
         List<List<LinkedHashMap<String, Object>>> resReceipts = res.getMessage().getBody(List.class);
         assertEquals(1, resReceipts.size());
@@ -306,7 +306,7 @@ public class TositeInTest {
 
         String xmlIn = "<FIDCCP02><IDOC><E1FIKPF><BUKRS>3900</BUKRS><E1FISEG><TEST>1</TEST></E1FISEG></E1FIKPF></IDOC></FIDCCP02>";
         ex.getMessage().setBody(xmlIn);
-        Exchange res = producerTemplate.send("direct:process-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
+        Exchange res = producerTemplate.send("direct:process-tosite-file-contents", producerTemplate.send("direct:unmarshal-xml", ex));
         ex.getMessage().setBody(res.getMessage().getBody(List.class).getFirst());
         Exchange emptyCsv = producerTemplate.send("direct:marshal-headerless-csv-Tosite-palke", ex);
         assertEquals(tositeRoute.createCsvHeader().length, emptyCsv.getMessage().getBody(String.class).split(";").length);

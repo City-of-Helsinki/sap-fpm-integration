@@ -60,20 +60,26 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .onException(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
                 .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
-                .handled(true)
+                .process(e -> e.getMessage().setBody(null))
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .continued(true)
             .end()
             .log("receipts to insert: ${body.size()}")
             .to("direct:insert-sapfile-into-db")
-            .split(body())
-                .log("receipt metadata to insert: ${body.size()}")
-                .to("direct:insert-cotositerivit-into-db")
+            .choice().when(body().isNotNull())
+                .split(body())
+                    .to("direct:insert-cotositerivit-into-db")
+                .end()
             .end();
 
         from("direct:insert-cotositerivit-into-db")
                 .onException(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
-                .log("Failed to insert cotosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
-                .handled(true)
+                    .log("Failed to insert cotosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
+                    .continued(true)
+                    .process(e -> e.getMessage().setBody(null))
+                    .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                // TODO: reset body?
                 .end()
                 .process(e -> {
                     List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);
@@ -83,10 +89,12 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
                 })
                 .transacted("PROPAGATION_REQUIRES_NEW")
                 .to("direct:insert-cotosite-into-db")
-                .split(body())
-                .to("direct:insert-cotositerivi-into-db")
-                .end()
-                .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
+                .choice()
+                .when(body().isNotNull())
+                    .split(body())
+                    .to("direct:insert-cotositerivi-into-db")
+                    .end()
+                .end();
 
         from("direct:insert-cotosite-into-db")
                 .errorHandler(noErrorHandler()) // propagate errors to calling route

@@ -24,11 +24,11 @@ public abstract class CoToteumatRouteBuilder extends RouteBuilder implements Ftp
     @Override
     public void configure() throws Exception {
         if (mainConfig.palkeFTPCoToteumatEnabled()) {
-            buildMainRoute(false, ftpCoToteumatIn("palke"), "palke");
+            buildMainRoute(ftpCoToteumatIn("palke"), "palke");
         }
 
         if (mainConfig.localCoToteumatEnabled()) {
-            buildMainRoute(true, "file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
+            buildMainRoute( "file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPCoToteumatEnabled()) {

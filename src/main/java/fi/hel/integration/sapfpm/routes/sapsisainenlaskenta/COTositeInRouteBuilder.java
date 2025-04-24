@@ -55,7 +55,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
     }
 
     @Override
-    public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
 
         CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
         CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
@@ -119,28 +119,30 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                     .log("CoTosite Done! Write unique csvs from db")
                 .to("direct:fetch-all-cotosite-years-and-months-from-db")
                 .split(body())
-                .process(e -> {
-                    LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                    String year = (String)row.get("GJAHR");
-                    String month = (String)row.get("PERIO");
-                    e.getMessage().setHeader("GJAHR", year);
-                    e.getMessage().setHeader("PERIO", month);
-                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPSISAINENLASKENTA_" + year + "_" + month + ".csv");
-                })
-                .setProperty("fileExist", constant("Override"))
-                .setProperty("outDir", constant(toimiala))
-                .setBody(constant(""))
-                .marshal(csvDataFormatWithHeader)
-                .to("direct:any-file-out")
-                // create file first by writing only the header into the file, then stream and append
-                .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
-                .process(e -> {
-                    e.getMessage().setBody(e.getMessage().getBody(ArrayList.class));
-                })
-                // streaming() // skipHeaderRecord(true) and write
-                .setProperty("fileExist", constant("Append"))
-                .to(marshalHeaderlessCsvURI)
-                .to("direct:any-file-out")
+                    .process(e -> {
+                        LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                        String year = (String)row.get("GJAHR");
+                        String month = (String)row.get("PERIO");
+                        e.getMessage().setHeader("GJAHR", year);
+                        e.getMessage().setHeader("PERIO", month);
+                        String simpleMonth = month.replaceFirst("^0+", "");
+                        e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPSISAINENLASKENTA_" + year + "_" + simpleMonth + ".csv");
+                    })
+                    .setProperty("fileExist", constant("Override"))
+                    .setProperty("outDir", constant(toimiala))
+                    .setBody(constant(""))
+                    .marshal(csvDataFormatWithHeader)
+                    .to("direct:any-file-out")
+                    // create file first by writing only the header into the file, then stream and append
+                    .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
+                    .process(e -> {
+                        e.getMessage().setBody(e.getMessage().getBody(ArrayList.class));
+                    })
+                    // streaming() // skipHeaderRecord(true) and write
+                    .setProperty("fileExist", constant("Append"))
+                    .to(marshalHeaderlessCsvURI)
+                    .to("direct:any-file-out")
+                    .to("direct:enrich-and-send-file-to-azure-" + toimiala)
                 .end()
                 .end();
     }

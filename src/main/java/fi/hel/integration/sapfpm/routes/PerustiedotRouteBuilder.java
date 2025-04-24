@@ -1,14 +1,10 @@
 package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
-import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.model.RouteDefinition;
-import org.apache.camel.spi.IdempotentRepository;
-import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -35,22 +31,22 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     public void configure() throws Exception {
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
             log.info("Starting palke ftp perustiedot");
-            buildMainRoute(false, ftpPerustiedotIn("palke"), "palke");
+            buildMainRoute(ftpPerustiedotIn("palke"), "palke");
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
             log.info("Starting kasko ftp perustiedot");
-            buildMainRoute(false, ftpPerustiedotIn("kasko"), "kasko");
+            buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
             log.info("Starting sotepe ftp perustiedot");
-            buildMainRoute(false ,ftpPerustiedotIn("sotepe"), "sotepe");
+            buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {
             log.info("Starting local perustiedot");
-            buildMainRoute(true,"file:in?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
+            buildMainRoute("file:in?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPPerustiedotEnabled()) {
@@ -60,7 +56,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
 
-    public void buildFtpFileReadingRoute(boolean isLocal, String fromURI, String idPrefix, String toimiala, String processRouteURI, String outFinalFileName) {
+    public void buildFtpFileReadingRoute(String fromURI, String idPrefix, String toimiala, String processRouteURI, String outFinalFileName) {
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         Set<String> processedFileNames = new HashSet<>();
 
@@ -120,29 +116,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                     processedFileNames.clear();
                     initialBatchSize.set(-1);
                 })
-                .pollEnrich()
-                    .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false")
-                    .aggregationStrategy((oldExchange, readFileExchange) -> {
-                        if (readFileExchange == null) {
-                            log.error("READ MAIN FILE IS NULL!");
-                            oldExchange.getMessage().setBody(null);
-                        } else {
-                            oldExchange.getMessage().setBody(readFileExchange.getMessage().getBody());
-                        }
-                        return oldExchange;
-                    })
-                .choice()
-                    .when(body().isNull())
-                        .log("Not sending empty file to Azure! ${headers.CamelFileName}")
-                    .otherwise()
-                        .choice()
-                           .when(simple("${exchangeProperty.outDir} == 'palke'"))
-                                .setProperty("uploadFileDir", constant("SAP/TEST"))
-                                .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
-                                .setProperty("fileExist", constant("Override"))
-                                .to(isLocal ? "direct:any-file-out" : "direct:upload-blob-to-azure-" + toimiala)
-                            .end()
-                        .log("Done!");
+                .to("direct:enrich-and-send-file-to-azure-" + toimiala);
 
     }
 

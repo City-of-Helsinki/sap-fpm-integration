@@ -22,6 +22,8 @@ public class AzureBlobOut extends RouteBuilder {
     Logger log;
 
     public void createAzureBlobUploadingRoute(String toimiala) {
+        // check for local here
+
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure")
             .log("uploading ${header.CamelFileName} to Azure ${exchangeProperty.uploadFileDir}")
             .process(e -> {
@@ -36,12 +38,46 @@ public class AzureBlobOut extends RouteBuilder {
             .log("uploaded ${header.CamelFileName} to %s Azure ${exchangeProperty.uploadFileDir}".formatted(toimiala));
     }
 
+    public void createLocalFileToAzureUploadingRoute(String toimiala, boolean isLocal) {
+        from("direct:enrich-and-send-file-to-azure-" + toimiala)
+            .pollEnrich()
+            .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false")
+            .aggregationStrategy((oldExchange, readFileExchange) -> {
+                if (readFileExchange == null) {
+                    log.error("READ FILE IS NULL!");
+                    oldExchange.getMessage().setBody(null);
+                } else {
+                    oldExchange.getMessage().setBody(readFileExchange.getMessage().getBody());
+                }
+                return oldExchange;
+            })
+            .choice()
+                .when(body().isNull())
+                    .log("Not sending empty file to Azure! ${headers.CamelFileName}")
+                .otherwise()
+                    .choice()
+                    // TODO: enable for other services as well
+                        .when(simple("${exchangeProperty.outDir} == 'palke'"))
+                        .setProperty("uploadFileDir", constant("SAP/TEST"))
+                        .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
+                        .setProperty("fileExist", constant("Override"))
+                        .to(isLocal ? "direct:any-file-out" : "direct:upload-blob-to-azure-" + toimiala)
+                    .end()
+                .log("Done!");
+    }
+
     @Override
     public void configure() throws Exception {
 
         if (palkeConfig.azureAccountName().isPresent()) {
             log.info("palke azure uploading enabled");
             createAzureBlobUploadingRoute("palke");
+            createLocalFileToAzureUploadingRoute("palke", false);
+        }
+
+        // TODO: replace with dev
+        if (mainConfig.localCoToteumatEnabled() || mainConfig.localToteumatEnabled() || mainConfig.localPerustiedotEnabled()) {
+            createLocalFileToAzureUploadingRoute("palke", true);
         }
 
         from("direct:any-file-out").id("AnyFileOut")

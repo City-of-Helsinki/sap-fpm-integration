@@ -25,19 +25,19 @@ public abstract class ToteumatRouteBuilder extends RouteBuilder implements FtpOr
     public void configure() throws Exception {
         log.info("ToteumatRouteBuilder");
         if (mainConfig.palkeFTPToteumatEnabled()) {
-            buildMainRoute(false, ftpToteumatIn("palke"), "palke");
+            buildMainRoute(ftpToteumatIn("palke"), "palke");
         }
 
         if (mainConfig.kaskoFTPToteumatEnabled()) {
-            buildMainRoute(false, ftpToteumatIn("kasko"), "kasko");
+            buildMainRoute(ftpToteumatIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPToteumatEnabled()) {
-            buildMainRoute(false, ftpToteumatIn("sotepe"), "sotepe");
+            buildMainRoute(ftpToteumatIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localToteumatEnabled()) {
-            buildMainRoute(true, "file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
+            buildMainRoute("file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPToteumatEnabled()) {

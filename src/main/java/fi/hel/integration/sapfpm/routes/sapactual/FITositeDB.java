@@ -76,7 +76,6 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .log("receipts to insert: ${body.size()}")
             .to("direct:insert-sapfile-into-db")
             .split(body())
-                .log("receipt metadata to insert: ${body.size()}")
                 .to("direct:insert-tosite-and-rivit-into-db")
             .end();
 
@@ -84,7 +83,9 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .onException(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
                 .log("Failed to insert tosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
-                .handled(true)
+                .continued(true)
+                .process(e -> e.getMessage().setBody(null))
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .end()
             .process(e -> {
                 List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);
@@ -94,12 +95,15 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             })
             .transacted("PROPAGATION_REQUIRES_NEW")
             .to("direct:insert-tosite-into-db")
-            .split(body())
-                .to("direct:insert-tositerivi-into-db")
-            .end()
-            .log("inserted all into db ${headers.toimiala}/${headers.CamelFileName} ${body.size()}");
+            .choice()
+                .when(body().isNotNull())
+                    .split(body())
+                        .to("direct:insert-tositerivi-into-db")
+                    .end()
+                .end();
 
         from("direct:insert-tosite-into-db")
+                // TODO: catch and continued(true)
             .errorHandler(noErrorHandler()) // propagate errors to calling route
             .process(e -> {
                 Map<String, String> firstReceipt = e.getMessage().getHeader("firstReceipt", Map.class);

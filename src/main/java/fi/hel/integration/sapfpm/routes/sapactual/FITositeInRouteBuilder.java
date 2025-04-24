@@ -86,7 +86,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         return r;
     }
     @Override
-    public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         if (toimiala == null) {
             log.error("toimiala is null!");
             return;

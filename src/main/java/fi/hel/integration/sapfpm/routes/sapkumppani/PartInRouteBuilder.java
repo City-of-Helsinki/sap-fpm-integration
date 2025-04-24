@@ -36,8 +36,8 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
     }
 
     @Override
-    public void buildMainRoute(boolean isLocal, String fileOrFtpIn, String toimiala) {
-        buildFtpFileReadingRoute(isLocal, fileOrFtpIn, "Part",
+    public void buildMainRoute(String fileOrFtpIn, String toimiala) {
+        buildFtpFileReadingRoute(fileOrFtpIn, "Part",
                 toimiala, "direct:process-part", "SAPKUMPPANI.csv");
     }
 

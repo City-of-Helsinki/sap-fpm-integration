@@ -342,4 +342,20 @@ public class TositeInTest {
         assertSame(rows.get(0), resRows.get(0));
         assertEquals(file2, resRows.get(0).get("fileName"));
     }
+
+    @Test
+    void insertFileWithContentsIntoDbTest() {
+        //direct:insert-file-and-contents-into-db
+        String file1 = "file1";
+        List<Map<String, Object>> rows = List.of(
+                createReceipt(file1,"2025", "01", "001", "001"),
+                createReceipt(file1,"2025", "01", "001", "001")
+        );
+        List<Map<String, Object>> resRows = tositeRoute.filterUniqueRows(rows);
+        assertEquals(2, resRows.size());
+
+
+    }
+
+
 }

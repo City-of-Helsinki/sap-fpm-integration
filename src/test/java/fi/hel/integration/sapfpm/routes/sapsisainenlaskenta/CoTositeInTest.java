@@ -28,36 +28,10 @@ public class CoTositeInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:cotosite-out")
-    MockEndpoint mockFileOut;
-
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "coTositeAzureOut", b -> {
-            b.weaveByToUri("direct:any-file-out").replace().to(mockFileOut.getEndpointUri());
-        });
-    }
-
     @Test
     void shouldParse_CoTosite_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
-
-        mockFileOut.whenAnyExchangeReceived(e -> {
-            InputStreamCache c = e.getMessage().getBody(InputStreamCache.class);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            c.writeTo(out);
-            out.close();
-            String data = out.toString();
-            String expCsvHeader = "BELNR;BLDAT;BUDAT;CPUDT;BLART;" +
-                    "REFBN;VERSN;AWTYP;AWORG;" +
-                    "BUZEI;PERIO;WOGBTR;OBJNR;OBJ_TYPE;TYPE_NR;" +
-                    "PRCTR;GJAHR;KSTAR;BEKNZ;BUKRS;SGTXT;FKBER";
-            String[] splitData = data.split("\r\n");
-            assertEquals(expCsvHeader, splitData[0]);
-            assertEquals("0011000001;20250215;20250215;20250216;38;9500381852;000;ZBKPF;5000099237;001;002;2.72-;OR009532100002;Sis. til.;009532100001;0009532100;2025;0000300040;H;9500;953210000220250215;", splitData[1]);
-        });
 
         String xmlIn = """
 <Atos_CODCMT xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TASDA8F90C87:740">
@@ -102,13 +76,24 @@ public class CoTositeInTest {
         ex.getMessage().setHeader("CamelFileName", "ID016_CO_TOSITE_OUT_20250219-000123-456.xml");
         ex.getMessage().setBody(xmlIn);
 
+        Exchange res = producerTemplate.send("direct:process-cotosite-file-contents", producerTemplate.send("direct:unmarshal-xml", ex));
 
-        Exchange res = producerTemplate.send("direct:process-co-tosite", producerTemplate.send("direct:unmarshal-xml", ex));
-        List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
-        producerTemplate.sendBody("direct:co-tosite-csv-out", vals);
+        List<List<LinkedHashMap<String, Object>>> resReceipts = res.getMessage().getBody(List.class);
+        assertEquals(1, resReceipts.size());
+        List<LinkedHashMap<String, Object>> vals = resReceipts.getFirst();
+        assertEquals(1, vals.size());
+        Map<String, Object> firstReceipt = vals.getFirst();
 
-        mockFileOut.expectedMessageCount(1);
-        mockFileOut.assertIsSatisfied();
+        assertEquals("001", firstReceipt.get("BUZEI"));
+        assertEquals("953210000220250215", firstReceipt.get("SGTXT"));
+
+        ex.getMessage().setBody(vals);
+        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Cotosite-palke", ex);
+        String resBody = resCsv.getMessage().getBody(String.class);
+
+        String[] splitData = resBody.split("\r\n");
+        assertEquals("0011000001;20250215;20250215;20250216;38;9500381852;000;ZBKPF;5000099237;001;002;2.72-;OR009532100002;Sis. til.;009532100001;0009532100;2025;0000300040;H;9500;953210000220250215;", splitData[0]);
+
     }
 
 }

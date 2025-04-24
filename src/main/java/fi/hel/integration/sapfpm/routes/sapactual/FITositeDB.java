@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS TOSITERIVI(
   id bigint NOT NULL AUTO_INCREMENT,
   createdTimestamp TIMESTAMP default now() not null,
   fileName varchar(255) not null,
-  toimiala varchar(255) not null,
+  toimiala varchar(10) not null,
 """ + Arrays.stream(tositeInRoute.createCsvHeader()).map(csvHead -> {
     if (csvHead.equals("BUKRS") || csvHead.equals("BELNR") || csvHead.equals("GJAHR") || csvHead.equals("POPER")) {
         return csvHead + " varchar(50) not null";
@@ -59,9 +59,9 @@ primary key (id)
                 .setBody(constant("""
 CREATE TABLE IF NOT EXISTS SAPFILE(
   processedTimestamp TIMESTAMP default CURRENT_TIMESTAMP not null,
-  filename varchar(255) not null,
-  toimiala varchar(10) not null,
-  primary key (filename)
+  fileName varchar(255) not null,
+  toimiala varchar(20) not null,
+  primary key (fileName)
 );
                 """))
                 .to("jdbc:sapactual")
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .to("direct:insert-sapfile-into-db")
             .split(body())
                 .log("receipt metadata to insert: ${body.size()}")
-                .to("direct:insert-tositerivit-into-db")
+                .to("direct:insert-tosite-and-rivit-into-db")
             .end();
 
-        from("direct:insert-tositerivit-into-db")
+        from("direct:insert-tosite-and-rivit-into-db")
             .onException(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
                 .log("Failed to insert tosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
@@ -123,6 +123,10 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:insert-tositerivi-into-db")
+            .setProperty("DB_TABLE", constant("TOSITERIVI"))
+            .to("direct:insert-tosite-or-cotosite-rivi-into-db");
+
+        from("direct:insert-tosite-or-cotosite-rivi-into-db")
             .errorHandler(noErrorHandler())
             .process(e -> {
                 Map<String, String> body = e.getMessage().getBody(Map.class);
@@ -140,7 +144,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
             })
             .setBody(simple(
-                    "INSERT INTO TOSITERIVI (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
+                    "INSERT INTO ${exchangeProperty.DB_TABLE} (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
             .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
@@ -156,10 +160,11 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 );
                 e.setProperty("originalBody", e.getMessage().getBody());
                 e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
+                e.setProperty("sqlValNames", String.join(",", jdbcParams.keySet()));
                 e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
             })
             .setBody(simple(
-                    "INSERT INTO SAPFILE (fileName, toimiala) VALUES (${exchangeProperty.sqlNamedParams})"))
+                    "INSERT INTO SAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));

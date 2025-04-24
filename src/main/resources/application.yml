@@ -24,7 +24,7 @@
                 password: "${PALKE_SFTP_PASSWORD_ID025}"
             co_toteumat:
                 user: "${PALKE_SFTP_USER_ID166}"
-                password: "${PALKE_SFT_PASSWORD_ID166}"
+                password: "${PALKE_SFTP_PASSWORD_ID166}"
     kasko:
         azure:
             sasToken: "${KASKO_SAS_TOKEN}"

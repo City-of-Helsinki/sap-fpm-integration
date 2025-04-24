@@ -25,7 +25,7 @@ public class IdempotentRepositoryProvider {
         return createIdempotentRepository();
     }
 
-    @Named("cototeumat_palke_idempotentRepository")
+    @Named("co_toteumat_palke_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository coToteumatPalkeIdempotentRepository() {
         return createIdempotentRepository();

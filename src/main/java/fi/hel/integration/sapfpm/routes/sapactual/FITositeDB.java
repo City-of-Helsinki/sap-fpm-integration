@@ -71,13 +71,17 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .onException(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
                 .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
-                .handled(true)
+                .process(e -> e.getMessage().setBody(null))
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .continued(true)
             .end()
             .log("receipts to insert: ${body.size()}")
             .to("direct:insert-sapfile-into-db")
-            .split(body())
-                .to("direct:insert-tosite-and-rivit-into-db")
-            .end();
+                .choice().when(body().isNotNull())
+                    .split(body())
+                        .to("direct:insert-tosite-and-rivit-into-db")
+                    .end()
+                .end();
 
         from("direct:insert-tosite-and-rivit-into-db")
             .onException(SQLIntegrityConstraintViolationException.class)

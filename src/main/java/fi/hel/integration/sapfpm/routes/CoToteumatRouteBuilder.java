@@ -28,7 +28,7 @@ public abstract class CoToteumatRouteBuilder extends RouteBuilder implements Ftp
         }
 
         if (mainConfig.localCoToteumatEnabled()) {
-            buildMainRoute( "file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
+            buildMainRoute( "file:in?" + buildLocalCoToteumatIn("palke", getFilePrefix()), "palke");
         }
 
         if (mainConfig.localOrFTPCoToteumatEnabled()) {

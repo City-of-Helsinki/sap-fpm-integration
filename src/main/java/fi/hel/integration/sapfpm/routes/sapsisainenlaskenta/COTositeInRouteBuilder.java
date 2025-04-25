@@ -134,12 +134,14 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 .split(body()).streaming()
                     .to(marshalHeaderlessCsvURI)
                     .to("direct:any-file-out")
+                    .setBody(constant(""))
                 .end()
                 .log("appending done, enriching and sending to azure")
                 // write to dir that has files e.g. to_send/filename, enriching based on file name
                 //
-               // .to("direct:enrich-and-send-file-to-azure-" + toimiala)
-            .end();
+                .to("direct:enrich-and-send-file-to-azure-" + toimiala)
+                .setBody(constant(""))
+            .end().log("done, all months and years written");
     }
 
     @Override

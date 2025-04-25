@@ -100,7 +100,7 @@ public class AzureBlobOut extends RouteBuilder {
                 .end()
                 .choice()
                     .when(simple("${exchangeProperty.fileExist} == 'Append'"))
-                    .log("Appended ${exchangeProperty.originalFileName} to ${exchangeProperty.outDir}/${headers.CamelFileName}")
+                    //.log("Appended ${exchangeProperty.originalFileName} to ${exchangeProperty.outDir}/${headers.CamelFileName}")
                 .otherwise()
                     .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
     }

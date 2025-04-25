@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .setBody(constant("SELECT * FROM COTOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO " +
                     "ORDER BY fileName DESC")) // latest first
             // outputType=StreamList split(body()).streaming()
-            .to("jdbc:sapactual?useHeadersAsParameters=true")
-            .log("db fetch size: ${body.size()}");
+            .to("jdbc:sapactual?useHeadersAsParameters=true&?outputType=StreamList")
+            .log("db fetch done");
     }
 }

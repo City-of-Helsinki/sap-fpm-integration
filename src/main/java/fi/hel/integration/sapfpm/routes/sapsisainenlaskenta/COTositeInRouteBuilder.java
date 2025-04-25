@@ -128,15 +128,13 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 .setBody(constant(""))
                 .marshal(csvDataFormatWithHeader)
                 .to("direct:any-file-out")
+                .setProperty("fileExist", constant("Append"))
                 // create file first by writing only the header into the file, then stream and append
                 .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
-                .process(e -> {
-                    e.getMessage().setBody(e.getMessage().getBody(ArrayList.class));
-                })
-                // streaming() // skipHeaderRecord(true) and write
-                .setProperty("fileExist", constant("Append"))
-                .to(marshalHeaderlessCsvURI)
-                .to("direct:any-file-out")
+                .split(body()).streaming()
+                    .to(marshalHeaderlessCsvURI)
+                    .to("direct:any-file-out")
+                .end()
                 .to("direct:enrich-and-send-file-to-azure-" + toimiala)
             .end();
     }

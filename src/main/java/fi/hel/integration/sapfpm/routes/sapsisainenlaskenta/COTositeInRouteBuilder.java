@@ -88,63 +88,57 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 .to("direct:insert-cotosite-file-and-contents-into-db")
                 .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
                 .process(e -> e.getMessage().setBody(""))
-                // aggregate all processed file names into list
-                .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
-                    List<String> fileNames;
-                    if (oldExchange == null) {
-                        fileNames = new ArrayList<>();
-                    } else {
-                        fileNames = oldExchange.getMessage().getBody(List.class);
-                    }
-                    if (newExchange.getException() != null) {
-                        log.info("newEx had exc: " + newExchange.getException().getMessage());
-                    } else {
-                        fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
-                    }
-                    newExchange.getMessage().setBody(fileNames);
-                    return newExchange;
-                }).constant(true).completionFromBatchConsumer()
                 .process(e -> {
-                    int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
+                    int newTotal = processedFileAmount.addAndGet(1);
                     e.setProperty("processedFileAmount", newTotal);
                     int initial = initialBatchSize.get();
                     if (newTotal == initial) {
-                        log.info("resetting initial batch size to -1!");
-                        initialBatchSize.set(-1);
+                        e.setProperty("writeOut", true);
                     }
                     e.setProperty("initialBatchSize", initial);
                 })
-                .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
-                .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
+                .choice().when(simple("${exchangeProperty.writeOut} == true"))
                     .log("CoTosite Done! Write unique csvs from db")
-                .to("direct:fetch-all-cotosite-years-and-months-from-db")
-                .split(body())
+                    .to("direct:fetch-cotositteet-from-db-and-write-to-azure")
                     .process(e -> {
-                        LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                        String year = (String)row.get("GJAHR");
-                        String month = (String)row.get("PERIO");
-                        e.getMessage().setHeader("GJAHR", year);
-                        e.getMessage().setHeader("PERIO", month);
-                        String simpleMonth = month.replaceFirst("^0+", "");
-                        e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPSISAINENLASKENTA_" + year + "_" + simpleMonth + ".csv");
+                        e.setProperty("writeOut", false);
+                        processedFileAmount.set(0);
+                        initialBatchSize.set(-1);
                     })
-                    .setProperty("fileExist", constant("Override"))
-                    .setProperty("outDir", constant(toimiala))
-                    .setBody(constant(""))
-                    .marshal(csvDataFormatWithHeader)
-                    .to("direct:any-file-out")
-                    // create file first by writing only the header into the file, then stream and append
-                    .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
-                    .process(e -> {
-                        e.getMessage().setBody(e.getMessage().getBody(ArrayList.class));
-                    })
-                    // streaming() // skipHeaderRecord(true) and write
-                    .setProperty("fileExist", constant("Append"))
-                    .to(marshalHeaderlessCsvURI)
-                    .to("direct:any-file-out")
-                    .to("direct:enrich-and-send-file-to-azure-" + toimiala)
-                .end()
                 .end();
+
+        from("file:trigger/cotosite-write-" + toimiala + "?delete=true").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
+
+        from("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala)
+            .setHeader("toimiala", constant(toimiala))
+            .log("Writing cotosite db out to azure for ${headers.toimiala}")
+            .to("direct:fetch-all-cotosite-years-and-months-from-db")
+            .split(body())
+                .process(e -> {
+                    LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                    String year = (String)row.get("GJAHR");
+                    String month = (String)row.get("PERIO");
+                    e.getMessage().setHeader("GJAHR", year);
+                    e.getMessage().setHeader("PERIO", month);
+                    String simpleMonth = month.replaceFirst("^0+", "");
+                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPSISAINENLASKENTA_" + year + "_" + simpleMonth + ".csv");
+                })
+                .setProperty("fileExist", constant("Override"))
+                .setProperty("outDir", constant(toimiala))
+                .setBody(constant(""))
+                .marshal(csvDataFormatWithHeader)
+                .to("direct:any-file-out")
+                // create file first by writing only the header into the file, then stream and append
+                .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
+                .process(e -> {
+                    e.getMessage().setBody(e.getMessage().getBody(ArrayList.class));
+                })
+                // streaming() // skipHeaderRecord(true) and write
+                .setProperty("fileExist", constant("Append"))
+                .to(marshalHeaderlessCsvURI)
+                .to("direct:any-file-out")
+                .to("direct:enrich-and-send-file-to-azure-" + toimiala)
+            .end();
     }
 
     @Override

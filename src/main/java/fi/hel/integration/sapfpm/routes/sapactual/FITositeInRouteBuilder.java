@@ -118,50 +118,42 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                         }
                     })
             .end()
-                /* .onException(GenericFileOperationFailedException.class)
-                     .log("FTP read failed, retrying")
-                     .setProperty("errorThrown", constant(true))
+            .log("read ${headers.CamelFileName}")
+            .setProperty("originalCamelFileName", header("CamelFileName"))
+            .to("direct:unmarshal-xml")
+            .to("direct:process-tosite-file-contents")
+            .to("direct:insert-file-and-contents-into-db")
+            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+            .process(e -> e.getMessage().setBody(""))
+            // aggregate all processed file names into list
 
-                     .maximumRedeliveries(10) //Exhausted after delivery attempt: 1 caught: org.apache.camel.component.file.GenericFileOperationFailedException: Cannot retrieve file:
-                 .end()*/
-                .log("read ${headers.CamelFileName}")
-                .setProperty("originalCamelFileName", header("CamelFileName"))
-                .to("direct:unmarshal-xml")
-                .to("direct:process-tosite-file-contents")
-                .to("direct:insert-file-and-contents-into-db")
-                .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-                .process(e -> e.getMessage().setBody(""))
-                // aggregate all processed file names into list
-                .aggregate((AggregationStrategy) (oldExchange, newExchange) -> {
-                    List<String> fileNames;
-                    if (oldExchange == null) {
-                        fileNames = new ArrayList<>();
-                    } else {
-                        fileNames = oldExchange.getMessage().getBody(List.class);
-                    }
-                    if (newExchange.getException() != null) {
-                        log.info("newEx had exc: " + newExchange.getException().getMessage());
-                    } else {
-                        fileNames.add(newExchange.getMessage().getHeader("CamelFileName", String.class));
-                    }
-                    newExchange.getMessage().setBody(fileNames);
-                    return newExchange;
-                }).constant(true).completionFromBatchConsumer()
-                .process(e -> {
-                    int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
-                    e.setProperty("processedFileAmount", newTotal);
-                    int initial = initialBatchSize.get();
-                    if (newTotal == initial) {
-                        log.info("resetting initial batch size to -1!");
-                        initialBatchSize.set(-1);
-                    }
-                    e.setProperty("initialBatchSize", initial);
-                })
-                .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
-                .choice().when(simple("${exchangeProperty.processedFileAmount} == ${exchangeProperty.initialBatchSize}"))
+            .process(e -> {
+                int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
+                e.setProperty("processedFileAmount", newTotal);
+                int initial = initialBatchSize.get();
+                if (newTotal == initial) {
+                    e.setProperty("writeOut", true);
+                }
+                e.setProperty("initialBatchSize", initial);
+            })
+            .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
+            .choice().when(simple("${exchangeProperty.writeOut} == true"))
                 .log("Done! Group and write unique csvs from db")
-                .to("direct:fetch-all-years-and-months-from-db")
-                .split(body())
+                .to("direct:fetch-tositteet-from-db-and-write-to-azure")
+                .process(e -> {
+                    e.setProperty("writeOut", false);
+                    processedFileAmount.set(0);
+                    initialBatchSize.set(-1);
+                })
+            .end();
+
+        from("file:trigger/tosite-write-" + toimiala + "?delete=true").to("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala);
+
+        from("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala)
+            .setHeader("toimiala", constant(toimiala))
+            .log("Writing tosite db out to azure for ${headers.toimiala}")
+            .to("direct:fetch-all-years-and-months-from-db")
+            .split(body())
                 .process(e -> {
                     LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
                     String year = (String)row.get("GJAHR");
@@ -184,9 +176,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .setProperty("fileExist", constant("Append"))
                 .to(marshalHeaderlessCsvURI)
                 .to("direct:any-file-out")
-                .end()
-                .end();
-
+            .end();
     }
 
     @Override

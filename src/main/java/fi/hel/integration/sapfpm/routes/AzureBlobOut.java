@@ -2,6 +2,7 @@ package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import fi.hel.integration.sapfpm.config.PalkeConfig;
+import fi.hel.integration.sapfpm.config.SotepeConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -14,6 +15,9 @@ import org.jboss.logging.Logger;
 public class AzureBlobOut extends RouteBuilder {
     @Inject
     PalkeConfig palkeConfig;
+
+    @Inject
+    SotepeConfig sotepeConfig;
 
     @Inject
     IsConfigEnabled mainConfig;
@@ -57,7 +61,7 @@ public class AzureBlobOut extends RouteBuilder {
                 .otherwise()
                     .choice()
                     // TODO: enable for other services as well
-                        .when(simple("${exchangeProperty.outDir} == 'palke'"))
+                        .when(simple("${exchangeProperty.outDir} == 'palke' || ${exchangeProperty.outDir} == 'sotepe'"))
                         .setProperty("uploadFileDir", constant("SAP/TEST"))
                         .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
                         .setProperty("fileExist", constant("Override"))
@@ -73,6 +77,12 @@ public class AzureBlobOut extends RouteBuilder {
             log.info("palke azure uploading enabled");
             createAzureBlobUploadingRoute("palke");
             createLocalFileToAzureUploadingRoute("palke", false);
+        }
+
+        if (sotepeConfig.azureAccountName().isPresent()) {
+            log.info("sotepe azure uploading enabled");
+            createAzureBlobUploadingRoute("sotepe");
+            createLocalFileToAzureUploadingRoute("sotepe", false);
         }
 
         // TODO: replace with dev

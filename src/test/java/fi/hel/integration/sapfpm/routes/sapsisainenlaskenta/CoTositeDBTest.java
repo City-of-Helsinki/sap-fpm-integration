@@ -62,7 +62,6 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
         });
 
-        mockJdbcSapActual.whenAnyExchangeReceived(e -> System.out.println("CO: " + e.getMessage().getBody(String.class)));
         // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)
         mockJdbcSapActual.expectedMessageCount(5);
 

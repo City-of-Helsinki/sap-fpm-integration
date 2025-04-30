@@ -158,7 +158,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                     String month = (String)row.get("POPER");
                     e.getMessage().setHeader("GJAHR", year);
                     e.getMessage().setHeader("POPER", month);
-                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + month + ".csv");
+                    String simpleMonth = month.replaceFirst("^0+", "");
+                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + simpleMonth + ".csv");
                 })
                 .setProperty("fileExist", constant("Override"))
                 .setProperty("outDir", constant(toimiala))

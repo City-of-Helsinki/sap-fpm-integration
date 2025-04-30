@@ -81,9 +81,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
 
         producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
-        mockJdbcSapActual.whenAnyExchangeReceived(e -> System.out.println("TOSITE ACTUAL: " + e.getMessage().getBody(String.class)));
-
-
         Exchange insertRes = producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
 

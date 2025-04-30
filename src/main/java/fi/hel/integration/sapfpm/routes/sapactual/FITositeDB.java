@@ -1,5 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
+import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -11,7 +12,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-public class FITositeDB extends RouteBuilder {
+public class FITositeDB extends TositeDbCommon {
 
     @Inject
     FITositeInRouteBuilder tositeInRoute;
@@ -67,46 +68,16 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 .to("jdbc:sapactual")
                 .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-file-and-contents-into-db")
-            .onException(SQLIntegrityConstraintViolationException.class)
-                .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
-                .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
-                .process(e -> e.getMessage().setBody(null))
-                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-                .continued(true)
-            .end()
-            .log("receipts to insert: ${body.size()}")
-            .to("direct:insert-sapfile-into-db")
-                .choice().when(body().isNotNull())
-                    .split(body())
-                        .to("direct:insert-tosite-and-rivit-into-db")
-                    .end()
-                .end();
+        buildFileAndContentsDbRoute("direct:insert-tosite-file-and-contents-into-db",
+                "insertTositeFileAndContents",
+                "direct:insert-sapfile-into-db",
+                "direct:insert-tosite-and-rivit-into-db");
 
-        from("direct:insert-tosite-and-rivit-into-db")
-            .onException(SQLIntegrityConstraintViolationException.class)
-                .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
-                .log("Failed to insert tosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
-                .continued(true)
-                .process(e -> e.getMessage().setBody(null))
-                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-            .end()
-            .process(e -> {
-                List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);
-                receiptMetadata.stream().findFirst().ifPresentOrElse(firstReceipt ->
-                                e.getMessage().setHeader("firstReceipt", firstReceipt)
-                        , () -> e.getMessage().removeHeader("firstReceipt"));
-            })
-            .transacted("PROPAGATION_REQUIRES_NEW")
-            .to("direct:insert-tosite-into-db")
-            .choice()
-                .when(body().isNotNull())
-                    .split(body())
-                        .to("direct:insert-tositerivi-into-db")
-                    .end()
-                .end();
+        buildInsertReceiptAndLinesIntoDb("direct:insert-tosite-and-rivit-into-db",
+                "direct:insert-tosite-into-db",
+                "direct:insert-tositerivi-into-db");
 
-        from("direct:insert-tosite-into-db")
+        from("direct:insert-tosite-into-db").routeId("insertTositeIntoDb")
                 // TODO: catch and continued(true)
             .errorHandler(noErrorHandler()) // propagate errors to calling route
             .process(e -> {
@@ -130,11 +101,13 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-tositerivi-into-db")
+        from("direct:insert-tositerivi-into-db").routeId("insertTositeRiviIntoDb")
+                .errorHandler(noErrorHandler())
             .setProperty("DB_TABLE", constant("TOSITERIVI"))
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
 
         from("direct:insert-tosite-or-cotosite-rivi-into-db")
+                .routeId("insertTositeOrCoTositeRiviIntoDb")
             .errorHandler(noErrorHandler())
             .process(e -> {
                 Map<String, String> body = e.getMessage().getBody(Map.class);
@@ -159,7 +132,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
 
-        from("direct:insert-sapfile-into-db")
+        from("direct:insert-sapfile-into-db").routeId("insertSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route
             .process(e -> {
                 Map<String, String> jdbcParams = Map.of(
@@ -185,8 +158,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
             .setBody(constant("SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER " +
                     "ORDER BY fileName DESC")) // latest first
-            // outputType=StreamList split(body()).streaming()
-                .to("jdbc:sapactual?useHeadersAsParameters=true")
-            .log("db fetch size: ${body.size()}");
+            .to("jdbc:sapactual?useHeadersAsParameters=true&outputType=StreamList")
+            .log("tosite db fetch done");
     }
 }

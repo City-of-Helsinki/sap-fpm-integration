@@ -122,24 +122,22 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             .setProperty("originalCamelFileName", header("CamelFileName"))
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite-file-contents")
-            .to("direct:insert-file-and-contents-into-db")
+            .to("direct:insert-tosite-file-and-contents-into-db")
             .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
             .process(e -> e.getMessage().setBody(""))
-            // aggregate all processed file names into list
-
             .process(e -> {
-                int newTotal = processedFileAmount.addAndGet(e.getMessage().getBody(List.class).size());
+                int newTotal = processedFileAmount.addAndGet(1);
                 e.setProperty("processedFileAmount", newTotal);
                 int initial = initialBatchSize.get();
-                if (newTotal == initial) {
+                log.info("initial: " + initial + ", total: " + newTotal);
+                if (newTotal >= initial) {
                     e.setProperty("writeOut", true);
                 }
                 e.setProperty("initialBatchSize", initial);
             })
-            .log("file name aggr done, files in batch: ${body.size()}, processedFiles: ${exchangeProperty.initialBatchSize} / ${exchangeProperty.processedFileAmount}")
             .choice().when(simple("${exchangeProperty.writeOut} == true"))
                 .log("Done! Group and write unique csvs from db")
-                .to("direct:fetch-tositteet-from-db-and-write-to-azure")
+                .to("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala)
                 .process(e -> {
                     e.setProperty("writeOut", false);
                     processedFileAmount.set(0);
@@ -169,13 +167,14 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .to("direct:any-file-out")
                 // create file first by writing only the header into the file, then stream and append
                 .to("direct:fetch-tositerivit-from-db-by-year-and-month")
-                .process(e -> {
-                    e.getMessage().setBody(filterUniqueRows(e.getMessage().getBody(ArrayList.class)));
-                })
-                // streaming() // skipHeaderRecord(true) and write
-                .setProperty("fileExist", constant("Append"))
-                .to(marshalHeaderlessCsvURI)
-                .to("direct:any-file-out")
+                .split(body()).streaming()
+                    .to(marshalHeaderlessCsvURI)
+                    .to("direct:any-file-out")
+                    .setBody(constant(""))
+                .end()
+                .log("appending done, enriching and sending to azure")
+                .to("direct:enrich-and-send-file-to-azure-" + toimiala)
+                .setBody(constant(""))
             .end();
     }
 

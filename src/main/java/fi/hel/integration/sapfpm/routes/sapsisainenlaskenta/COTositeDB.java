@@ -1,5 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 
+import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -11,7 +12,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
-public class COTositeDB extends RouteBuilder {
+public class COTositeDB extends TositeDbCommon {
 
     @Inject
     COTositeInRouteBuilder coTtositeInRoute;
@@ -56,47 +57,16 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
         .to("jdbc:sapactual")
         .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-cotosite-file-and-contents-into-db")
-            .onException(SQLIntegrityConstraintViolationException.class)
-                .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
-                .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
-                .process(e -> e.getMessage().setBody(null))
-                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-                .continued(true)
-            .end()
-            .log("receipts to insert: ${body.size()}")
-            .to("direct:insert-sapfile-into-db")
-            .choice().when(body().isNotNull())
-                .split(body())
-                    .to("direct:insert-cotositerivit-into-db")
-                .end()
-            .end();
+        buildFileAndContentsDbRoute("direct:insert-cotosite-file-and-contents-into-db",
+            "insertCoTositeFileAndContents",
+        "direct:insert-sapfile-into-db",
+        "direct:insert-cotosite-and-rivit-into-db");
 
-        from("direct:insert-cotositerivit-into-db")
-                .onException(SQLIntegrityConstraintViolationException.class)
-                .onWhen(simple("${exception.message} contains 'Duplicate entry'"))
-                    .log("Failed to insert cotosite ${headers.BUKRS} ${headers.BELNR} into the db due to a duplicate in ${headers.CamelFileName}!")
-                    .continued(true)
-                    .process(e -> e.getMessage().setBody(null))
-                    .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-                // TODO: reset body?
-                .end()
-                .process(e -> {
-                    List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);
-                    receiptMetadata.stream().findFirst().ifPresentOrElse(firstReceipt ->
-                                    e.getMessage().setHeader("firstReceipt", firstReceipt)
-                            , () -> e.getMessage().removeHeader("firstReceipt"));
-                })
-                .transacted("PROPAGATION_REQUIRES_NEW")
-                .to("direct:insert-cotosite-into-db")
-                .choice()
-                .when(body().isNotNull())
-                    .split(body())
-                    .to("direct:insert-cotositerivi-into-db")
-                    .end()
-                .end();
+        buildInsertReceiptAndLinesIntoDb("direct:insert-cotosite-and-rivit-into-db",
+                "direct:insert-cotosite-into-db",
+            "direct:insert-cotositerivi-into-db");
 
-        from("direct:insert-cotosite-into-db")
+        from("direct:insert-cotosite-into-db").routeId("insertCoTositeIntoDb")
                 .errorHandler(noErrorHandler()) // propagate errors to calling route
                 .process(e -> {
                     Map<String, String> firstReceipt = e.getMessage().getHeader("firstReceipt", Map.class);
@@ -119,10 +89,10 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
                 .removeHeader(JdbcConstants.JDBC_PARAMETERS)
                 .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-cotositerivi-into-db")
+        from("direct:insert-cotositerivi-into-db").routeId("insertCoTositeRiviIntoDb")
+                .errorHandler(noErrorHandler())
             .setProperty("DB_TABLE", constant("COTOSITERIVI"))
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
-
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
             .setBody(constant("SELECT DISTINCT TOIMIALA, PERIO, GJAHR FROM COTOSITERIVI"))
@@ -131,7 +101,7 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
         from("direct:fetch-cotositerivit-from-db-by-year-and-month")
             .setBody(constant("SELECT * FROM COTOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO " +
                     "ORDER BY fileName DESC")) // latest first
-            .to("jdbc:sapactual?useHeadersAsParameters=true&?outputType=StreamList")
+            .to("jdbc:sapactual?useHeadersAsParameters=true&outputType=StreamList")
             .log("db fetch done");
     }
 }

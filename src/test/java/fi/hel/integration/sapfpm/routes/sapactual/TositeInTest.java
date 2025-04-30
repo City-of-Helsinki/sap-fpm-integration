@@ -345,7 +345,6 @@ public class TositeInTest {
 
     @Test
     void insertFileWithContentsIntoDbTest() {
-        //direct:insert-file-and-contents-into-db
         String file1 = "file1";
         List<Map<String, Object>> rows = List.of(
                 createReceipt(file1,"2025", "01", "001", "001"),
@@ -353,8 +352,6 @@ public class TositeInTest {
         );
         List<Map<String, Object>> resRows = tositeRoute.filterUniqueRows(rows);
         assertEquals(2, resRows.size());
-
-
     }
 
 

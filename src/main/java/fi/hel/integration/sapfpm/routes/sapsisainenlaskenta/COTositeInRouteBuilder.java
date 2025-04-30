@@ -99,7 +99,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 })
                 .choice().when(simple("${exchangeProperty.writeOut} == true"))
                     .log("CoTosite Done! Write unique csvs from db")
-                    .to("direct:fetch-cotositteet-from-db-and-write-to-azure")
+                    .to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala)
                     .process(e -> {
                         e.setProperty("writeOut", false);
                         processedFileAmount.set(0);

@@ -41,7 +41,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
             public void configure() throws Exception {
                 from("direct:fetch-cotositerivit-from-db-by-year-and-month-and-stream")
                     .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
-                        .split(body()).streaming().to(mockCoTositeRivitFetchStreamed.getEndpointUri()).end();
+                        .split(body()).to(mockCoTositeRivitFetchStreamed.getEndpointUri()).end();
             }
         };
     }

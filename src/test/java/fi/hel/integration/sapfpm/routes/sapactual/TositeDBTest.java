@@ -40,7 +40,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
             public void configure() throws Exception {
                 from("direct:fetch-tositerivit-from-db-by-year-and-month-and-stream")
                     .to("direct:fetch-tositerivit-from-db-by-year-and-month")
-                        .split(body()).streaming().to(mockTositeRivitFetchStreamed.getEndpointUri()).end();
+                        .split(body()).to(mockTositeRivitFetchStreamed.getEndpointUri()).end();
             }
         };
     }

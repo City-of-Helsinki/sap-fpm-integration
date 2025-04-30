@@ -155,10 +155,16 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(constant("SELECT DISTINCT TOIMIALA, POPER, GJAHR FROM TOSITERIVI"))
                 .to("jdbc:sapactual?useHeadersAsParameters=true");
 
+        String tositeRiviSelect = "SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER ";
+        String tositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
+
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
-            .setBody(constant("SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER " +
-                    "ORDER BY fileName DESC")) // latest first
-            .to("jdbc:sapactual?useHeadersAsParameters=true&outputType=StreamList")
-            .log("tosite db fetch done");
+            .choice().when(header("lastId").isNull())
+                .setBody(constant(tositeRiviSelect + tositeRiviSelectOrderBy))
+            .otherwise()
+                .setBody(constant(tositeRiviSelect + " AND id < :?lastId" + tositeRiviSelectOrderBy))
+            .end()
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("db fetch done, size: ${body.size}");
     }
 }

@@ -14,6 +14,8 @@ import java.util.stream.Stream;
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
+    final static int DB_PAGE_LIMIT = 1000;
+
     public String[] createCsvHeader() {
         return new String[]{
                 "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
@@ -167,12 +169,21 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .marshal(csvDataFormatWithHeader)
                 .to("direct:any-file-out")
                 .setProperty("fileExist", constant("Append"))
-                // create file first by writing only the header into the file, then stream and append
-                .to("direct:fetch-tositerivit-from-db-by-year-and-month")
-                .split(body()).streaming()
+                .setHeader("pageLimit", constant(DB_PAGE_LIMIT))
+                .setProperty("dbHasMoreResults", constant(true))
+                .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
+                    .to("direct:fetch-tositerivit-from-db-by-year-and-month")
+                    .process(e -> {
+                        List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
+                        if (res == null || res.isEmpty() || res.size() < DB_PAGE_LIMIT) {
+                            e.removeProperty("dbHasMoreResults");
+                            e.getMessage().removeHeader("lastId");
+                        } else {
+                            e.getMessage().setHeader("lastId", res.getLast().get("ID"));
+                        }
+                    })
                     .to(marshalHeaderlessCsvURI)
                     .to("direct:any-file-out")
-                    .log("written tosite rivi")
                     .setBody(constant(""))
                 .end()
                 .log("appending done, enriching and sending to azure")

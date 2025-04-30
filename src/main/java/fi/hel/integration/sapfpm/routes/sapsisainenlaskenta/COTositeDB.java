@@ -98,10 +98,15 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .setBody(constant("SELECT DISTINCT TOIMIALA, PERIO, GJAHR FROM COTOSITERIVI"))
             .to("jdbc:sapactual?useHeadersAsParameters=true");
 
+        String cotositeRiviSelect = "SELECT * FROM COTOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO ";
+        String cotositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
         from("direct:fetch-cotositerivit-from-db-by-year-and-month")
-            .setBody(constant("SELECT * FROM COTOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO " +
-                    "ORDER BY fileName DESC")) // latest first
-            .to("jdbc:sapactual?useHeadersAsParameters=true&outputType=StreamList")
-            .log("db fetch done");
+            .choice().when(header("lastId").isNull())
+                .setBody(constant(cotositeRiviSelect + cotositeRiviSelectOrderBy))
+            .otherwise()
+                .setBody(constant(cotositeRiviSelect + " AND id < :?lastId" + cotositeRiviSelectOrderBy))
+            .end()
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("db fetch done, size: ${body.size}");
     }
 }

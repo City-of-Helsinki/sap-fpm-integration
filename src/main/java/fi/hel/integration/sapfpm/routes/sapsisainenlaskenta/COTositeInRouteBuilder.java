@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 // ID***_CO_TOSITE_***20250217-000705-001
 @ApplicationScoped
 public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
+    final static int DB_PAGE_LIMIT = 1000;
+
     public String[] createCsvHeader() {
         return new String[] {
                 "BELNR", "BLDAT", "BUDAT", "CPUDT", "BLART",
@@ -130,15 +132,24 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 .to("direct:any-file-out")
                 .setProperty("fileExist", constant("Append"))
                 // create file first by writing only the header into the file, then stream and append
-                .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
-                .split(body()).streaming()
+                .setHeader("pageLimit", constant(DB_PAGE_LIMIT))
+                .setProperty("dbHasMoreResults", constant(true))
+                .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
+                    .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
+                    .process(e -> {
+                        List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
+                        if (res == null || res.isEmpty() || res.size() < DB_PAGE_LIMIT) {
+                            e.removeProperty("dbHasMoreResults");
+                            e.getMessage().removeHeader("lastId");
+                        } else {
+                            e.getMessage().setHeader("lastId", res.getLast().get("ID"));
+                        }
+                    })
                     .to(marshalHeaderlessCsvURI)
                     .to("direct:any-file-out")
                     .setBody(constant(""))
                 .end()
                 .log("appending done, enriching and sending to azure")
-                // write to dir that has files e.g. to_send/filename, enriching based on file name
-                //
                 .to("direct:enrich-and-send-file-to-azure-" + toimiala)
                 .setBody(constant(""))
             .end().log("done, all months and years written");

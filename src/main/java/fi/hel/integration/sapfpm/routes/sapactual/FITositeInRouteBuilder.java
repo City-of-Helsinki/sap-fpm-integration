@@ -166,11 +166,13 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .setBody(constant(""))
                 .marshal(csvDataFormatWithHeader)
                 .to("direct:any-file-out")
+                .setProperty("fileExist", constant("Append"))
                 // create file first by writing only the header into the file, then stream and append
                 .to("direct:fetch-tositerivit-from-db-by-year-and-month")
                 .split(body()).streaming()
                     .to(marshalHeaderlessCsvURI)
                     .to("direct:any-file-out")
+                    .log("written tosite rivi")
                     .setBody(constant(""))
                 .end()
                 .log("appending done, enriching and sending to azure")

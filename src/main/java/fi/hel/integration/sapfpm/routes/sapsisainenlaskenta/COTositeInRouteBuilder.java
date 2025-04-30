@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 // ID***_CO_TOSITE_***20250217-000705-001
 @ApplicationScoped
 public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 1000;
+    final static int DB_PAGE_LIMIT = 100000;
 
     public String[] createCsvHeader() {
         return new String[] {

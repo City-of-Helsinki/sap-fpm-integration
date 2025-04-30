@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 1000;
+    final static int DB_PAGE_LIMIT = 100000;
 
     public String[] createCsvHeader() {
         return new String[]{

@@ -151,11 +151,21 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
 
+        from("direct:fetch-years-and-months-count-from-db")
+            .onException(Exception.class)
+                .continued(true) // so originalBody is set
+            .end()
+            .setProperty("originalBody", body())
+            .setBody(constant("SELECT COUNT(id) FROM TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+                .log("by year and month count: ${body}")
+            .setBody(exchangeProperty("originalBody"));
+
         from("direct:fetch-all-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT TOIMIALA, POPER, GJAHR FROM TOSITERIVI"))
+                .setBody(constant("SELECT DISTINCT toimiala, POPER, GJAHR FROM TOSITERIVI"))
                 .to("jdbc:sapactual?useHeadersAsParameters=true");
 
-        String tositeRiviSelect = "SELECT * FROM TOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER ";
+        String tositeRiviSelect = "SELECT * FROM TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER ";
         String tositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
 
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
@@ -165,6 +175,6 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 .setBody(constant(tositeRiviSelect + " AND id < :?lastId" + tositeRiviSelectOrderBy))
             .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true")
-            .log("db fetch done, size: ${body.size}");
+            .log("db fetch done, size: ${body.size}, lastId: ${headers.lastId}");
     }
 }

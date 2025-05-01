@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 100000;
+    final static int DB_PAGE_LIMIT = 50000;
 
     public String[] createCsvHeader() {
         return new String[]{
@@ -169,6 +169,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 .marshal(csvDataFormatWithHeader)
                 .to("direct:any-file-out")
                 .setProperty("fileExist", constant("Append"))
+                .to("direct:fetch-years-and-months-count-from-db")
                 .setHeader("pageLimit", constant(DB_PAGE_LIMIT))
                 .setProperty("dbHasMoreResults", constant(true))
                 .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
@@ -179,7 +180,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                             e.removeProperty("dbHasMoreResults");
                             e.getMessage().removeHeader("lastId");
                         } else {
-                            e.getMessage().setHeader("lastId", res.getLast().get("ID"));
+                            e.getMessage().setHeader("lastId", res.getLast().get("id"));
                         }
                     })
                     .to(marshalHeaderlessCsvURI)

@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 // ID***_CO_TOSITE_***20250217-000705-001
 @ApplicationScoped
 public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 100000;
+    final static int DB_PAGE_LIMIT = 50000;
 
     public String[] createCsvHeader() {
         return new String[] {
@@ -142,7 +142,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                             e.removeProperty("dbHasMoreResults");
                             e.getMessage().removeHeader("lastId");
                         } else {
-                            e.getMessage().setHeader("lastId", res.getLast().get("ID"));
+                            e.getMessage().setHeader("lastId", res.getLast().get("id"));
                         }
                     })
                     .to(marshalHeaderlessCsvURI)

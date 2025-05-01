@@ -95,10 +95,10 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT TOIMIALA, PERIO, GJAHR FROM COTOSITERIVI"))
+            .setBody(constant("SELECT DISTINCT toimiala, PERIO, GJAHR FROM COTOSITERIVI"))
             .to("jdbc:sapactual?useHeadersAsParameters=true");
 
-        String cotositeRiviSelect = "SELECT * FROM COTOSITERIVI WHERE TOIMIALA = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO ";
+        String cotositeRiviSelect = "SELECT * FROM COTOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO ";
         String cotositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
         from("direct:fetch-cotositerivit-from-db-by-year-and-month")
             .choice().when(header("lastId").isNull())

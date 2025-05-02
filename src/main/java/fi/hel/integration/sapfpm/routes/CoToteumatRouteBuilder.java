@@ -1,14 +1,14 @@
 package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
+import fi.hel.integration.sapfpm.tositecommon.TositeRouteCommon;
 import jakarta.inject.Inject;
-import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 
-public abstract class CoToteumatRouteBuilder extends RouteBuilder implements FtpOrFileRouteBuilder {
+public abstract class CoToteumatRouteBuilder extends TositeRouteCommon implements FtpOrFileRouteBuilder {
     @Inject
     IsConfigEnabled mainConfig;
 

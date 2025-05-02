@@ -2,14 +2,11 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.camel.AggregationStrategy;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
-import java.sql.ResultSet;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
+
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
@@ -93,104 +90,45 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             log.error("toimiala is null!");
             return;
         }
-
-        CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
-        CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
-
         String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-Tosite-%s".formatted(toimiala);
         from(marshalHeaderlessCsvURI).routeId("tositeHeaderlessCsv")
-            .marshal(csvDataFormatWithoutHeader);
+            .marshal(createCsvDataFormat().setSkipHeaderRecord(true));
 
-        //   String csvHeader = tositeCsvDataFormat.getHeader().replace(',', tositeCsvDataFormat.getDelimiter());
-        // receipt id -> year + month (file name)
-        AtomicInteger initialBatchSize = new AtomicInteger(-1);
-        AtomicInteger processedFileAmount = new AtomicInteger(0);
+        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-Tosite-%s".formatted(toimiala);
+        from(marshalWithHeaderCsvURI).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
 
-        from(fileOrFtpIn).id(toimiala + "tositeIn")
-            .setHeader("toimiala", constant(toimiala))
-            .setProperty("originalBody", body())
-            .to("direct:init-tositerivi-db")
-                // choice, if processed, skip
-            .choice()
-                .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
-                    .process(e -> {
-                        if (initialBatchSize.get() == -1) {
-                            initialBatchSize.set(e.getProperty("CamelBatchSize", Integer.class));
-                            log.info("set initial batch size to " + initialBatchSize.get());
-                        }
-                    })
-            .end()
-            .log("read ${headers.CamelFileName}")
-            .setProperty("originalCamelFileName", header("CamelFileName"))
+        String initRouteUri = "direct:init-toteumat-route";
+        from(initRouteUri).setHeader("toimiala", constant(toimiala)).to("direct:init-tositerivi-db");
+
+        String processFileRouteUri = "direct:process-tosite-file";
+        from(processFileRouteUri)
             .to("direct:unmarshal-xml")
             .to("direct:process-tosite-file-contents")
-            .to("direct:insert-tosite-file-and-contents-into-db")
-            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-            .process(e -> e.getMessage().setBody(""))
-            .process(e -> {
-                int newTotal = processedFileAmount.addAndGet(1);
-                e.setProperty("processedFileAmount", newTotal);
-                int initial = initialBatchSize.get();
-                log.info("initial: " + initial + ", total: " + newTotal);
-                if (newTotal >= initial) {
-                    e.setProperty("writeOut", true);
-                }
-                e.setProperty("initialBatchSize", initial);
-            })
-            .choice().when(simple("${exchangeProperty.writeOut} == true"))
-                .log("Done! Group and write unique csvs from db")
-                .to("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala)
-                .process(e -> {
-                    e.setProperty("writeOut", false);
-                    processedFileAmount.set(0);
-                    initialBatchSize.set(-1);
-                })
-            .end();
+            .to("direct:insert-tosite-file-and-contents-into-db");
 
         from("file:trigger/tosite-write-" + toimiala + "?delete=true").to("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala);
 
-        from("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala)
-            .setHeader("toimiala", constant(toimiala))
-            .log("Writing tosite db out to azure for ${headers.toimiala}")
-            .to("direct:fetch-all-years-and-months-from-db")
-            .split(body())
-                .process(e -> {
-                    LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                    String year = (String)row.get("GJAHR");
-                    String month = (String)row.get("POPER");
-                    e.getMessage().setHeader("GJAHR", year);
-                    e.getMessage().setHeader("POPER", month);
-                    String simpleMonth = month.replaceFirst("^0+", "");
-                    e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + simpleMonth + ".csv");
-                })
-                .setProperty("fileExist", constant("Override"))
-                .setProperty("outDir", constant(toimiala))
-                .setBody(constant(""))
-                .marshal(csvDataFormatWithHeader)
-                .to("direct:any-file-out")
-                .setProperty("fileExist", constant("Append"))
-                .to("direct:fetch-years-and-months-count-from-db")
-                .setHeader("pageLimit", constant(DB_PAGE_LIMIT))
-                .setProperty("dbHasMoreResults", constant(true))
-                .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
-                    .to("direct:fetch-tositerivit-from-db-by-year-and-month")
-                    .process(e -> {
-                        List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
-                        if (res == null || res.isEmpty() || res.size() < DB_PAGE_LIMIT) {
-                            e.removeProperty("dbHasMoreResults");
-                            e.getMessage().removeHeader("lastId");
-                        } else {
-                            e.getMessage().setHeader("lastId", res.getLast().get("id"));
-                        }
-                    })
-                    .to(marshalHeaderlessCsvURI)
-                    .to("direct:any-file-out")
-                    .setBody(constant(""))
-                .end()
-                .log("appending done, enriching and sending to azure")
-                .to("direct:enrich-and-send-file-to-azure-" + toimiala)
-                .setBody(constant(""))
-            .end();
+        String initDbFetchParamsAndFileNameUri = "direct:init-tosite-db-fetch-params";
+        from(initDbFetchParamsAndFileNameUri)
+            .process(e -> {
+                LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                String year = (String)row.get("GJAHR");
+                String month = (String)row.get("POPER");
+                e.getMessage().setHeader("GJAHR", year);
+                e.getMessage().setHeader("POPER", month);
+                String simpleMonth = month.replaceFirst("^0+", "");
+                e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + simpleMonth + ".csv");
+            });
+
+        String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
+        String fetchToteumatRouteUri = "direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala;
+
+        buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, toimiala,
+            "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
+            marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", DB_PAGE_LIMIT,
+            "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);
+
+        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
     }
 
     @Override

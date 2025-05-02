@@ -3,11 +3,9 @@ package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -78,10 +76,7 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
                             "GJAHR", firstReceipt.get("GJAHR"),
                             "PERIO", firstReceipt.get("PERIO")
                     );
-                    e.setProperty("originalBody", e.getMessage().getBody());
-                    e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
-                    e.setProperty("sqlValNames", String.join(",", jdbcParams.keySet()));
-                    e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+                    setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
                 })
                 .setBody(simple(
                         "INSERT INTO COTOSITE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
@@ -98,6 +93,16 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .setBody(constant("SELECT DISTINCT toimiala, PERIO, GJAHR FROM COTOSITERIVI"))
             .to("jdbc:sapactual?useHeadersAsParameters=true");
 
+        from("direct:fetch-cotosite-years-and-months-count-from-db")
+            .onException(Exception.class)
+                .continued(true) // so originalBody is set
+            .end()
+            .setProperty("originalBody", body())
+            .setBody(constant("SELECT COUNT(id) FROM COTOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("cotosite by year and month count: ${body}")
+            .setBody(exchangeProperty("originalBody"));
+
         String cotositeRiviSelect = "SELECT * FROM COTOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND PERIO = :?PERIO ";
         String cotositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
         from("direct:fetch-cotositerivit-from-db-by-year-and-month")
@@ -107,6 +112,6 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
                 .setBody(constant(cotositeRiviSelect + " AND id < :?lastId" + cotositeRiviSelectOrderBy))
             .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true")
-            .log("db fetch done, size: ${body.size}");
+            .log("db fetch done, size: ${body.size}, lastId: ${headers.lastId}");
     }
 }

@@ -1,13 +1,14 @@
 package fi.hel.integration.sapfpm.tositecommon;
 
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.camel.model.RouteDefinition;
 
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class TositeDbCommon extends RouteBuilder {
 
@@ -52,5 +53,27 @@ public abstract class TositeDbCommon extends RouteBuilder {
                         .to(insertReceiptLineUri)
                     .end()
             .end();
+    }
+
+    public void setSqlValNamesAndNamedParams(Exchange e, Map<String, String> jdbcParams) {
+        Set<String> keySet = jdbcParams.keySet();
+        e.setProperty("sqlValNames", String.join(",", keySet));
+        e.setProperty("sqlNamedParams", keySet.stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+    }
+
+    public void setJdbcParamsSqlValsAndOriginalBody(Exchange e, Map<String, String> jdbcParams) {
+        e.setProperty("originalBody", e.getMessage().getBody());
+        e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
+        setSqlValNamesAndNamedParams(e, jdbcParams);
+    }
+
+    public Map<String, String> copyNonNullValues(Map<String, String> fromMap) {
+        Map<String, String> nonNullMap = new HashMap<>();
+        for (Map.Entry<String, String> keyVal : fromMap.entrySet()) {
+            if (keyVal.getValue() != null) {
+                nonNullMap.put(keyVal.getKey(), keyVal.getValue());
+            }
+        }
+        return nonNullMap;
     }
 }

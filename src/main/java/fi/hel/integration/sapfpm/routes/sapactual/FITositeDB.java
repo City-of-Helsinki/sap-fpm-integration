@@ -3,11 +3,10 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.Exchange;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -90,10 +89,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                         "GJAHR", firstReceipt.get("GJAHR"),
                         "POPER", firstReceipt.get("POPER")
                 );
-                e.setProperty("originalBody", e.getMessage().getBody());
-                e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
-                e.setProperty("sqlValNames", String.join(",", jdbcParams.keySet()));
-                e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
             })
             .setBody(simple(
                     "INSERT INTO TOSITE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
@@ -110,19 +106,10 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 .routeId("insertTositeOrCoTositeRiviIntoDb")
             .errorHandler(noErrorHandler())
             .process(e -> {
-                Map<String, String> body = e.getMessage().getBody(Map.class);
-                Map<String, String> jdbcParams = new HashMap<>();
-                for (Map.Entry<String, String> keyVal : body.entrySet()) {
-                    if (keyVal.getValue() != null) {
-                        jdbcParams.put(keyVal.getKey(), keyVal.getValue());
-                    }
-                }
+                Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));
                 jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
                 jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
-                e.setProperty("originalBody", body);
-                e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
-                e.setProperty("sqlValNames", String.join(",", jdbcParams.keySet()));
-                e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
             })
             .setBody(simple(
                     "INSERT INTO ${exchangeProperty.DB_TABLE} (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
@@ -139,10 +126,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 "fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class),
                 "toimiala", e.getMessage().getHeader("toimiala", String.class)
                 );
-                e.setProperty("originalBody", e.getMessage().getBody());
-                e.getMessage().setHeader(JdbcConstants.JDBC_PARAMETERS, jdbcParams);
-                e.setProperty("sqlValNames", String.join(",", jdbcParams.keySet()));
-                e.setProperty("sqlNamedParams", jdbcParams.keySet().stream().map(k -> ":?" + k).collect(Collectors.joining(",")));
+                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
             })
             .setBody(simple(
                     "INSERT INTO SAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))

@@ -4,23 +4,16 @@ package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
-import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
-import org.apache.camel.builder.AdviceWith;
-import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 public class CoTositeInTest {

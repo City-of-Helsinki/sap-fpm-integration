@@ -10,6 +10,7 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -33,6 +34,20 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     @EndpointInject("mock:tositerivit-fetch-streamed")
     private MockEndpoint mockTositeRivitFetchStreamed;
 
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx, "insertSapFileIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "insertTositeIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+        });
+    }
+
     @Override
     protected RoutesBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
@@ -49,17 +64,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     void duplicateTositePreventionTest() throws Exception {
 
         CamelContext ctx = producerTemplate.getCamelContext();
-
-        AdviceWith.adviceWith(ctx, "insertSapFileIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
-        });
-
-        AdviceWith.adviceWith(ctx, "insertTositeIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
-        });
-        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
-        });
 
         // 1 file, tosite1 + 2 lines, tosite2 (which fails)
         mockJdbcSapActual.expectedMessageCount(5);
@@ -92,6 +96,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         fetchMsg.setHeader("toimiala", toimiala);
         fetchMsg.setHeader("GJAHR", year);
         fetchMsg.setHeader("POPER", month);
+        fetchMsg.setHeader("pageLimit", 100);
         producerTemplate.send("direct:fetch-tositerivit-from-db-by-year-and-month-and-stream", fetchEx);
 
         mockTositeRivitFetchStreamed.assertIsSatisfied();
@@ -129,6 +134,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         fetchMsg.setHeader("toimiala", toimiala);
         fetchMsg.setHeader("GJAHR", year);
         fetchMsg.setHeader("POPER", month);
+        fetchMsg.setHeader("pageLimit", 100);
         producerTemplate.send("direct:fetch-tositerivit-from-db-by-year-and-month-and-stream", fetchEx);
 
         mockTositeRivitFetchStreamed.assertIsSatisfied();

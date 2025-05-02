@@ -7,14 +7,12 @@ import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
-import org.apache.camel.component.jdbc.StreamListIterator;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +32,20 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     @EndpointInject("mock:cotositerivit-fetch-streamed")
     private MockEndpoint mockCoTositeRivitFetchStreamed;
 
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx,"insertSapFileIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "insertCoTositeIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+        });
+    }
+
     @Override
     protected RoutesBuilder createRouteBuilder() throws Exception {
         return new RouteBuilder() {
@@ -50,17 +62,6 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     void duplicateCoTositePreventionTest() throws Exception {
 
         CamelContext ctx = producerTemplate.getCamelContext();
-
-        AdviceWith.adviceWith(ctx,"insertSapFileIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
-        });
-
-        AdviceWith.adviceWith(ctx, "insertCoTositeIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
-        });
-        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
-        });
 
         // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)
         mockJdbcSapActual.expectedMessageCount(5);
@@ -94,6 +95,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         fetchMsg.setHeader("toimiala", toimiala);
         fetchMsg.setHeader("GJAHR", year);
         fetchMsg.setHeader("PERIO", month);
+        fetchMsg.setHeader("pageLimit", 100);
         producerTemplate.send("direct:fetch-cotositerivit-from-db-by-year-and-month-and-stream", fetchEx);
 
         mockCoTositeRivitFetchStreamed.assertIsSatisfied();

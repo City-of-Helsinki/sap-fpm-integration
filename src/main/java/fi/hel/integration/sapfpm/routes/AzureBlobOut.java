@@ -28,7 +28,7 @@ public class AzureBlobOut extends RouteBuilder {
     public void createAzureBlobUploadingRoute(String toimiala) {
         // check for local here
 
-        from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure")
+        from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
             .log("uploading ${header.CamelFileName} to Azure ${exchangeProperty.uploadFileDir}")
             .process(e -> {
                 e.getMessage().setHeader(BlobConstants.BLOB_NAME,

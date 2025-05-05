@@ -33,11 +33,12 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             log.info("Starting palke ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");
         }
-
+        // TODO: enable when kasko token added
+/*
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
             log.info("Starting kasko ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
-        }
+        }*/
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
             log.info("Starting sotepe ftp perustiedot");

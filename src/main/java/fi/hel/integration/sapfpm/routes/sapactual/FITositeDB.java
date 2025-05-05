@@ -142,12 +142,13 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setProperty("originalBody", body())
             .setBody(constant("SELECT COUNT(id) FROM TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER"))
             .to("jdbc:sapactual?useHeadersAsParameters=true")
-                .log("by year and month count: ${body}")
+            .log("by year and month count: ${body}")
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:fetch-all-years-and-months-from-db")
-                .setBody(constant("SELECT DISTINCT toimiala, POPER, GJAHR FROM TOSITERIVI"))
-                .to("jdbc:sapactual?useHeadersAsParameters=true");
+            .setBody(constant("SELECT DISTINCT toimiala, POPER, GJAHR FROM TOSITERIVI"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("all years and months: ${body}");
 
         String tositeRiviSelect = "SELECT * FROM TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER ";
         String tositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";

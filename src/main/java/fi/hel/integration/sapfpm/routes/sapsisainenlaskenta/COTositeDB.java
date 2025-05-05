@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
             .setBody(constant("SELECT DISTINCT toimiala, PERIO, GJAHR FROM COTOSITERIVI"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true");
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("cotosite all years and months: ${body}");
 
         from("direct:fetch-cotosite-years-and-months-count-from-db")
             .onException(Exception.class)

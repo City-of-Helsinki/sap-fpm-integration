@@ -7,6 +7,9 @@ import java.util.Optional;
 
 @ConfigMapping(prefix = "palke")
 public interface PalkeConfig {
+    @WithName("azure.directory")
+    Optional<String> azureDirectory();
+
     @WithName("azure.sasToken")
     Optional<String> azureSasToken();
 

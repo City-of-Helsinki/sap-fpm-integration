@@ -7,6 +7,9 @@ import java.util.Optional;
 
 @ConfigMapping(prefix = "sotepe")
 public interface SotepeConfig {
+    @WithName("azure.directory")
+    Optional<String> azureDirectory();
+
     @WithName("azure.sasToken")
     Optional<String> azureSasToken();
 

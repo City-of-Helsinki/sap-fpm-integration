@@ -4,9 +4,14 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
+import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
+import org.apache.camel.builder.AdviceWith;
+import org.apache.camel.component.file.FileConstants;
+import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -14,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.camel.builder.Builder.header;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
@@ -24,6 +30,17 @@ public class TositeInTest {
 
     @Inject
     FITositeInRouteBuilder tositeRoute;
+
+    @EndpointInject("mock:file:out_something")
+    private MockEndpoint mockFileOut;
+
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        AdviceWith.adviceWith(ctx, "AnyFileOut", b -> {
+            //b.interceptSendToEndpoint("file:*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
+        });
+    }
 
     @Test
     void shouldParse_Tosite_OUT() throws Exception {
@@ -352,6 +369,38 @@ public class TositeInTest {
         );
         List<Map<String, Object>> resRows = tositeRoute.filterUniqueRows(rows);
         assertEquals(2, resRows.size());
+    }
+
+
+    @Test
+    void exceptionThrownWhenReadingFileInTest() {
+        Map<String, Object> headers = Map.of(Exchange.FILE_NAME, "ID022_FI_TOSITE_OUT_20250219-000123-456.xml");
+
+        producerTemplate.sendBodyAndHeaders("file:in", """
+                <FIDCCP02>
+                <IDOC>
+                <E1FIKPF>
+                <BUKRS>3900</BUKRS>
+                <BELNR>0111123456</BELNR>
+                <GJAHR>2025</GJAHR>
+                <BLART>6S</BLART>
+                <BLDAT>20221230</BLDAT>
+                <BUDAT>20221230</BUDAT>
+                <MONAT>12</MONAT>
+                <CPUDT>20221230</CPUDT>
+                <XBLNR>3920012345</XBLNR>
+                <E1FISEG SEGMENT="">
+                <BUZEI>001</BUZEI>
+                <AUGDT>20230120</AUGDT>
+                <AUGCP>20230120</AUGCP>
+                </E1FISEG>
+                </E1FIKPF>
+                </IDOC>
+                </FIDCCP02>
+                """, headers);
+
+        // mock file out
+
     }
 
 

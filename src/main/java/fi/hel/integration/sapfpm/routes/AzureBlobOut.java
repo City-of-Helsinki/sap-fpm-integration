@@ -29,17 +29,13 @@ public class AzureBlobOut extends RouteBuilder {
         // check for local here
 
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
-            .log("uploading ${header.CamelFileName} to Azure ${exchangeProperty.uploadFileDir}")
-            .process(e -> {
-                e.getMessage().setHeader(BlobConstants.BLOB_NAME,
-                e.getProperty("uploadFileDir") + "/" +
-                        e.getMessage().getHeader(FileConstants.FILE_NAME));
-            })
+            .log("uploading ${headers.CamelFileName} to Azure {{%s.azure.directory}}".formatted(toimiala))
+            .setHeader(BlobConstants.BLOB_NAME, simple("{{%s.azure.directory}}/${header.CamelFileName}".formatted(toimiala)))
             .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}".formatted(toimiala, toimiala) +
                     "?sasToken=RAW({{%s.azure.sasToken}})".formatted(toimiala) +
                     "&credentialType=AZURE_SAS" +
                     "&operation=uploadBlockBlob")
-            .log("uploaded ${header.CamelFileName} to %s Azure ${exchangeProperty.uploadFileDir}".formatted(toimiala));
+            .log("uploaded ${headers.CamelFileName} to %s Azure {{%s.azure.directory}}".formatted(toimiala, toimiala));
     }
 
     public void createLocalFileToAzureUploadingRoute(String toimiala, boolean isLocal) {

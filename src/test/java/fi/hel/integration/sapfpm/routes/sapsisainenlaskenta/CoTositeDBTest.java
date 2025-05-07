@@ -35,6 +35,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
+
         AdviceWith.adviceWith(ctx,"insertSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
         });

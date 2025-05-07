@@ -14,6 +14,7 @@
             sasToken: "${PALKE_SAS_TOKEN}"
             accountName: "${PALKE_AZURE_ACCOUNT}"
             containerName: "${PALKE_AZURE_CONTAINER}"
+            directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${PALKE_SFTP_HOST}"
             perustiedot:
@@ -30,6 +31,7 @@
             sasToken: "${KASKO_SAS_TOKEN}"
             accountName: "${KASKO_AZURE_ACCOUNT}"
             containerName: "${KASKO_AZURE_CONTAINER}"
+            directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${KASKO_SFTP_HOST}"
             perustiedot:
@@ -43,6 +45,7 @@
             sasToken: "${SOTEPE_SAS_TOKEN}"
             accountName: "${SOTEPE_AZURE_ACCOUNT}"
             containerName: "${SOTEPE_AZURE_CONTAINER}"
+            directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${SOTEPE_SFTP_HOST}"
             perustiedot:

@@ -2,6 +2,7 @@ package fi.hel.integration.sapfpm.tositecommon;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.camel.model.RouteDefinition;
@@ -34,7 +35,17 @@ public abstract class TositeDbCommon extends RouteBuilder {
         return from(fromUri)
             .onException(SQLIntegrityConstraintViolationException.class)
                     .onWhen(simple("${exception.message} contains 'Duplicate entry' || ${exception.message} contains 'primary key violation'"))
-                    .log("Failed to insert ${headers.BUKRS} ${headers.BELNR} into db due to a duplicate in ${headers.CamelFileName}!")
+                    .process(e -> {
+                        Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+                        if (jdbcParams != null && !jdbcParams.isEmpty()) {
+                            log.info("Failed to insert %s %s into db due to a duplicate in %s".formatted(
+                                jdbcParams.get("BUKRS"), jdbcParams.get("BELNR"),
+                                e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)
+                            ));
+                        } else {
+                            log.info("Failed to insert receipt line into the db due to a duplicate in %s".formatted(e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)));
+                        }
+                    })
                     .continued(true)
                     .process(e -> e.getMessage().setBody(null))
                     .removeHeader(JdbcConstants.JDBC_PARAMETERS)

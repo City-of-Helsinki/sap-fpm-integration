@@ -9,6 +9,11 @@
         co_toteumat: true
 
 "%prod":
+    dev:
+        ftp-upload:
+            host: "${DEV_FTP_UPLOAD_HOST}"
+            user: "${DEV_FTP_UPLOAD_USER}"
+            password: "${DEV_FTP_UPLOAD_PASSWORD}"
     palke:
         azure:
             sasToken: "${PALKE_SAS_TOKEN}"

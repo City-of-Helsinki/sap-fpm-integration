@@ -1,13 +1,10 @@
 package fi.hel.integration.sapfpm.routes;
 
-import fi.hel.integration.sapfpm.config.IsConfigEnabled;
-import fi.hel.integration.sapfpm.config.PalkeConfig;
-import fi.hel.integration.sapfpm.config.SotepeConfig;
+import fi.hel.integration.sapfpm.config.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.azure.storage.blob.BlobConstants;
-import org.apache.camel.component.file.FileConstants;
 import org.jboss.logging.Logger;
 
 
@@ -20,7 +17,7 @@ public class AzureBlobOut extends RouteBuilder {
     SotepeConfig sotepeConfig;
 
     @Inject
-    IsConfigEnabled mainConfig;
+    KaskoConfig kaskoConfig;
 
     @Inject
     Logger log;
@@ -38,7 +35,7 @@ public class AzureBlobOut extends RouteBuilder {
             .log("uploaded ${headers.CamelFileName} to %s Azure {{%s.azure.directory}}".formatted(toimiala, toimiala));
     }
 
-    public void createLocalFileToAzureUploadingRoute(String toimiala, boolean isLocal) {
+    public void createUploadLocalFileRoute(String toimiala, String uploadUri) {
         from("direct:enrich-and-send-file-to-azure-" + toimiala)
             .pollEnrich()
             .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false")
@@ -55,15 +52,15 @@ public class AzureBlobOut extends RouteBuilder {
                 .when(body().isNull())
                     .log("Not sending empty file to Azure! ${headers.CamelFileName}")
                 .otherwise()
-                    .choice()
-                    // TODO: enable for other services as well
-                        .when(simple("${exchangeProperty.outDir} == 'palke' || ${exchangeProperty.outDir} == 'sotepe'"))
-                        .setProperty("uploadFileDir", constant("SAP/TEST"))
-                        .log("SENDING ${exchangeProperty.outDir}/${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
-                        .setProperty("fileExist", constant("Override"))
-                        .to(isLocal ? "direct:any-file-out" : "direct:upload-blob-to-azure-" + toimiala)
-                    .end()
-                .log("Done!");
+                    .log("SENDING ${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
+                    .setProperty("fileExist", constant("Override"))
+                    .to(uploadUri)
+                .end()
+            .log("Done!");
+    }
+
+    public void createUploadLocalFileToAzureRoute(String toimiala) {
+        createUploadLocalFileRoute(toimiala, "direct:upload-blob-to-azure-" + toimiala);
     }
 
     @Override
@@ -72,43 +69,20 @@ public class AzureBlobOut extends RouteBuilder {
         if (palkeConfig.azureAccountName().isPresent()) {
             log.info("palke azure uploading enabled");
             createAzureBlobUploadingRoute("palke");
-            createLocalFileToAzureUploadingRoute("palke", false);
+            createUploadLocalFileToAzureRoute("palke");
         }
 
         if (sotepeConfig.azureAccountName().isPresent()) {
             log.info("sotepe azure uploading enabled");
             createAzureBlobUploadingRoute("sotepe");
-            createLocalFileToAzureUploadingRoute("sotepe", false);
+            createUploadLocalFileToAzureRoute("sotepe");
         }
 
-        // TODO: replace with dev
-        if (mainConfig.localCoToteumatEnabled() || mainConfig.localToteumatEnabled() || mainConfig.localPerustiedotEnabled()) {
-            createLocalFileToAzureUploadingRoute("palke", true);
+        if (kaskoConfig.azureAccountName().isPresent()) {
+            log.info("kasko azure uploading enabled");
+            createAzureBlobUploadingRoute("kasko");
+            createUploadLocalFileToAzureRoute("kasko");
         }
-
-        from("direct:any-file-out").id("AnyFileOut")
-            .choice()
-                .when(simple("${exchangeProperty.outDir} == null"))
-                    .setProperty("outDir", constant("out"))
-            .end()
-            .choice()
-                .when(simple("${exchangeProperty.fileExist} == null"))
-                .setProperty("fileExist", constant("Override"))
-            .end()
-            .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(1000)
-                .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
-            .end()
-            .toD("file:${exchangeProperty.outDir}?fileExist=${exchangeProperty.fileExist}")
-                .choice().when(simple("${exchangeProperty.processedFiles} != null"))
-                    .log("Processed ${exchangeProperty.processedFiles.size()} files: ")
-                    .log("${exchangeProperty.processedFiles}")
-                .end()
-                .choice()
-                    .when(simple("${exchangeProperty.fileExist} == 'Append'"))
-                    //.log("Appended ${exchangeProperty.originalFileName} to ${exchangeProperty.outDir}/${headers.CamelFileName}")
-                .otherwise()
-                    .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
     }
 }
 

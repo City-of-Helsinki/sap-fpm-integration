@@ -35,7 +35,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-
+System.out.println("Derp CoTositeDbTest");
         AdviceWith.adviceWith(ctx,"insertSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
         });
@@ -66,6 +66,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
 
         // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)
         mockJdbcSapActual.expectedMessageCount(5);
+        mockJdbcSapActual.whenAnyExchangeReceived(e -> System.out.println("COOOO TOSITEDBTEST GOT: " + e.getMessage().getBody()));
 
         String toimiala = "toimiala";
         String year = "GJAHR";
@@ -82,8 +83,10 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1, tosite1Meta), List.of(tosite2));
         ex.getMessage().setBody(tositteet);
 
+        System.out.println("sending crap");
         producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
 
+        System.out.println("sending smarp");
         Exchange insertRes = producerTemplate.send("direct:insert-cotosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
 

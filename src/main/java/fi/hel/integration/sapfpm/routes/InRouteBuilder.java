@@ -117,6 +117,30 @@ public class InRouteBuilder extends RouteBuilder {
             buildLocalFileAppendingRoute();
         }
 
+        from("direct:any-file-out").id("AnyFileOut")
+            .choice()
+                .when(simple("${exchangeProperty.outDir} == null"))
+                .setProperty("outDir", constant("out"))
+            .end()
+            .choice()
+                .when(simple("${exchangeProperty.fileExist} == null"))
+                .setProperty("fileExist", constant("Override"))
+            .end()
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(1000)
+                .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
+            .end()
+            .toD("file:${exchangeProperty.outDir}?fileExist=${exchangeProperty.fileExist}")
+            .choice().when(simple("${exchangeProperty.processedFiles} != null"))
+                .log("Processed ${exchangeProperty.processedFiles.size()} files: ")
+                .log("${exchangeProperty.processedFiles}")
+            .end()
+            .choice()
+            .when(simple("${exchangeProperty.fileExist} == 'Append'"))
+                //.log("Appended ${exchangeProperty.originalFileName} to ${exchangeProperty.outDir}/${headers.CamelFileName}")
+            .otherwise()
+                .log("Written ${exchangeProperty.outDir}/${headers.CamelFileName}");
+
         //SOTEPE ID167 perustiedot
         //  Samoin en näe tarvetta pääkirjatililataukselle, sen voi viedä suoraan FPM yhtenä latauksena sillä muutoksia tulee harvakseltaan
 /*ID167/200   GLMAST*   Pääkirjatilit, uudet ja muuttuneet, yksi tiedosto per pääkirjatili

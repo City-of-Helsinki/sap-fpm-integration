@@ -21,6 +21,10 @@ parameters:
   displayName: Image tag to be built and deployed to dev-environment
   type: string
   default: latest
+- name: buildRobot
+  displayName: Build Robot tests image
+  type: boolean
+  default: false
 
 resources:
   repositories:
@@ -35,3 +39,4 @@ extends:
   # Image tag name for Fuse projects
   parameters:
     imagetag: ${{ parameters.imagetag }}
+    buildRobot: ${{ parameters.buildRobot }}

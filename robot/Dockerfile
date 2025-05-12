@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/python-311
+FROM registry.access.redhat.com/ubi8/python-311 AS build
 
 USER 0
 ADD robot/src robot-sources
@@ -7,3 +7,8 @@ USER 1001
 
 RUN pip install robotframework
 RUN pip install pyftpdlib
+
+EXPOSE 2121
+
+ENTRYPOINT sleep infinity
+#ENTRYPOINT robot .

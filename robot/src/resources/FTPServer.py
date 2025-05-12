@@ -15,7 +15,7 @@ class FTPServer(object):
 
     @keyword(types=['string'])
     def init_ftp_server(self, relative_ftp_dir):
-        address = ("", 21)
+        address = ("", 2121)
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler

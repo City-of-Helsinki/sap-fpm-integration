@@ -11,9 +11,7 @@
 "%prod":
     dev:
         ftp-upload:
-            host: "${DEV_FTP_UPLOAD_HOST}"
-            user: "${DEV_FTP_UPLOAD_USER}"
-            password: "${DEV_FTP_UPLOAD_PASSWORD}"
+            enabled: "${DEV_FTP_UPLOAD_ENABLED}"
     palke:
         azure:
             sasToken: "${PALKE_SAS_TOKEN}"

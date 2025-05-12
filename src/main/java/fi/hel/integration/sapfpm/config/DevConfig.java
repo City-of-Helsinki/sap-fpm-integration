@@ -7,13 +7,7 @@ import java.util.Optional;
 
 @ConfigMapping(prefix = "dev")
 public interface DevConfig {
-    @WithName("ftp-upload.host")
-    Optional<String> ftpUploadHost();
-
-    @WithName("ftp-upload.user")
-    Optional<String> ftpUploadUser();
-
-    @WithName("ftp-upload.password")
-    Optional<String> ftpUploadPassword();
+    @WithName("ftp-upload.enabled")
+    Optional<String> ftpUploadEnabled();
 
 }

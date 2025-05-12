@@ -27,10 +27,13 @@ class FTPServer(object):
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
 
-    @keyword(types=['string', 'string', 'string'])
-    def add_ftp_user(self, user, password, dir_name):
+    @keyword(types=['string', 'string', 'string', 'list'])
+    def add_ftp_user(self, user, password, dir_name, subdir_names):
         user_dir = os.path.join(self.ftp_dir, dir_name)
         if not os.path.exists(user_dir): os.makedirs(user_dir)
+        for subdir_name in subdir_names:
+            dir = os.path.join(self.ftp_dir, dir_name, subdir_name)
+            if not os.path.exists(dir): os.makedirs(dir)
         self.server.handler.authorizer.add_user(user, password, user_dir)
         self.user_dirs[user] = user_dir
         return user_dir

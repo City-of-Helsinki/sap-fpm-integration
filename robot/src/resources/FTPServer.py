@@ -14,11 +14,13 @@ class FTPServer(object):
         self.user_dirs = {}
 
     @keyword(types=['string'])
-    def init_ftp_server(self, relative_ftp_dir):
+    def init_ftp_server(self, masquerade_address, relative_ftp_dir):
         address = ("", 2121)
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler
+        handler.passive_ports = [2122]
+        handler.masquerade_address = masquerade_address
         handler.authorizer = DummyAuthorizer()
         self.server = servers.FTPServer(address, handler)
         def serve_forever(server):

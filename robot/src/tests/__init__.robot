@@ -7,7 +7,7 @@ Suite Teardown  Teardown Ftp Server
 *** Keywords ***
 
 Setup Ftp Server
-    Init Ftp Server     robot/sap_ftp
+    Init Ftp Server     %{SAP_FPM_INTEGRATION_ROBOT_SERVICE_HOST}       robot/sap_ftp
     ${perustiedotDirs}		Create List		203 	204     210
     ${toteumatDirs}      Create List
     Add Ftp User    %{KASKO_SFTP_USER_ID023}    %{KASKO_SFTP_PASSWORD_ID023}    kasko/toteumat      ${toteumatDirs}

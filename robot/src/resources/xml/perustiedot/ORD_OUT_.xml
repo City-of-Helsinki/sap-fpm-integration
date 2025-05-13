@@ -1,0 +1,32 @@
+<ZHKI_TARSISTILAUKSET>
+    <IDOC BEGIN="1">
+        <EDI_DC40 SEGMENT="1">
+            <TABNAM></TABNAM>
+            <MANDT></MANDT>
+            <DOCNUM></DOCNUM>
+            <DOCREL></DOCREL>
+            <STATUS></STATUS>
+            <DIRECT></DIRECT>
+            <OUTMOD></OUTMOD>
+            <IDOCTYP>ZHKI_TARSISTILAUKSET</IDOCTYP>
+            <MESTYP>ZHKI_TARSISTILAUKSET</MESTYP>
+            <SNDPOR></SNDPOR>
+            <SNDPRT></SNDPRT>
+            <SNDPRN></SNDPRN>
+            <RCVPOR></RCVPOR>
+            <RCVPRT></RCVPRT>
+            <RCVPRN></RCVPRN>
+            <CREDAT></CREDAT>
+            <CRETIM></CRETIM>
+            <SERIAL></SERIAL>
+        </EDI_DC40>
+        <ZHKI_TARSISTILAUKSET SEGMENT="1">
+            <BUKRS></BUKRS>
+            <AUART></AUART>
+            <AUFNR></AUFNR>
+            <KTEXT></KTEXT>
+            <STTXT></STTXT>
+            <AUTYP></AUTYP>
+        </ZHKI_TARSISTILAUKSET>
+    </IDOC>
+</ZHKI_TARSISTILAUKSET>

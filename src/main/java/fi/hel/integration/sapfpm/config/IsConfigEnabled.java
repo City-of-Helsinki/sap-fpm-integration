@@ -3,7 +3,6 @@ package fi.hel.integration.sapfpm.config;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildFtpParams;
 
 @Singleton
 public class IsConfigEnabled {

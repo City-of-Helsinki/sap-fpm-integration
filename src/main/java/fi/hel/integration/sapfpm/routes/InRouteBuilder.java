@@ -51,18 +51,19 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     // TODO: move to mainConfig
-    public static String buildFtpParams(String filePrefix) {
+    public static String buildFtpParams(String filePrefix, String passiveMode) {
         return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
-                "&passiveMode=true&autoCreate=false&disconnect=true&" +
+                "&passiveMode=" + passiveMode +
+                "&autoCreate=false&disconnect=true&" +
                 "localWorkDirectory=/tmp&" +
-                "maximumReconnectAttempts=10&" +
+                "maximumReconnectAttempts=9999&" +
                 "bridgeErrorHandler=true&" +
                 "timeout=120000";
     }
 
-    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix) {
+    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode) {
         return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
-                buildFtpParams(filePrefix);
+                buildFtpParams(filePrefix, passiveMode);
     }
 
     public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix) {
@@ -70,7 +71,7 @@ public class InRouteBuilder extends RouteBuilder {
                 "{{%s.ftp.%s.password}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.host}}".formatted(toimiala),
                 ftpDir,
-                filePrefix) + idempotentRepositoryParam(perusOrToteumat, toimiala);
+                filePrefix, "{{%s.ftp.passiveMode}}".formatted(toimiala)) + idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {

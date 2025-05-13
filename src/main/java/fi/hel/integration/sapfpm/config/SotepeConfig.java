@@ -22,6 +22,9 @@ public interface SotepeConfig {
     @WithName("ftp.host")
     Optional<String> ftpHost();
 
+    @WithName("ftp.passiveMode")
+    Optional<String> ftpPassiveMode();
+
     @WithName("ftp.perustiedot.user")
     Optional<String> ftpUserPerustiedot();
 

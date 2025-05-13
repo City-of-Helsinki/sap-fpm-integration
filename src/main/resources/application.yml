@@ -20,6 +20,7 @@
             directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${PALKE_SFTP_HOST}"
+            passiveMode: "${PALKE_SFTP_PASSIVE_MODE:true}"
             perustiedot:
                 user: "${PALKE_SFTP_USER_ID138}"
                 password: "${PALKE_SFTP_PASSWORD_ID138}"
@@ -37,6 +38,7 @@
             directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${KASKO_SFTP_HOST}"
+            passiveMode: "${KASKO_SFTP_PASSIVE_MODE:true}"
             perustiedot:
                 user: "${KASKO_SFTP_USER_ID137}"
                 password: "${KASKO_SFTP_PASSWORD_ID137}"
@@ -51,6 +53,7 @@
             directory: "${AZURE_DIRECTORY}"
         ftp:
             host: "${SOTEPE_SFTP_HOST}"
+            passiveMode: "${SOTEPE_SFTP_PASSIVE_MODE:true}"
             perustiedot:
                 user: "${SOTEPE_SFTP_USER_ID167}"
                 password: "${SOTEPE_SFTP_PASSWORD_ID167}"

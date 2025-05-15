@@ -79,7 +79,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                 .process(e -> {
                     if (processedFileNames.isEmpty()) {
                         initialBatchSize.set(e.getProperty("CamelBatchSize", Integer.class));
-                        log.info("set initial batch size to " + initialBatchSize.get());
+                        log.info(idPrefix + "-" + toimiala + ": set initial batch size to " + initialBatchSize.get());
                     }
                 })
             .end()
@@ -99,27 +99,28 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                     if (processedFileNames.size() == initialBatchSize.get()) {
                         e.setProperty("writeOut", true);
                         e.setProperty("processedFileNames", processedFileNames);
+                        log.info(idPrefix + "-" + toimiala + ", processed all " + processedFileNames.size() + ", writing out");
                     }
                 })
                 .choice().when(simple("${exchangeProperty.writeOut} == true"))
-                .setProperty("fileExist", constant("Override"))
-                .setProperty("outDir", constant(toimiala))
-                .setBody(constant(""))
-                .marshal(csvDataFormatWithHeader)
-                .setHeader(FileConstants.FILE_NAME, constant(outFinalFileName))
-                .setProperty("outDir", constant(toimiala))
-                .to("direct:any-file-out")
-                .setBody(exchangeProperty("processedFileNames"))
-                .setProperty("fileExist", constant("Append"))
-                .split(body())
-                .to("direct:append-csv-to-main-csv")
-                .end()
-                .process(e -> {
-                    e.setProperty("writeOut", false);
-                    processedFileNames.clear();
-                    initialBatchSize.set(-1);
-                })
-                .to("direct:enrich-and-send-file-to-azure-" + toimiala);
+                    .setProperty("fileExist", constant("Override"))
+                    .setProperty("outDir", constant(toimiala))
+                    .setBody(constant(""))
+                    .marshal(csvDataFormatWithHeader)
+                    .setHeader(FileConstants.FILE_NAME, constant(outFinalFileName))
+                    .setProperty("outDir", constant(toimiala))
+                    .to("direct:any-file-out")
+                    .setBody(exchangeProperty("processedFileNames"))
+                    .setProperty("fileExist", constant("Append"))
+                    .split(body())
+                        .to("direct:append-csv-to-main-csv")
+                    .end()
+                    .process(e -> {
+                        e.setProperty("writeOut", false);
+                        processedFileNames.clear();
+                        initialBatchSize.set(-1);
+                    })
+                    .to("direct:enrich-and-send-file-to-azure-" + toimiala);
 
     }
 

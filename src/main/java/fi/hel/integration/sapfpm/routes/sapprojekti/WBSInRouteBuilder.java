@@ -70,9 +70,6 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     }
 
     @Override
-    public void buildSupportingRoutes() {
-        from("direct:process-wbs").id("ProcessWBS")
-            .setBody(e -> extractValuesFromIDOC(e,  "ZHKI_PROJEKTIRAKENTEENOSA", this::extractValues));
-    }
+    public void buildSupportingRoutes() {}
 }
 

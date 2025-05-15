@@ -57,6 +57,8 @@ public class DevFakeAzureUpload extends AzureBlobOut {
 
         if (mainConfig.localCoToteumatEnabled() || mainConfig.localToteumatEnabled() || mainConfig.localPerustiedotEnabled()) {
             createUploadLocalFileRoute("palke", "direct:any-file-out");
+            createUploadLocalFileRoute("sotepe", "direct:any-file-out");
+            createUploadLocalFileRoute("kasko", "direct:any-file-out");
         }
     }
 }

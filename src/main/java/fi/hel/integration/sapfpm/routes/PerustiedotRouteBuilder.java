@@ -46,7 +46,10 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
         if (mainConfig.localPerustiedotEnabled()) {
             log.info("Starting local perustiedot");
-            buildMainRoute("file:in?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
+            buildMainRoute("file:in/kasko?" + buildLocalPerustiedotIn("kasko", getFilePrefix()), "kasko");
+            buildMainRoute("file:in/sotepe?" + buildLocalPerustiedotIn("sotepe", getFilePrefix()), "sotepe");
+            buildMainRoute("file:in/palke?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
+
         }
 
         if (mainConfig.localOrFTPPerustiedotEnabled()) {

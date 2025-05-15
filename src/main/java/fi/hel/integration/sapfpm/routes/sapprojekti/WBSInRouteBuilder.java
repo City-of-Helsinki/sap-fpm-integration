@@ -39,10 +39,34 @@ public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
         return "204";
     }
 
+    public String getToimialaPBUKR(String toimiala) {
+        if ("kasko".equals(toimiala)) {
+            return "1400";
+        } else if ("sotepe".equals(toimiala)) {
+            return "3900";
+        } else if ("palke".equals(toimiala)) {
+            return "9500";
+        }
+        return null;
+    }
+
     @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         buildFtpFileReadingRoute(fileOrFtpIn, "Wbs",
-            toimiala, "direct:process-wbs", "SAPPROJEKTI.csv");
+            toimiala, "direct:process-wbs-" + toimiala, "SAPPROJEKTI.csv");
+
+        final String toimialaPBUKR = getToimialaPBUKR(toimiala);
+        log.info("Filtering project for %s: PBUKR %s".formatted(toimiala, toimialaPBUKR));
+
+        from("direct:process-wbs-" + toimiala).id("ProcessWBS" + toimiala)
+            .setBody(e -> {
+                List<LinkedHashMap<String, Object>> vals =  extractValuesFromIDOC(e,  "ZHKI_PROJEKTIRAKENTEENOSA", this::extractValues);
+                if (toimialaPBUKR != null) {
+                    return vals.stream().filter(p -> toimialaPBUKR.equals(p.get("PBUKR"))).toList();
+                } else {
+                    return vals;
+                }
+            });
     }
 
     @Override

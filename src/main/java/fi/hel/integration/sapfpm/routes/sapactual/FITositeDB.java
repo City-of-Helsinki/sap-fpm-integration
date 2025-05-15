@@ -130,7 +130,6 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(simple(
                     "INSERT INTO SAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
-                .log("AFTER INSERTSAPFILEINTODB")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 

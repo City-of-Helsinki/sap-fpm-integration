@@ -23,7 +23,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
                 .continued(true)
             .end()
             .log("receipts to insert: ${body.size()}")
-                .to(insertFileUri).log("INSERTED DERP")
+                .to(insertFileUri)
             .choice().when(body().isNotNull())
                 .split(body())
                     .to(insertTositeAndRivitUri)

@@ -37,8 +37,9 @@ public class AzureBlobOut extends RouteBuilder {
 
     public void createUploadLocalFileRoute(String toimiala, String uploadUri) {
         from("direct:enrich-and-send-file-to-azure-" + toimiala)
+            .log(toimiala + " enriching ${exchangeProperty.outDir}/${headers.CamelFileName}")
             .pollEnrich()
-            .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false")
+            .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false&noop=true")
             .aggregationStrategy((oldExchange, readFileExchange) -> {
                 if (readFileExchange == null) {
                     log.error("READ FILE IS NULL!");
@@ -55,8 +56,10 @@ public class AzureBlobOut extends RouteBuilder {
                     .log("SENDING ${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
                     .setProperty("fileExist", constant("Override"))
                     .to(uploadUri)
+                    .log("Uploading done! ${headers.CamelFileName} was sent to AZURE!")
                 .end()
-            .log("Done!");
+            .end();
+
     }
 
     public void createUploadLocalFileToAzureRoute(String toimiala) {

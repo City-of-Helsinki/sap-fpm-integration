@@ -65,7 +65,6 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
         Set<String> processedFileNames = new HashSet<>();
         AtomicBoolean initialCsvFileCreated = new AtomicBoolean(false);
 
-
         CsvDataFormat csvDataFormatWithoutHeader = createCsvDataFormat().setSkipHeaderRecord(true);
         CsvDataFormat csvDataFormatWithHeader = createCsvDataFormat().setSkipHeaderRecord(false);
 
@@ -97,8 +96,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             .end();
 
         from(fromURI).id(idPrefix + "-" + toimiala)
-            .log("%s %s read ${headers.CamelFileName}".formatted(idPrefix, toimiala))
-            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
+            .log("%s %s read ${headers.CamelFileName}, batch: ${exchangeProperty.CamelBatchIndex}/${exchangeProperty.CamelBatchSize}, complete: ${exchangeProperty.CamelBatchComplete}".formatted(idPrefix, toimiala))
             .choice()
                 .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
                     .process(e -> {
@@ -125,13 +123,19 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                         e.setProperty("writeOut", true);
                         e.setProperty("processedFileNames", processedFileNames);
                         log.info(idPrefix + "-" + toimiala + ", processed all " + processedFileNames.size() + ", writing out");
+                    } else if (e.getProperty("writeOut", Boolean.class) != null && e.getProperty("writeOut", Boolean.class)) {
+                        log.info(idPrefix + " " + toimiala  + " writeOut was true after  processing " +
+                                        processedFileNames.size() + " / " + initialBatchSize.get() + ": " +
+                                e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
                     }
                 })
                 .choice().when(simple("${exchangeProperty.writeOut} == true"))
+                    .log(idPrefix + " " + toimiala + ", writing out, ")
                     .to("direct:init-csv-file-" + idPrefix + "-" + toimiala)
                     .setBody(exchangeProperty("processedFileNames"))
                     .setProperty("fileExist", constant("Append"))
                     .split(body())
+                        .log(idPrefix + " " + toimiala + " appending ${body} to main csv")
                         .to("direct:append-csv-to-main-csv")
                     .end()
                     .process(e -> {
@@ -140,7 +144,6 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                         initialBatchSize.set(-1);
                     })
                     .to("direct:enrich-and-send-file-to-azure-" + toimiala);
-
     }
 
 

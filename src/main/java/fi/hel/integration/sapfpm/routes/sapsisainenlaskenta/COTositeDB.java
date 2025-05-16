@@ -90,9 +90,9 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT toimiala, PERIO, GJAHR FROM COTOSITERIVI"))
+            .setBody(constant("SELECT DISTINCT PERIO, GJAHR FROM COTOSITERIVI WHERE toimiala = :?toimiala"))
             .to("jdbc:sapactual?useHeadersAsParameters=true")
-            .log("cotosite all years and months: ${body}");
+            .log("${headers.toimiala} cotosite all years and months: ${body}");
 
         from("direct:fetch-cotosite-years-and-months-count-from-db")
             .onException(Exception.class)

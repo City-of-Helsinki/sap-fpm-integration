@@ -56,7 +56,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .setHeader("toimiala", constant(toimiala))
             .log("Writing db out to azure for ${headers.toimiala}")
             .setProperty("outDir", constant(toimiala))
-                .to(fetchYearsAndMonthsFromDbUri)
+            .to(fetchYearsAndMonthsFromDbUri)
                 .split(body())
                     .to(initDbFetchParamsAndFileNameUri)
                     .setProperty("fileExist", constant("Override"))

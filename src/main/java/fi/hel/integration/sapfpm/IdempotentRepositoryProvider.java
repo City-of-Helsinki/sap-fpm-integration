@@ -68,7 +68,7 @@ public class IdempotentRepositoryProvider {
 
     public IdempotentRepository createIdempotentRepository() {
         MemoryIdempotentRepository memoryIdempotentRepo = new MemoryIdempotentRepository();
-        memoryIdempotentRepo.setCacheSize(5000);
+        memoryIdempotentRepo.setCacheSize(50000);
         return memoryIdempotentRepo;
     }
 

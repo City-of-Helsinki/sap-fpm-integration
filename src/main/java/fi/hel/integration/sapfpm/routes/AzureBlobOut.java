@@ -39,7 +39,7 @@ public class AzureBlobOut extends RouteBuilder {
         from("direct:enrich-and-send-file-to-azure-" + toimiala)
             .log(toimiala + " enriching ${exchangeProperty.outDir}/${headers.CamelFileName}")
             .pollEnrich()
-            .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false&noop=true")
+            .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false&noop=true&idempotent=false")
             .aggregationStrategy((oldExchange, readFileExchange) -> {
                 if (readFileExchange == null) {
                     log.error("READ FILE IS NULL!");

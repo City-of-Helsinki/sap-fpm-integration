@@ -91,7 +91,9 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                     .setHeader(FileConstants.FILE_NAME, constant(outFinalFileName))
                     .to("direct:any-file-out")
                 .otherwise()
-                    .log("Initial file " + toimiala + "/" + outFinalFileName + "already existed, will append to it")
+                    .log("Initial file " + toimiala + "/" + outFinalFileName + " already existed, will append to it")
+                    .setHeader(FileConstants.FILE_NAME, constant(outFinalFileName))
+                    .setProperty("outDir", constant(toimiala))
                 .end()
             .end();
 
@@ -119,9 +121,9 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                 .setBody(constant(""))
                 .process(e -> {
                     processedFileNames.add(e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
+                    e.setProperty("processedFileNames", processedFileNames);
                     if (processedFileNames.size() == initialBatchSize.get()) {
                         e.setProperty("writeOut", true);
-                        e.setProperty("processedFileNames", processedFileNames);
                         log.info(idPrefix + "-" + toimiala + ", processed all " + processedFileNames.size() + ", writing out");
                     } else if (e.getProperty("writeOut", Boolean.class) != null && e.getProperty("writeOut", Boolean.class)) {
                         log.info(idPrefix + " " + toimiala  + " writeOut was true after  processing " +
@@ -130,7 +132,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
                     }
                 })
                 .choice().when(simple("${exchangeProperty.writeOut} == true"))
-                    .log(idPrefix + " " + toimiala + ", writing out, ")
+                    .log(idPrefix + " " + toimiala + ", writing out")
                     .to("direct:init-csv-file-" + idPrefix + "-" + toimiala)
                     .setBody(exchangeProperty("processedFileNames"))
                     .setProperty("fileExist", constant("Append"))

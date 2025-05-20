@@ -138,10 +138,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
     @Override
     public String getFtpDir(String toimiala) {
-        if ("palke".equals(toimiala)) {
-            return "9500"; // in prod palke has a subdir!
-        }
-
         return ""; // no dir
     }
 

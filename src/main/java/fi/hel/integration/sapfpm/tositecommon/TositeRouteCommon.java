@@ -66,26 +66,27 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .setProperty("fileExist", constant("Append"))
                     .to(fetchCountUri)
                     .setHeader("pageLimit", constant(dbPageLimit))
-                .setProperty("dbHasMoreResults", constant(true))
-                .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
-                .to(fetchByYearAndMonthFromDbUri)
-                .process(e -> {
-                    List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
-                    if (res == null || res.isEmpty() || res.size() < dbPageLimit) {
-                        e.removeProperty("dbHasMoreResults");
-                        e.getMessage().removeHeader("lastId");
-                    } else {
-                        e.getMessage().setHeader("lastId", res.getLast().get("id"));
-                    }
-                })
-                .to(marshalHeaderlessCsvURI)
-                .to("direct:any-file-out")
-                .setBody(constant(""))
+                    .setProperty("dbHasMoreResults", constant(true))
+                    .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
+                        .to(fetchByYearAndMonthFromDbUri)
+                        .process(e -> {
+                            List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
+                            if (res == null || res.isEmpty() || res.size() < dbPageLimit) {
+                                e.removeProperty("dbHasMoreResults");
+                                e.getMessage().removeHeader("lastId");
+                            } else {
+                                e.getMessage().setHeader("lastId", res.getLast().get("id"));
+                            }
+                        })
+                        .to(marshalHeaderlessCsvURI)
+                        .to("direct:any-file-out")
+                        .setBody(constant(""))
+                    .end()
+                    .log("appending done, enriching and sending to azure")
+                    .to(sendFileToAzureUri)
+                    .setBody(constant(""))
                 .end()
-                .log("appending done, enriching and sending to azure")
-                .to(sendFileToAzureUri)
-                .setBody(constant(""))
-                .end();
+            .log("${headers.toimiala} all months and years sent to Azure from db");
 
     }
 }

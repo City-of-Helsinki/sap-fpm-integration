@@ -189,41 +189,5 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         return getReceiptIdWithoutTime(receipt) + "_" +
                 receipt.get("GJAHR") + "_" + receipt.get("POPER");
     }
-
-    public List<Map<String, Object>> filterUniqueRows(List<Map<String, Object>> rows) {
-        // id -> filename -> List of rows
-        Map<String, Map<String, List<Map<String, Object>>>> idToFileName = new HashMap<>();
-        // or order by file name and keep track of what was added to the file
-        rows.stream().forEach(row -> {
-            String receiptId = getReceiptIdWithoutTime(row);
-            String fileName = (String)row.get("fileName");
-            Map<String, List<Map<String, Object>>> perFileName = idToFileName.get(receiptId);
-            if (perFileName == null) {
-                perFileName = new HashMap<>();
-                List<Map<String, Object>> fileNameRows = new ArrayList<>();
-                fileNameRows.add(row);
-                perFileName.put(fileName, fileNameRows);
-                idToFileName.put(receiptId, perFileName);
-            } else {
-                List<Map<String, Object>> fileNameRows = perFileName.computeIfAbsent(fileName, k -> new ArrayList<>());
-                fileNameRows.add(row);
-            }
-        });
-
-        var filtered = idToFileName.values().stream().flatMap(perFileName -> {
-            Optional<String> latestFileNameOpt;
-            if (perFileName.size() == 1) {
-                latestFileNameOpt = perFileName.keySet().stream().findFirst();
-            } else {
-                latestFileNameOpt = perFileName.keySet().stream().max(Comparator.naturalOrder());
-                log.info("the row is in files %s as a duplicate, selecting the latest file %s".formatted(perFileName.keySet(), latestFileNameOpt));
-            }
-            String latestFileName = latestFileNameOpt.get();
-            return perFileName.get(latestFileName).stream();
-        }).toList();
-
-        log.info("filtered rows size: " + filtered.size());
-        return filtered;
-    }
 }
 

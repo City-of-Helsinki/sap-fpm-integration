@@ -8,18 +8,15 @@ import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.AdviceWith;
-import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.camel.builder.Builder.header;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
@@ -332,45 +329,6 @@ public class TositeInTest {
     public Map<String, Object> createReceipt(String fileName, String gjahr, String poper, String bukrs, String belnr) {
         return Map.of("fileName", fileName,"GJAHR", gjahr, "POPER", poper, "BUKRS", bukrs, "BELNR", belnr);
     }
-
-    @Test
-    void filterUniqueRowsTest() {
-        String file1 = "file1";
-        List<Map<String, Object>> rows = List.of(
-            createReceipt(file1,"2025", "01", "001", "001"),
-            createReceipt(file1,"2025", "01", "001", "001")
-        );
-        List<Map<String, Object>> resRows = tositeRoute.filterUniqueRows(rows);
-        assertEquals(2, resRows.size());
-
-        String file2 = "file2";
-        rows = List.of(
-            // file1 receipt should be filtered out
-            createReceipt(file1,"2025", "01", "001", "001"),
-            createReceipt(file2,"2025", "01", "001", "001")
-        );
-        resRows = tositeRoute.filterUniqueRows(rows);
-        assertEquals(1, resRows.size());
-        assertSame(rows.get(1), resRows.get(0));
-        // order shouldn't matter, latest file should still always be returned
-        rows = rows.reversed();
-        resRows = tositeRoute.filterUniqueRows(rows);
-        assertEquals(1, resRows.size());
-        assertSame(rows.get(0), resRows.get(0));
-        assertEquals(file2, resRows.get(0).get("fileName"));
-    }
-
-    @Test
-    void insertFileWithContentsIntoDbTest() {
-        String file1 = "file1";
-        List<Map<String, Object>> rows = List.of(
-                createReceipt(file1,"2025", "01", "001", "001"),
-                createReceipt(file1,"2025", "01", "001", "001")
-        );
-        List<Map<String, Object>> resRows = tositeRoute.filterUniqueRows(rows);
-        assertEquals(2, resRows.size());
-    }
-
 
     @Test
     void exceptionThrownWhenReadingFileInTest() {

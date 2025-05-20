@@ -73,7 +73,7 @@ public class IdempotentRepositoryProvider {
     }
 
     public IdempotentRepository queryFileNamesFromDbAndAddToIdempotentRepository(String toimiala) {
-        Map<String, Object> repoCache = LRUCacheFactory.newLRUCache(5000);
+        Map<String, Object> repoCache = LRUCacheFactory.newLRUCache(50000);
 
         try(Connection c = ds.getConnection();
             PreparedStatement stmt = c.prepareStatement("SELECT fileName FROM SAPFILE WHERE toimiala = ?")

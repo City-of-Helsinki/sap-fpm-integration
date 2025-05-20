@@ -73,6 +73,10 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
 
         from("file:trigger/cotosite-write-" + toimiala + "?delete=true").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
 
+        // from timer, if no starting fetch time or if last time sent > x
+        // set starting fetch time, then set last sent time
+       // from("timer://").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
+
         String initDbFetchParamsAndFileNameUri = "direct:init-cotosite-db-fetch-params";
         from(initDbFetchParamsAndFileNameUri)
             .process(e -> {
@@ -134,7 +138,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
     }
 
     @Override
-    public String getFtpDir() {
+    public String getFtpDir(String toimiala) {
         return ""; // no subdir
     }
 }

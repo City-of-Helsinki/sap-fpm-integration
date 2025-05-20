@@ -18,7 +18,7 @@ public abstract class CoToteumatRouteBuilder extends TositeRouteCommon implement
     }
 
     public String ftpCoToteumatIn(String toimiala) {
-        return buildFtpCoToteumatIn(toimiala, getFtpDir(), getFilePrefix());
+        return buildFtpCoToteumatIn(toimiala, getFtpDir(toimiala), getFilePrefix());
     }
 
     @Override

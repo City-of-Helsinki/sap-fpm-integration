@@ -31,7 +31,7 @@ public class PartInRouteBuilder extends PerustiedotRouteBuilder {
     }
 
     @Override
-    public String getFtpDir() {
+    public String getFtpDir(String toimiala) {
         return "210";
     }
 

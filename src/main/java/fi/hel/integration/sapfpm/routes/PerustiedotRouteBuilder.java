@@ -25,7 +25,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
     public String ftpPerustiedotIn(String toimiala) {
-        return buildFtpPerustiedotIn(toimiala, getFtpDir(), getFilePrefix());
+        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix());
     }
 
     @Override

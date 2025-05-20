@@ -18,7 +18,7 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
     }
 
     public String ftpToteumatIn(String toimiala) {
-        return buildFtpToteumatIn(toimiala, getFtpDir(), getFilePrefix());
+        return buildFtpToteumatIn(toimiala, getFtpDir(toimiala), getFilePrefix());
     }
 
     @Override

@@ -13,13 +13,14 @@ import static fi.hel.integration.sapfpm.IDOCParser.*;
 public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     public String[] createCsvHeader() {
         return new String[] {
-                "PBUKR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
+                "PBUKR", "PSPNR", "POSID", "POST1", "STUFE", "ERDAT", "AEDAT", "TXT40"
         };
     }
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> project = new LinkedHashMap<>();
         project.put("PBUKR", valuesLine.get("PBUKR"));
+        project.put("PSPNR", valuesLine.get("PSPNR"));
         project.put("POSID", valuesLine.get("POSID"));
         project.put("POST1", valuesLine.get("POST1"));
         project.put("STUFE", valuesLine.get("STUFE"));

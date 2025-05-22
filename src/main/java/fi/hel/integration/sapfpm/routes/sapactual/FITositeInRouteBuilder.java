@@ -72,7 +72,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         r.put("VAT_PERCENT", E1FISEG.get("VAT_PERCENT")); // not in s4
 
-        r.put("HSL", E1FISEG.get("HSL") == null ? E1FISEG.get("WRBTR") : E1FISEG.get("HSL"));
+        r.put("HSL", E1FISEG.get("HSL") == null ? E1FISEG.get("DMBTR") : E1FISEG.get("HSL"));
 
         r.put("PPRCTR", E1FISEG.get("PPRCTR") == null ? E1FISEG.get("PPRCT") : E1FISEG.get("PPRCTR"));
 

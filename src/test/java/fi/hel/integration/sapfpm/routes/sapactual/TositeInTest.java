@@ -298,6 +298,7 @@ public class TositeInTest {
         assertEquals("001", secReceipt.get("BUZEI"));
         assertEquals("Tekstiä. /123456 lk", secReceipt.get("SGTXT"));
         assertEquals("0001001550", secReceipt.get("AUGBL"));
+        assertEquals(" 50.80", secReceipt.get("HSL"));
 
         ex.getMessage().setBody(vals);
         Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Tosite-palke", ex);

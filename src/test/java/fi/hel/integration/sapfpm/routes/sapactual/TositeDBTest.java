@@ -40,7 +40,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
 
         System.out.println("Derp TositeDbTest");
 
-        AdviceWith.adviceWith(ctx, "insertSapFileIntoDb", b -> {
+        AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertTositeIntoDb", b -> {

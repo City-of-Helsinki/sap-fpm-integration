@@ -45,25 +45,25 @@ public class IdempotentRepositoryProvider {
     @ApplicationScoped
     public IdempotentRepository coToteumatPalkeIdempotentRepository() {
         // query with file name like co_toteumat?
-        return queryFileNamesFromDbAndAddToIdempotentRepository("palke");
+        return queryFileNamesFromDbAndAddToIdempotentRepository("palke", "COTOSITESAPFILE");
     }
 
     @Named("toteumat_kasko_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository toteumatKaskoIdempotentRepository() {
-        return queryFileNamesFromDbAndAddToIdempotentRepository("kasko");
+        return queryFileNamesFromDbAndAddToIdempotentRepository("kasko", "TOSITESAPFILE");
     }
 
     @Named("toteumat_palke_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository toteumatPalkeIdempotentRepository() {
-        return queryFileNamesFromDbAndAddToIdempotentRepository("palke");
+        return queryFileNamesFromDbAndAddToIdempotentRepository("palke", "TOSITESAPFILE");
     }
 
     @Named("toteumat_sotepe_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository toteumatSotepeIdempotentRepository() {
-        return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe");
+        return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "TOSITESAPFILE");
     }
 
     public IdempotentRepository createIdempotentRepository() {
@@ -72,11 +72,11 @@ public class IdempotentRepositoryProvider {
         return memoryIdempotentRepo;
     }
 
-    public IdempotentRepository queryFileNamesFromDbAndAddToIdempotentRepository(String toimiala) {
+    public IdempotentRepository queryFileNamesFromDbAndAddToIdempotentRepository(String toimiala, String tableName) {
         Map<String, Object> repoCache = LRUCacheFactory.newLRUCache(50000);
 
         try(Connection c = ds.getConnection();
-            PreparedStatement stmt = c.prepareStatement("SELECT fileName FROM SAPFILE WHERE toimiala = ?")
+            PreparedStatement stmt = c.prepareStatement("SELECT fileName FROM %s WHERE toimiala = ?".formatted(tableName))
         ) {
             stmt.setString(1, toimiala);
             try(ResultSet rs = stmt.executeQuery()) {

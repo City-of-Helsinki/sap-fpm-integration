@@ -53,11 +53,20 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
             ");"
         ))
         .to("jdbc:sapactual")
+        .setBody(constant("""
+CREATE TABLE IF NOT EXISTS COTOSITESAPFILE(
+  processedTimestamp TIMESTAMP default CURRENT_TIMESTAMP not null,
+  fileName varchar(255) not null,
+  toimiala varchar(20) not null,
+  primary key (fileName)
+);
+"""))
+        .to("jdbc:sapactual")
         .setBody(exchangeProperty("originalBody"));
 
         buildFileAndContentsDbRoute("direct:insert-cotosite-file-and-contents-into-db",
             "insertCoTositeFileAndContents",
-        "direct:insert-sapfile-into-db",
+        "direct:insert-cotositesapfile-into-db",
         "direct:insert-cotosite-and-rivit-into-db");
 
         buildInsertReceiptAndLinesIntoDb("direct:insert-cotosite-and-rivit-into-db",
@@ -88,6 +97,21 @@ CREATE TABLE IF NOT EXISTS COTOSITERIVI(
                 .errorHandler(noErrorHandler())
             .setProperty("DB_TABLE", constant("COTOSITERIVI"))
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
+
+        from("direct:insert-cotositesapfile-into-db").routeId("insertCoTositeSapFileIntoDb")
+            .errorHandler(noErrorHandler()) // propagate errors to calling route
+            .process(e -> {
+                Map<String, String> jdbcParams = Map.of(
+                        "fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class),
+                        "toimiala", e.getMessage().getHeader("toimiala", String.class)
+                );
+                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
+            })
+            .setBody(simple(
+                    "INSERT INTO COTOSITESAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+            .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+            .setBody(exchangeProperty("originalBody"));
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
             .setBody(constant("SELECT DISTINCT PERIO, GJAHR FROM COTOSITERIVI WHERE toimiala = :?toimiala"))

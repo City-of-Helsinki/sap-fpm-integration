@@ -57,7 +57,7 @@ primary key (id)
             ))
                 .to("jdbc:sapactual")
                 .setBody(constant("""
-CREATE TABLE IF NOT EXISTS SAPFILE(
+CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
   processedTimestamp TIMESTAMP default CURRENT_TIMESTAMP not null,
   fileName varchar(255) not null,
   toimiala varchar(20) not null,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
 
         buildFileAndContentsDbRoute("direct:insert-tosite-file-and-contents-into-db",
                 "insertTositeFileAndContents",
-                "direct:insert-sapfile-into-db",
+                "direct:insert-tositesapfile-into-db",
                 "direct:insert-tosite-and-rivit-into-db");
 
         buildInsertReceiptAndLinesIntoDb("direct:insert-tosite-and-rivit-into-db",
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
 
-        from("direct:insert-sapfile-into-db").routeId("insertSapFileIntoDb")
+        from("direct:insert-tositesapfile-into-db").routeId("insertTositeSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route
             .process(e -> {
                 Map<String, String> jdbcParams = Map.of(
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS SAPFILE(
                 setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
             })
             .setBody(simple(
-                    "INSERT INTO SAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
+                    "INSERT INTO TOSITESAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));

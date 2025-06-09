@@ -17,10 +17,6 @@ Lähetä kasko perustiedot
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
     ${ORD}      Create Kasko ORD
     Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_1.xml   content=${ORD}
-    # ${JSON}     Get File	${CURDIR}/json/${FileName}
-
-      #    ${JSON}     Replace String	${JSON} 	_ATTACHMENT_FILE_NAME_		${AttachmentFileName}
-      #    ${JSON}     Replace String	${JSON} 	_ATTACHMENT_URL_		${AttachmentUrl}
     Wait Until Keyword Succeeds      5 minutes   1 minute      Nope
 
 *** Keywords ***

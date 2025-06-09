@@ -299,6 +299,7 @@ public class TositeInTest {
         assertEquals("Tekstiä. /123456 lk", secReceipt.get("SGTXT"));
         assertEquals("0001001550", secReceipt.get("AUGBL"));
         assertEquals(" 50.80", secReceipt.get("HSL"));
+        assertEquals("VBRK", secReceipt.get("AWTYP"));
 
         ex.getMessage().setBody(vals);
         Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Tosite-palke", ex);
@@ -311,7 +312,7 @@ public class TositeInTest {
                 ";0003902345;;003926212345;" + //AUFNR
                 "00000000;;;;" +
                 "H;4Z;; 50.80;" +
-                ";000000000000000123;00000;;", splitData[0]);
+                ";000000000000000123;00000;;;VBRK", splitData[0]);
     }
 
     @Test

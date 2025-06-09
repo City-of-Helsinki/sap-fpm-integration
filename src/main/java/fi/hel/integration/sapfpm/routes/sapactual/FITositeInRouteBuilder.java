@@ -17,7 +17,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         return new String[]{
                 "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
                 "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
-                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL"
+                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP"
         };
     }
 
@@ -41,6 +41,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         r.put("CPUDT", E1FIKPF.get("CPUDT")); // not in s4
         r.put("TCODE", E1FIKPF.get("TCODE"));
         r.put("XBLNR", E1FIKPF.get("XBLNR")); // viitetositenumero (maksuviite)
+        r.put("AWTYP", E1FIKPF.get("AWTYP")); // lisätty uutena 9.6
 
         // väärin speksissä
         r.put("KUNNR", E1FINBU.get("KUNNR")); // asiakasnumero

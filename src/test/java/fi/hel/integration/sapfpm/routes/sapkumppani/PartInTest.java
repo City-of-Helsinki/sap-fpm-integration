@@ -59,4 +59,31 @@ public class PartInTest {
                 "000002;Kunnat\r\n", resCsv.getMessage().getBody(String.class));
     }
 
+    @Test
+    void csvFormatShouldHandleQuotes() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        Exchange ex = new DefaultExchange(ctx);
+
+        String xmlIn = """
+<Kumppanit><Kumppaniyhtiö><RCOMP>01</RCOMP>
+   <NAME1>"Test " Test</NAME1>
+</Kumppaniyhtiö>
+<Kumppaniyhtiö><RCOMP>02</RCOMP>
+   <NAME1>Test ; Test</NAME1>
+</Kumppaniyhtiö></Kumppanit>
+    """;
+        ex.getMessage().setHeader("CamelFileName", "PART_OUT_167_SOTE20241023-190022.xml");
+        ex.getMessage().setBody(xmlIn);
+
+        Exchange res = producerTemplate.send("direct:process-part", producerTemplate.send("direct:unmarshal-xml", ex));
+
+        List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
+        assertEquals(2, vals.size());
+
+        ex.getMessage().setBody(vals);
+        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Part-palke", ex);
+
+        assertEquals("01;\"\"\"Test \"\" Test\"\r\n02;\"Test ; Test\"\r\n", resCsv.getMessage().getBody(String.class));
+    }
+
 }

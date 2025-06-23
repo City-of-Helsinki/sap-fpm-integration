@@ -21,7 +21,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     abstract public String[] createCsvHeader();
 
     public CsvDataFormat createCsvDataFormat() {
-        return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(true).setHeader(createCsvHeader());
+        return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(false).setHeader(createCsvHeader());
     }
 
     public String ftpPerustiedotIn(String toimiala) {

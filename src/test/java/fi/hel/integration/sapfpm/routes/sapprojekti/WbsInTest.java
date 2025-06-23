@@ -30,7 +30,7 @@ public class WbsInTest {
 
         ex.getMessage().setBody(vals);
         Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Wbs-palke", ex);
-        assertEquals("9500;00004047;posid;Post1 text öää; 1;20111231;20250218;VAPA\r\n", resCsv.getMessage().getBody(String.class));
+        assertEquals("9500;00004047;posid;Post1 text öää;\" 1\";20111231;20250218;VAPA\r\n", resCsv.getMessage().getBody(String.class));
     }
 
     @Test

@@ -14,7 +14,7 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
 
     abstract public String[] createCsvHeader();
     public CsvDataFormat createCsvDataFormat() {
-        return new CsvDataFormat().setQuoteDisabled(true).setDelimiter(';').setHeader(createCsvHeader());
+        return new CsvDataFormat().setQuoteDisabled(false).setDelimiter(';').setHeader(createCsvHeader());
     }
 
     public String ftpToteumatIn(String toimiala) {

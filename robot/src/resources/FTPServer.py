@@ -20,7 +20,7 @@ class FTPServer(object):
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler
         #handler.passive_ports = [2122]
-        #handler.masquerade_address = masquerade_address
+        handler.masquerade_address = masquerade_address
         handler.authorizer = DummyAuthorizer()
         self.server = servers.FTPServer(address, handler)
         def serve_forever(server):
@@ -28,7 +28,6 @@ class FTPServer(object):
         self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
-
     @keyword(types=['string', 'string', 'string', 'list'])
     def add_ftp_user(self, user, password, dir_name, subdir_names):
         user_dir = os.path.join(self.ftp_dir, dir_name)

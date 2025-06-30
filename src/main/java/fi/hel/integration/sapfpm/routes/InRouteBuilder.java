@@ -39,6 +39,8 @@ PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihi
 // Samoin en näe tarvetta pääkirjatililataukselle, sen voi viedä suoraan FPM yhtenä latauksena sillä muutoksia tulee harvakseltaan
 
 
+// n. 21:00 UTC / 00:00 suomen aikaa tositetiedostot siirtyvät ftp:lle
+
 @ApplicationScoped
 public class InRouteBuilder extends RouteBuilder {
 

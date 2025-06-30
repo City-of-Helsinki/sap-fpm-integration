@@ -45,5 +45,9 @@ class FTPServer(object):
         return self.user_dirs.get(user)
 
     @keyword()
+    def get_ftp_user_dirs(self):
+        return self.user_dirs
+
+    @keyword()
     def close_ftp_server(self):
         self.server.close_all()

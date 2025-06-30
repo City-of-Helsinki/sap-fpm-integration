@@ -14,6 +14,9 @@ Test Tags       perustiedot
 Lähetä kasko perustiedot
     [Documentation]     KASKO perustiedot
     [Tags]   kasko      perustiedot
+    Set Log Level   DEBUG
+    ${AllDirs}      Get Ftp User Dirs
+    Log To Console   AllDirs: ${AllDirs}
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
     ${ORD}      Create Kasko ORD
     Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_1.xml   content=${ORD}

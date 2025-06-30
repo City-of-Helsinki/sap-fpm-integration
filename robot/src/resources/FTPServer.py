@@ -36,7 +36,7 @@ class FTPServer(object):
         for subdir_name in subdir_names:
             dir = os.path.join(self.ftp_dir, dir_name, subdir_name)
             if not os.path.exists(dir): os.makedirs(dir)
-        self.server.handler.authorizer.add_user(user, password, user_dir)
+        self.server.handler.authorizer.add_user(user, password, user_dir, perm="elradfmwMT")
         self.user_dirs[user] = user_dir
         return user_dir
 

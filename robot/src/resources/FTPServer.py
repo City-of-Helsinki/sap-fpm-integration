@@ -8,7 +8,7 @@ import os
 
 class FTPServer(object):
 
-    ROBOT_LIBRARY_SCOPE = 'SUITE'
+    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
     def __init__(self):
         self.user_dirs = {}
@@ -19,8 +19,8 @@ class FTPServer(object):
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler
-        handler.passive_ports = [2122]
-        handler.masquerade_address = masquerade_address
+        #handler.passive_ports = [2122]
+        #handler.masquerade_address = masquerade_address
         handler.authorizer = DummyAuthorizer()
         self.server = servers.FTPServer(address, handler)
         def serve_forever(server):

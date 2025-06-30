@@ -17,12 +17,10 @@ Create Kasko ORD
     RETURN  ${ORD}
 
 Create Segment ORD_ZHKI_TARSISTILAUKSET
-    [Arguments]    ${BUKRS}     ${AUART}    ${AUFNR}    ${KTEXT}    ${STTXXT}   ${AUTYP}
-    RETURN      <ZHKI_TARSISTILAUKSET SEGMENT="1">
-        ...     <BUKRS>${BUKRS}</BUKRS>
-        ...     <AUART>${AUART}</AUART>
-        ...     <AUFNR>${AUFNR}</AUFNR>
-        ...     <KTEXT>${KTEXT}</KTEXT>
-        ...     <STTXT>${STTXT}</STTXT>
-        ...     <AUTYP>${AUTYP}</AUTYP>
-        ...     </ZHKI_TARSISTILAUKSET>
+    [Arguments]    ${BUKRS}     ${AUART}    ${AUFNR}    ${KTEXT}    ${STTXT}   ${AUTYP}
+    ${SEG}=  catenate  SEPARATOR=
+    ...     <ZHKI_TARSISTILAUKSET SEGMENT="1">
+    ...     <BUKRS>${BUKRS}</BUKRS><AUART>${AUART}</AUART><AUFNR>${AUFNR}</AUFNR><KTEXT>${KTEXT}</KTEXT>
+    ...     <STTXT>${STTXT}</STTXT><AUTYP>${AUTYP}</AUTYP>
+    ...     </ZHKI_TARSISTILAUKSET>
+    RETURN    ${SEG}

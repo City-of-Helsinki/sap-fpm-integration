@@ -10,5 +10,5 @@ RUN pip install pyftpdlib
 
 EXPOSE 2121
 
-#ENTRYPOINT sleep infinity
-ENTRYPOINT robot .
+ENTRYPOINT sleep infinity
+#ENTRYPOINT robot .

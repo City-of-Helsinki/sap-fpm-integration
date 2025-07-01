@@ -28,6 +28,7 @@ class FTPServer(object):
         self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
+
     @keyword(types=['string', 'string', 'string', 'list'])
     def add_ftp_user(self, user, password, dir_name, subdir_names):
         user_dir = os.path.join(self.ftp_dir, dir_name)
@@ -44,8 +45,8 @@ class FTPServer(object):
         return self.user_dirs.get(user)
 
     @keyword()
-    def get_ftp_user_dirs(self):
-        return self.user_dirs
+    def get_main_ftp_dir(self):
+        return self.ftp_dir
 
     @keyword()
     def close_ftp_server(self):

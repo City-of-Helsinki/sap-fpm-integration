@@ -15,17 +15,31 @@ Lähetä kasko perustiedot
     [Documentation]     KASKO perustiedot
     [Tags]   kasko      perustiedot
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
-    ${ORD}      Create Kasko ORD
+    ${BUKRS}    Set Variable    1400
+    ${AUART}    Set Variable   3901
+    ${AUFNR1}   Set Variable    01
+    ${KTEXT1}   Set Variable    ktxt1
+    ${STTXT1}   Set Variable    st text 1
+    ${AUTYP1}   Set Variable    autyp1
+    ${AUFNR2}   Set Variable    02
+    ${KTEXT2}   Set Variable    ktext2
+    ${STTXT2}   Set Variable    sttext 2
+    ${AUTYP2}   Set Variable    autyp2
+    ${ORD}      Create ORD  ${BUKRS}   ${AUART}     ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
+        ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}
     Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_1.xml   content=${ORD}
-    Wait Until Keyword Succeeds      3 minutes   30 seconds      Check Kasko ${KaskoPerustiedotFtpDir}/SAPSISTILAUS.csv
+    Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPSISTILAUS ${KaskoPerustiedotFtpDir}/SAPSISTILAUS.csv
+        ...     ${BUKRS}    ${AUART}    ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
+        ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}
 
 *** Keywords ***
 
-Check Kasko ${KaskoSisTilausFilePath}
-    [Documentation]     Opens file sent to the FTP and checks it contains the correct lines
-    ${KaskoSisTilaus}    Get File       ${KaskoSisTilausFilePath}
+Check SAPSISTILAUS ${SisTilausFilePath}
+    [Documentation]     Opens SAPSISTILAUS.csv sent to the FTP and checks it contains the correct lines
+    [Arguments]     ${BUKRS}    ${AUART}    ${AUFNR1}   ${KTEXT1}  ${STTXT1}  ${AUTYP1}  ${AUFNR2}   ${KTEXT2}  ${STTXT2}   ${AUTYP2}
+    ${SisTilaus}    Get File       ${SisTilausFilePath}
     ${ExpHeader}     Set Variable     BUKRS;AUART;AUFNR;KTEXT;STTXT
-    ${FirstLine} =	Get Line	${KaskoSisTilaus}    0
+    ${FirstLine} =	Get Line	${SisTilaus}    0
     Should Be Equal     ${FirstLine}       ${ExpHeader}
-    Should Contain   ${KaskoSisTilaus}   1400;3901;3963900001;ktextiä;sttextiä
-    Should Contain   ${KaskoSisTilaus}   1400;3901;3963900002;ktextiä;sttextiä
+    Should Contain   ${SisTilaus}   ${BUKRS};${AUART};${AUFNR1};${KTEXT1};${STTXT1}
+    Should Contain   ${SisTilaus}   ${BUKRS};${AUART};${AUFNR2};${KTEXT2};${STTXT2}

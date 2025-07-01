@@ -1,7 +1,6 @@
 from pyftpdlib import servers
 from pyftpdlib.handlers import FTPHandler
 from robot.api.deco import keyword, not_keyword
-from threading import Thread, current_thread
 from pyftpdlib.authorizers import DummyAuthorizer
 import os
 
@@ -19,15 +18,12 @@ class FTPServer(object):
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler
-        handler.passive_ports = [2122]
+        handler.passive_ports = [2122, 2123]
         handler.masquerade_address = masquerade_address
         handler.authorizer = DummyAuthorizer()
         self.server = servers.FTPServer(address, handler)
-        def serve_forever(server):
-            with server: server.serve_forever()
-        self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
-        self.ftp_thread.setDaemon(True)
-        self.ftp_thread.start()
+        self.server.serve_forever(timeout=None, blocking=False)
+
     @keyword(types=['string', 'string', 'string', 'list'])
     def add_ftp_user(self, user, password, dir_name, subdir_names):
         user_dir = os.path.join(self.ftp_dir, dir_name)

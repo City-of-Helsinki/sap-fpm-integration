@@ -5,7 +5,7 @@ Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP
 Library      ../../resources/FTPServer.py
 Library         DateTime
 Library     OperatingSystem
-Resource    ../../resources/CreateTestFiles.resource
+Resource    ../../resources/CreatePerustiedotTestFiles.resource
 
 
 Test Tags       perustiedot     sapsistilaus

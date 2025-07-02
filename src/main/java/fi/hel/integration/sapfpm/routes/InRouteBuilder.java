@@ -60,7 +60,8 @@ public class InRouteBuilder extends RouteBuilder {
                 "localWorkDirectory=/tmp&" +
                 "maximumReconnectAttempts=9999&" +
                 "bridgeErrorHandler=true&" +
-                "timeout=120000";
+                "timeout=120000&" +
+                "delay=60000";
     }
 
     public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode) {

@@ -20,35 +20,6 @@
             <CRETIM></CRETIM>
             <SERIAL></SERIAL>
         </EDI_DC40>
-        <ZHKI_PROJEKTIRAKENTEENOSA SEGMENT="1">
-            <PBUKR></PBUKR>
-            <PSPNR></PSPNR>
-            <POSID></POSID>
-            <POST1></POST1>
-            <PSPHI></PSPHI>
-            <UP></UP>
-            <STUFE></STUFE>
-            <VERNR></VERNR>
-            <ASTNR></ASTNR>
-            <PRCTR></PRCTR>
-            <PSTRT></PSTRT>
-            <PENDE></PENDE>
-            <ESTRT></ESTRT>
-            <EENDE></EENDE>
-            <ISTRT></ISTRT>
-            <IENDE></IENDE>
-            <PLAKZ></PLAKZ>
-            <USR04></USR04>
-            <USR05></USR05>
-            <USR06></USR06>
-            <USR07></USR07>
-            <USR08></USR08>
-            <USR09></USR09>
-            <ERDAT></ERDAT>
-            <AEDAT></AEDAT>
-            <TXT40></TXT40>
-            <BELKZ></BELKZ>
-            <OBJNR></OBJNR>
-        </ZHKI_PROJEKTIRAKENTEENOSA>
+        __ZHKI_PROJEKTIRAKENTEENOSA__
     </IDOC>
 </ZHKI_PROJEKTIRAKENTEENOSA>

@@ -2,18 +2,18 @@
 Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
 
 
-Library      ../resources/FTPServer.py
+Library      ../../resources/FTPServer.py
 Library         DateTime
 Library     OperatingSystem
-Resource    ../resources/CreateTestFiles.resource
+Resource    ../../resources/CreateTestFiles.resource
 
 
-Test Tags       perustiedot
+Test Tags       perustiedot     sapsistilaus
 
 *** Test Cases ***
-Lähetä kasko perustiedot
-    [Documentation]     KASKO perustiedot
-    [Tags]   kasko      perustiedot
+Lähetä kasko perustiedot sapsistilaus
+    [Documentation]     KASKO perustiedot ORD_OUT_ / sapsistilaus
+    [Tags]   kasko      perustiedot     sapsistilaus
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
     ${BUKRS}    Set Variable    1400
     ${AUART}    Set Variable   3901
@@ -32,7 +32,7 @@ Lähetä kasko perustiedot
         ...     ${BUKRS}    ${AUART}    ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
         ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}
 
-Lähetä arch/ kasko perustiedot
+Lähetä arch/ kasko perustiedot SAPSISTILAUS
     [Documentation]     KASKO perustiedot, varmista että arch/ alta löytyviä käsitellä
     [Tags]   kasko      perustiedot
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}

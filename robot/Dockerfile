@@ -8,7 +8,7 @@ USER 1001
 RUN pip install robotframework
 RUN pip install pyftpdlib
 
-EXPOSE 2121 2122 2123 6000 6001 6002
+EXPOSE 2121 40000 40001 40002
 
 ENTRYPOINT sleep infinity
 #ENTRYPOINT robot .

@@ -17,7 +17,7 @@ Setup Ftp Server
     Add Ftp User    %{PALKE_SFTP_USER_ID025}    %{PALKE_SFTP_PASSWORD_ID025}    palke/toteumat      ${toteumatDirs}
     Add Ftp User    %{PALKE_SFTP_USER_ID166}    %{PALKE_SFTP_PASSWORD_ID166}    palke/cototeumat    ${toteumatDirs}
     Add Ftp User    %{PALKE_SFTP_USER_ID138}    %{PALKE_SFTP_PASSWORD_ID138}    palke/perustiedot   ${perustiedotDirs}
-
+    Start Ftp Server
 
 Teardown Ftp Server
     Close Ftp Server

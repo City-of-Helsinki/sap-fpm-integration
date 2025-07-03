@@ -28,8 +28,8 @@ Lähetä kasko perustiedot SAPPROJEKTI
 
     ${NonKaskoWBS}      Create WBS   9    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
-    Create File     ${KaskoPerustiedotFtpDir}/203/WBS_OUT_non_kasko.xml   content=${NonKaskoWBS}
-    Create File     ${KaskoPerustiedotFtpDir}/203/WBS_OUT_1.xml   content=${WBS}
+    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko.xml   content=${NonKaskoWBS}
+    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1.xml   content=${WBS}
 
     Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
         ...     ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}   ${STUFE}   ${ERDAT}   ${AEDAT}   ${TXT40}

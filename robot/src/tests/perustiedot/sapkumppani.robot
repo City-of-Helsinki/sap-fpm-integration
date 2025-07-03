@@ -18,8 +18,8 @@ Lähetä kasko perustiedot SAPKUMPPANI
     ${RCOMP}    Set Variable    R COMP HERE
     ${RNAME1}    Set Variable   R NAME 1 HERE " OK
     ${PART}      Create PART   ${RCOMP}    ${RNAME1}
-    Create File     ${KaskoPerustiedotFtpDir}/203/PART_OUT_1.xml   content=${PART}
-    Create File     ${KaskoPerustiedotFtpDir}/203/PART_OUT_2.xml   content=${PART}
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1.xml   content=${PART}
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2.xml   content=${PART}
     Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
         ...     ${RCOMP}    ${RNAME1}
 

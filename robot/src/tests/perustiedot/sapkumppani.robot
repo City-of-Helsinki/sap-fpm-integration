@@ -16,22 +16,23 @@ Lähetä kasko perustiedot SAPKUMPPANI
     [Tags]   kasko      perustiedot     sapkumppani     part_out
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
     ${RCOMP}    Set Variable    R COMP HERE
-    ${RNAME1}    Set Variable   R NAME 1 HERE " OK
-    ${PART}      Create PART   ${RCOMP}    ${RNAME1}
+    ${NAME1}    Set Variable   R NAME 1 HERE " OK
+    ${PART}      Create PART   ${RCOMP}    ${NAME1}
     Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1.xml   content=${PART}
     Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2.xml   content=${PART}
+    ${CSV_ESCAPED_NAME1}   Set Variable     "R NAME 1 HERE "" OK"
     Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
-        ...     ${RCOMP}    ${RNAME1}
+        ...     ${RCOMP}    ${CSV_ESCAPED_NAME1}
 
 *** Keywords ***
 
 Check SAPKUMPPANI ${FilePath}
     [Documentation]     Opens SAPKUMPPANI.csv sent to the FTP and checks it contains the correct lines
-    [Arguments]     ${RCOMP}    ${RNAME1}
+    [Arguments]     ${RCOMP}    ${NAME1}
     ${File}    Get File       ${FilePath}
-    ${ExpHeader}     Set Variable     RCOMP;RNAME1
+    ${ExpHeader}     Set Variable     RCOMP;NAME1
     ${FirstLine} =	Get Line	${File}    0
     Should Be Equal     ${FirstLine}       ${ExpHeader}
-    ${Lines}    Get Lines Containing String    ${File}   ${RCOMP};${RNAME1}
+    ${Lines}    Get Lines Containing String    ${File}   ${RCOMP};${NAME1}
     Length Should Be   ${Lines}     20
 

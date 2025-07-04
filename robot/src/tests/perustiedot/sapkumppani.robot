@@ -21,8 +21,8 @@ Lähetä kasko perustiedot SAPKUMPPANI
     Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1.xml   content=${PART}
     Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2.xml   content=${PART}
     ${CSV_ESCAPED_NAME1}   Set Variable     "R NAME 1 HERE "" OK"
-    Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
-        ...     ${RCOMP}    ${CSV_ESCAPED_NAME1}
+    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
+    Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv      ${RCOMP}    ${CSV_ESCAPED_NAME1}
 
 *** Keywords ***
 
@@ -34,5 +34,8 @@ Check SAPKUMPPANI ${FilePath}
     ${FirstLine} =	Get Line	${File}    0
     Should Be Equal     ${FirstLine}       ${ExpHeader}
     ${Lines}    Get Lines Containing String    ${File}   ${RCOMP};${NAME1}
-    Length Should Be   ${Lines}     20
+    ${LineCount}    Get Line Count  ${Lines}
+    Should Be Equal As Numbers    ${LineCount}     20
+    ${AllLinesCount}    Get Line Count  ${File}
+    Should Be Equal As Numbers    ${AllLinesCount}    21
 

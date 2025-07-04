@@ -31,7 +31,8 @@ Lähetä kasko perustiedot SAPPROJEKTI
     Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko.xml   content=${NonKaskoWBS}
     Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1.xml   content=${WBS}
 
-    Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
+    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
+    Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
         ...     ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}   ${STUFE}   ${ERDAT}   ${AEDAT}   ${TXT40}
 
 *** Keywords ***
@@ -43,5 +44,9 @@ Check SAPPROJEKTI ${FilePath}
     ${ExpHeader}     Set Variable     PBUKR;PSPNR;POSID;POST1;STUFE;ERDAT;AEDAT;TXT40
     ${FirstLine} =	Get Line	${File}    0
     Should Be Equal     ${FirstLine}       ${ExpHeader}
-    Should Contain   ${File}   ${PBUKR};${PSPNR};${POSID};${POST1};${STUFE};${ERDAT};${AEDAT};${TXT40}
+    ${Lines}    Get Lines Containing String    ${File}   ${PBUKR};${PSPNR};${POSID};${POST1};${STUFE};${ERDAT};${AEDAT};${TXT40}
+    ${LineCount}    Get Line Count  ${Lines}
+    Should Be Equal As Numbers   ${LineCount}     10
+    ${AllLinesCount}    Get Line Count  ${File}
+    Should Be Equal As Numbers   ${AllLinesCount}    11
 

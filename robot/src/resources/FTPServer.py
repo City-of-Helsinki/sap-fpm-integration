@@ -20,7 +20,7 @@ class FTPServer(object):
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
         handler = FTPHandler
         handler.masquerade_address = masquerade_address
-        handler.passive_ports = [40000,40001,40002]
+        handler.passive_ports = range(40000, 40007)
         handler.authorizer = DummyAuthorizer()
         self.server = servers.ThreadedFTPServer(address, handler)
 

@@ -38,7 +38,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
-        System.out.println("Derp TositeDbTest");
+        mockTositeRivitFetchStreamed.reset();
+        mockJdbcSapActual.reset();
 
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());

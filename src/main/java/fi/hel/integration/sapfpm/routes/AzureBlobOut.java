@@ -23,8 +23,9 @@ public class AzureBlobOut extends RouteBuilder {
     Logger log;
 
     public void createAzureBlobUploadingRoute(String toimiala) {
+        onException(Exception.class)
+            .maximumRedeliveries(10);
         // check for local here
-
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
             .log("uploading ${headers.CamelFileName} to Azure {{%s.azure.directory}}".formatted(toimiala))
             .setHeader(BlobConstants.BLOB_NAME, simple("{{%s.azure.directory}}/${header.CamelFileName}".formatted(toimiala)))
@@ -37,6 +38,7 @@ public class AzureBlobOut extends RouteBuilder {
 
     public void createUploadLocalFileRoute(String toimiala, String uploadUri) {
         from("direct:enrich-and-send-file-to-azure-" + toimiala)
+            .id("enrichAndSendToAzure-" + toimiala)
             .log(toimiala + " enriching ${exchangeProperty.outDir}/${headers.CamelFileName}")
             .pollEnrich()
             .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false&noop=true&idempotent=false")

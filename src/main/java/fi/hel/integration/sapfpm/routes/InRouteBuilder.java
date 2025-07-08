@@ -169,7 +169,7 @@ ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per
 
     public void buildLocalFileAppendingRoute() {
         from("direct:append-csv-to-main-csv").id("append-csv-to-main-csv")
-                .pollEnrich().simple("file:${exchangeProperty.wipFileDir}?fileName=RAW(${body})&autoCreate=false")
+                .pollEnrich().simple("file:${exchangeProperty.wipFileDir}?fileName=RAW(${body})&autoCreate=false&noop=true&idempotent=false")
                 .aggregationStrategy((oldExchange, readFileExchange) -> {
                     if (readFileExchange == null) {
                         log.error("READ FILE IS NULL!");
@@ -181,5 +181,6 @@ ID167/213  H_FUNC_OUT*  Toimintoalueet, kaikki toimintoalueet, yksi tiedosto per
                     return oldExchange;
                 })
                 .to("direct:any-file-out");
+
     }
 }

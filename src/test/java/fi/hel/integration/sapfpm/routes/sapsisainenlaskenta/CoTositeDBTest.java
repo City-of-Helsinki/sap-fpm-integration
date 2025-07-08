@@ -27,7 +27,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     ProducerTemplate producerTemplate;
 
     @EndpointInject("mock:jdbc:sapactualco")
-    private MockEndpoint mockJdbcSapActual;
+    private MockEndpoint mockJdbcSapActualCo;
 
     @EndpointInject("mock:cotositerivit-fetch-streamed")
     private MockEndpoint mockCoTositeRivitFetchStreamed;
@@ -36,14 +36,16 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
+        mockJdbcSapActualCo.reset();
+
         AdviceWith.adviceWith(ctx,"insertCoTositeSapFileIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActualCo.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertCoTositeIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActualCo.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActualCo.getEndpointUri());
         });
     }
 
@@ -65,8 +67,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         CamelContext ctx = producerTemplate.getCamelContext();
 
         // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)
-        mockJdbcSapActual.expectedMessageCount(5);
-        mockJdbcSapActual.whenAnyExchangeReceived(e -> System.out.println("COOOO TOSITEDBTEST GOT: " + e.getMessage().getBody()));
+        mockJdbcSapActualCo.expectedMessageCount(5);
 
         String toimiala = "toimiala";
         String year = "GJAHR";
@@ -88,7 +89,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         Exchange insertRes = producerTemplate.send("direct:insert-cotosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
 
-        mockJdbcSapActual.assertIsSatisfied();
+        mockJdbcSapActualCo.assertIsSatisfied();
 
         mockCoTositeRivitFetchStreamed.expectedMessageCount(2);
 

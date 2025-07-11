@@ -139,6 +139,7 @@ Create Segment E1FISEG
        ...        <FISTL>3900</FISTL>
        ...        <GEBER>31001</GEBER>
        ...        <ALTKT>0000003234</ALTKT>
+       ...        <PPRCT>${PPRCTR}</PPRCT>
        ...        <KBLPOS>000</KBLPOS>
        ...        <OBZEI>000</OBZEI>
        ...        <TXDAT>00000000</TXDAT>

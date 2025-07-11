@@ -80,7 +80,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         r.put("MATNR", E1FISEG.get("MATNR"));
         r.put("EBELP", E1FISEG.get("EBELP"));
 
-        r.put("LAST_CHANGE_DATE_TIME", E1FIKPF.get("LAST_CHANGE_DATE_TIME")); // not in s4
+        r.put("LAST_CHANGE_DATETIME", E1FIKPF.get("LAST_CHANGE_DATETIME")); // not in s4
         r.put("AUGBL", E1FISEG.get("AUGBL"));
 
         return r;

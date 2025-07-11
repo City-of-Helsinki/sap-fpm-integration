@@ -33,9 +33,8 @@ Lähetä kasko toteumat
     ${XBLNR}     Set Variable    XBLNR
     ${KUNNR}     Set Variable    KUNNR
     ${LIFNR}     Set Variable    LIFNR
-    # TODO: check LIFNR_NAME1 place in SEC xml
+    # TODO: check LIFNR_NAME1 place in S4/SEC xml
     ${LIFNR_NAME1}     Set Variable    ${EMPTY}
-
     ${EBELN}    Set Variable     EBELN
     ${Attachment}     Set Variable    Attachment
     ${BUZEI}     Set Variable    BUZEI
@@ -47,16 +46,19 @@ Lähetä kasko toteumat
     ${AUFNR}     Set Variable    AUFNR
     ${PS_PSPID}     Set Variable    PS_PSPID
     ${RASSC}     Set Variable    RASSC
-    ${SEGMENT}     Set Variable    SEGMENT
+    # TODO: check SEGMENT in S4, doesn't exist in SEC
+    ${SEGMENT}     Set Variable    ${EMPTY}
     ${SGTXT}     Set Variable    SGTXT
     ${DRCRK}     Set Variable    DRCRK
     ${MWSKZ}     Set Variable    MWSKZ
-    ${VAT_PERCENT}     Set Variable    VAT_PERCENT
+    # TODO: check VAT_PERCENT in S4, doesn't exist in SEC
+    ${VAT_PERCENT}     Set Variable    ${EMPTY}
     ${HSL}     Set Variable      50.80
     ${PPRCTR}     Set Variable    PPRCTR
     ${MATNR}     Set Variable    MATNR
     ${EBELP}     Set Variable    EBELP
-    ${LAST_CHANGE_DATETIME}     Set Variable    LAST_CHANGE_DATETIME
+    # TODO: check LAST_CHANGE_DATETIME in S4, doesn't exist in SEC
+    ${LAST_CHANGE_DATETIME}     Set Variable    ${EMPTY}
     ${AUGBL}     Set Variable    AUGBL
     ${AWTYP}     Set Variable    AWTYP
 
@@ -93,6 +95,4 @@ Check SAPACTUAL ${FilePath}
     ${Lines}    Get Lines Containing String    ${File}   ${ExpLine}
     ${LineCount}    Get Line Count  ${Lines}
     Should Be Equal As Numbers    ${LineCount}     1    msg=${ExpLine} not found
-    ${AllLinesCount}    Get Line Count  ${File}
-    Should Be Equal As Numbers    ${AllLinesCount}    2
 

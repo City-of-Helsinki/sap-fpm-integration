@@ -7,23 +7,30 @@ Library         String
 
 *** Keywords ***
 
-Create TOSITE
+Create TOSITEFILE
+    [Documentation]     Creates a tosite from the given params + tositteet with BELNR_0 ... BELNR_998
     [Arguments]     ${BUKRS}     ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
     ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
     ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
     ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
-    ${Tosite1}   Create Segment E1FIKPF      ${BUKRS}    ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
+
+    ${Tositteet}   Create Segment E1FIKPF      ${BUKRS}    ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
     ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
     ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
     ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
-    ${Tosite2}   Create Segment E1FIKPF      ${BUKRS}    ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
-        ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
-        ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
-        ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
-        ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
-    ${Tositteet}  Catenate    ${Tosite1}     ${Tosite2}
+
+    FOR     ${index}    IN RANGE    499
+        ${NewTosite}    Create Segment E1FIKPF      ${BUKRS}    ${BELNR}_${index}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
+          ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
+          ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
+          ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
+          ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
+
+        ${Tositteet}  Catenate    ${Tositteet}     ${NewTosite}
+    END
+
     ${TOSITE_FILE}  catenate  SEPARATOR=
     ...    <FIDCCP02 xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TAS1234E5F678901A01209F:740"><IDOC>${Tositteet}</IDOC></FIDCCP02>
     RETURN  ${TOSITE_FILE}

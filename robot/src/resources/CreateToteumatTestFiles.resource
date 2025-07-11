@@ -46,6 +46,7 @@ Create Segment E1FIKPF
     ...    <E1FIKPF>
     ...    <BUKRS>${BUKRS}</BUKRS>
     ...    <BELNR>${BELNR}</BELNR>
+    ...    <CO_BELNR>${CO_BELNR}</CO_BELNR>
     ...    <GJAHR>${GJAHR}</GJAHR>
     ...    <BLART>${BLART}</BLART>
     ...    <BLDAT>${BLDAT}</BLDAT>
@@ -85,6 +86,7 @@ Create Segment E1FISEG
     ${SEG}=  catenate  SEPARATOR=
        ...    <E1FISEG SEGMENT="">
        ...        <BUZEI>${BUZEI}</BUZEI>
+       ...        <CO_BUZEI>${CO_BUZEI}</CO_BUZEI>
        ...        <AUGDT>00000000</AUGDT>
        ...        <AUGCP>00000000</AUGCP>
        ...        <AUGBL>${AUGBL}</AUGBL>
@@ -123,6 +125,7 @@ Create Segment E1FISEG
        ...        <MEINS>ST</MEINS>
        ...        <ERFMG> 0.000</ERFMG>
        ...        <BPMNG> 0.000</BPMNG>
+       ...        <EBELN>${EBELN}</EBELN>
        ...        <EBELP>${EBELP}</EBELP>
        ...        <ZEKKN>00</ZEKKN>
        ...        <BUALT> 0.00</BUALT>

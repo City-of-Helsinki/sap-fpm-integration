@@ -33,7 +33,9 @@ Lähetä kasko toteumat
     ${XBLNR}     Set Variable    XBLNR
     ${KUNNR}     Set Variable    KUNNR
     ${LIFNR}     Set Variable    LIFNR
-    ${LIFNR_NAME1}     Set Variable    LIFNR_NAME1
+    # TODO: check LIFNR_NAME1 place in SEC xml
+    ${LIFNR_NAME1}     Set Variable    ${EMPTY}
+
     ${EBELN}    Set Variable     EBELN
     ${Attachment}     Set Variable    Attachment
     ${BUZEI}     Set Variable    BUZEI
@@ -72,7 +74,7 @@ Lähetä kasko toteumat
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
-    ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}}
+    ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
 
 *** Keywords ***
 

@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:fetch-all-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT POPER, GJAHR FROM TOSITERIVI WHERE toimiala = :?toimiala"))
+            .setBody(constant("SELECT DISTINCT POPER, GJAHR FROM TOSITERIVI WHERE toimiala = :?toimiala ORDER BY GJAHR DESC, POPER DESC"))
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("${headers.toimiala} all years and months: ${body}");
 

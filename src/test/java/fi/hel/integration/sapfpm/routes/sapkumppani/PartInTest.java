@@ -152,7 +152,6 @@ public class PartInTest {
         });
         mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
-            System.out.println("SMERP: " + fileContent);
             List<String> lines = fileContent.lines().toList();
             Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("00000X;Bla")).findFirst();
             assertTrue(foundFirstPart.isPresent());
@@ -175,7 +174,6 @@ public class PartInTest {
         mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
-            System.out.println(fileContent);
             Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("00000X;Bla")).findFirst();
             assertTrue(foundFirstPart.isPresent());
             Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("00000Y;Second")).findFirst();

@@ -71,8 +71,6 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
             .to("direct:process-cotosite-file-contents")
             .to("direct:insert-cotosite-file-and-contents-into-db");
 
-        from("file:trigger/cotosite-write-" + toimiala + "?delete=true").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
-
         // from timer, if no starting fetch time or if last time sent > x
         // set starting fetch time, then set last sent time
        // from("timer://").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
@@ -98,6 +96,8 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 "direct:fetch-cotositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);
 
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "cotositeIn", initRouteUri, processFileRouteUri, fetchCoToteumatRouteUri);
+
+        from("file:trigger/cotosite-write-" + toimiala + "?delete=true").to(fetchCoToteumatRouteUri);
     }
 
     @Override

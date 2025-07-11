@@ -107,8 +107,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             .to("direct:process-tosite-file-contents")
             .to("direct:insert-tosite-file-and-contents-into-db");
 
-        from("file:trigger/tosite-write-" + toimiala + "?delete=true").to("direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala);
-
         String initDbFetchParamsAndFileNameUri = "direct:init-tosite-db-fetch-params";
         from(initDbFetchParamsAndFileNameUri)
             .process(e -> {
@@ -130,6 +128,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);
 
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
+
+        from("file:trigger/tosite-write-" + toimiala + "?delete=true").to(fetchToteumatRouteUri);
     }
 
     @Override

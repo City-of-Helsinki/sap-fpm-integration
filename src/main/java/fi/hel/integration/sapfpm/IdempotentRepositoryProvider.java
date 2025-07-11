@@ -44,7 +44,6 @@ public class IdempotentRepositoryProvider {
     @Named("co_toteumat_palke_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository coToteumatPalkeIdempotentRepository() {
-        // query with file name like co_toteumat?
         return queryFileNamesFromDbAndAddToIdempotentRepository("palke", "COTOSITESAPFILE");
     }
 

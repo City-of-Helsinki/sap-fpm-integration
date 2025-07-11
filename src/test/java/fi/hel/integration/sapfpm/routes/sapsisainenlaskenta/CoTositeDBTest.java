@@ -110,6 +110,35 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(1L, tosite1Bldats);
     }
 
+    @Test
+    void fetchAllYearsAndMonthsTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        Exchange ex = new DefaultExchange(ctx);
+        String toimiala = "fetchAllCo";
+        ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+
+        producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
+
+        LinkedHashMap<String, Object> tosite1 = createCoTositeMeta("BUKRS", "BELNR", "2025", "12");
+        LinkedHashMap<String, Object> tosite2 = createCoTositeMeta("BUKRS", "BELNR", "2025", "01");
+        LinkedHashMap<String, Object> tosite3 = createCoTositeMeta("BUKRS", "BELNR", "2026", "01");
+        List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1), List.of(tosite2), List.of(tosite3));
+        ex.getMessage().setBody(tositteet);
+
+        producerTemplate.send("direct:insert-cotosite-file-and-contents-into-db", ex);
+
+        Exchange resCsv = producerTemplate.send("direct:fetch-all-cotosite-years-and-months-from-db", ex);
+        List<LinkedHashMap<String, Object>> resBody = resCsv.getMessage().getBody(List.class);
+        List<String> resYears = resBody.stream().map(r -> (String)r.get("GJAHR")).toList();
+        List<String> resMonths = resBody.stream().map(r -> (String)r.get("PERIO")).toList();
+
+        List<String> expYears = List.of("2026", "2025", "2025");
+        List<String> expMonths = List.of("01", "12", "01");
+        assertIterableEquals(expYears, resYears);
+        assertIterableEquals(expMonths, resMonths);
+    }
+
     public LinkedHashMap<String, Object> createCoTositeMeta(String BUKRS, String BELNR, String GJAHR, String PERIO) {
         LinkedHashMap<String, Object> tosite = new LinkedHashMap<>();
         tosite.put("BUKRS", BUKRS);

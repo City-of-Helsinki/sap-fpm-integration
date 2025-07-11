@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS COTOSITESAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:fetch-all-cotosite-years-and-months-from-db")
-            .setBody(constant("SELECT DISTINCT PERIO, GJAHR FROM COTOSITERIVI WHERE toimiala = :?toimiala"))
+            .setBody(constant("SELECT DISTINCT PERIO, GJAHR FROM COTOSITERIVI WHERE toimiala = :?toimiala ORDER BY GJAHR DESC, PERIO DESC"))
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("${headers.toimiala} cotosite all years and months: ${body}");
 

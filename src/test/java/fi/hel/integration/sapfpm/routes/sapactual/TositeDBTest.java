@@ -10,6 +10,7 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,8 +20,7 @@ import java.util.Map;
 
 import static org.apache.camel.builder.Builder.exchangeProperty;
 import static org.apache.camel.builder.Builder.header;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
 public class TositeDBTest extends CamelQuarkusTestSupport {
@@ -40,6 +40,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
 
         mockTositeRivitFetchStreamed.reset();
         mockJdbcSapActual.reset();
+
+
 
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
@@ -129,7 +131,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         insertRes = producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
 
-        mockJdbcSapActual.whenAnyExchangeReceived(e -> System.out.println("TOSITEDBTEST GOT: " + e.getMessage().getBody()));
         mockJdbcSapActual.assertIsSatisfied();
 
         mockTositeRivitFetchStreamed.expectedMessageCount( 3);
@@ -151,6 +152,36 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(1L, tosite1Bldats);
         long tosite3Belnrs = receivedLines.stream().filter(l -> tosite3.get("BELNR").equals(l.get("BELNR"))).count();
         assertEquals(1L, tosite3Belnrs);
+    }
+
+    @Test
+    void fetchAllYearsAndMonthsTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        Exchange ex = new DefaultExchange(ctx);
+        String toimiala = "fetchAllYe";
+        ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
+
+        LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", "BELNR", "2025", "12");
+        LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", "BELNR", "2025", "01");
+        LinkedHashMap<String, Object> tosite3 = createTositeMeta("BUKRS", "BELNR", "2025", "05");
+        LinkedHashMap<String, Object> tosite4 = createTositeMeta("BUKRS", "BELNR", "2026", "01");
+        List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1), List.of(tosite2), List.of(tosite3), List.of(tosite4));
+        ex.getMessage().setBody(tositteet);
+
+        producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
+
+        Exchange resCsv = producerTemplate.send("direct:fetch-all-years-and-months-from-db", ex);
+        List<LinkedHashMap<String, Object>> resBody = resCsv.getMessage().getBody(List.class);
+        List<String> resYears = resBody.stream().map(r -> (String)r.get("GJAHR")).toList();
+        List<String> resMonths = resBody.stream().map(r -> (String)r.get("POPER")).toList();
+
+        List<String> expYears = List.of("2026", "2025", "2025", "2025");
+        List<String> expMonths = List.of("01", "12", "05", "01");
+        assertIterableEquals(expYears, resYears);
+        assertIterableEquals(expMonths, resMonths);
     }
 
     public LinkedHashMap<String, Object> createTositeMeta(String BUKRS, String BELNR, String GJAHR, String POPER) {

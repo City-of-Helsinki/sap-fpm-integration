@@ -1,5 +1,6 @@
 *** Settings ***
 Library      ../resources/FTPServer.py
+Library      OperatingSystem
 
 Suite Setup     Setup Ftp Server
 Suite Teardown  Teardown Ftp Server
@@ -7,6 +8,7 @@ Suite Teardown  Teardown Ftp Server
 *** Keywords ***
 
 Setup Ftp Server
+    Remove Directory    robot/sap_ftp    recursive=True
     Init Ftp Server     %{SAP_FPM_INTEGRATION_ROBOT_SERVICE_HOST}       robot/sap_ftp
     ${perustiedotDirs}		Create List		203 	204     210
     ${toteumatDirs}      Create List

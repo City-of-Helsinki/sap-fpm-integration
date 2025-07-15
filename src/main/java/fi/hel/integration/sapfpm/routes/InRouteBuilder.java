@@ -45,16 +45,24 @@ PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihi
 public class InRouteBuilder extends RouteBuilder {
 
     public static String buildInParamsWithExclude(String excludeRegexp) {
+        return buildInParamsWithExclude(excludeRegexp, "file:name");
+    }
+
+    public static String buildInParamsWithExclude(String excludeRegexp, String sortBy) {
         return "includeExt=xml&exclude=" + excludeRegexp + "&" +
-            "noop=true&" +
-            "idempotent=true&idempotentEager=false&" + // wait until file complete until removed from idempotent repo
-            "preSort=true&sortBy=file:name";
-        //&charset=ISO-8859-1";
+                "noop=true&" +
+                "idempotent=true&idempotentEager=false&" + // wait until file complete until removed from idempotent repo
+                "preSort=true&sortBy=" + sortBy;
     }
 
     // TODO: move to mainConfig
     public static String buildFtpParams(String filePrefix, String passiveMode) {
-        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
+        return buildFtpParams(filePrefix, passiveMode, "file:name");
+    }
+
+    // TODO: move to mainConfig
+    public static String buildFtpParams(String filePrefix, String passiveMode, String sortBy) {
+        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)", sortBy) +
                 "&passiveMode=" + passiveMode +
                 "&autoCreate=false&disconnect=true&" +
                 "localWorkDirectory=/tmp&" +
@@ -64,29 +72,33 @@ public class InRouteBuilder extends RouteBuilder {
                 "delay=60000";
     }
 
-    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode) {
+    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {
         return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
-                buildFtpParams(filePrefix, passiveMode);
+                buildFtpParams(filePrefix, passiveMode, sortBy);
     }
 
-    public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix) {
+    public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix, String sortBy) {
         return buildFtpIn("{{%s.ftp.%s.user}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.%s.password}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.host}}".formatted(toimiala),
                 ftpDir,
-                filePrefix, "{{%s.ftp.passiveMode}}".formatted(toimiala)) + idempotentRepositoryParam(perusOrToteumat, toimiala);
+                filePrefix, "{{%s.ftp.passiveMode}}".formatted(toimiala), sortBy) + idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {
-        return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix);
+        return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix, "file:name");
+    }
+
+    public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix, String sortBy) {
+        return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix, sortBy);
     }
 
     public static String buildFtpToteumatIn(String toimiala, String ftpDir, String filePrefix) {
-        return buildFtpIn("toteumat", toimiala, ftpDir, filePrefix);
+        return buildFtpIn("toteumat", toimiala, ftpDir, filePrefix, "file:name");
     }
 
     public static String buildFtpCoToteumatIn(String toimiala, String ftpDir, String filePrefix) {
-        return buildFtpIn("co_toteumat", toimiala, ftpDir, filePrefix);
+        return buildFtpIn("co_toteumat", toimiala, ftpDir, filePrefix, "file:name");
     }
 
     public static String buildLocalIn(String perusOrToteumat, String toimiala, String filePrefix) {
@@ -94,8 +106,17 @@ public class InRouteBuilder extends RouteBuilder {
                 idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
+    public static String buildLocalIn(String perusOrToteumat, String toimiala, String filePrefix, String sortBy) {
+        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)", sortBy) +
+                idempotentRepositoryParam(perusOrToteumat, toimiala);
+    }
+
     public static String buildLocalPerustiedotIn(String toimiala, String filePrefix) {
         return buildLocalIn("perustiedot", toimiala, filePrefix);
+    }
+
+    public static String buildLocalPerustiedotIn(String toimiala, String filePrefix, String sortBy) {
+        return buildLocalIn("perustiedot", toimiala, filePrefix, sortBy);
     }
 
     public static String buildLocalCoToteumatIn(String toimiala, String filePrefix) {

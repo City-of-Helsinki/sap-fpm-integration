@@ -1,42 +1,27 @@
 package fi.hel.integration.sapfpm.routes.sapkumppani;
 
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
 import org.apache.camel.EndpointInject;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.AdviceWith;
-import org.apache.camel.builder.NotifyBuilder;
-import org.apache.camel.component.file.FileConstants;
-import org.apache.camel.component.file.GenericFile;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
-import static org.apache.camel.builder.Builder.exchangeProperty;
-import static org.apache.camel.builder.Builder.header;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
@@ -45,29 +30,16 @@ public class PartInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:enrich-and-send-file-to-azure-kasko")
-    private MockEndpoint mockEnrichFileKasko;
-
-    @EndpointInject("mock:direct:any-file-out")
-    private MockEndpoint mockUploadBlobToAzureKaskoAnyFileOut;
+    @EndpointInject("mock:direct:enrich-and-send-file-to-azure-kasko-Part")
+    private MockEndpoint mockUploadBlobToAzureKaskoAnyFileOutPart;
 
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "append-wip-main-Part-kasko", b -> {
-            b.interceptSendToEndpoint("direct:enrich-and-send-file-to-azure-kasko").to(mockEnrichFileKasko.getEndpointUri());
-        });
-        AdviceWith.adviceWith(ctx, "enrichAndSendToAzure-kasko", b -> {
-            b.interceptSendToEndpoint("direct:any-file-out").to(mockUploadBlobToAzureKaskoAnyFileOut.getEndpointUri())
+        AdviceWith.adviceWith(ctx, "Part-kasko-process", b -> {
+            b.interceptSendToEndpoint("direct:enrich-and-send-file-to-azure-kasko").to(mockUploadBlobToAzureKaskoAnyFileOutPart.getEndpointUri())
                 .skipSendToOriginalEndpoint();
         });
-    }
-
-    @AfterAll
-    public static void afterAll() throws Exception {
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_once_test_1.xml"));
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_once_test_2.xml"));
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_once_test_3.xml"));
     }
 
     @Test
@@ -96,9 +68,9 @@ public class PartInTest {
         assertEquals(2, vals.size());
 
         ex.getMessage().setBody(vals);
-        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Part-palke", ex);
+        Exchange resCsv = producerTemplate.send("direct:marshal-csv-Part-palke", ex);
 
-        assertEquals("000001;Valtio ( virastot ja laitokse\r\n" +
+        assertEquals("RCOMP;NAME1\r\n000001;Valtio ( virastot ja laitokse\r\n" +
                 "000002;Kunnat\r\n", resCsv.getMessage().getBody(String.class));
     }
 
@@ -124,71 +96,67 @@ public class PartInTest {
         assertEquals(2, vals.size());
 
         ex.getMessage().setBody(vals);
-        Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Part-palke", ex);
+        Exchange resCsv = producerTemplate.send("direct:marshal-csv-Part-palke", ex);
 
-        assertEquals("01;\"\"\"Test \"\" Test\"\r\n02;\"Test ; Test\"\r\n", resCsv.getMessage().getBody(String.class));
+        assertEquals("RCOMP;NAME1\r\n01;\"\"\"Test \"\" Test\"\r\n02;\"Test ; Test\"\r\n", resCsv.getMessage().getBody(String.class));
     }
 
-
-    // first a two file batch is sent, exception thrown during sending of the csv, uploaded csv should not have repeated content
-    // then a new 1 file batch is sent, csv should have all content and no repetition
+    // should only send the latest file (determined by file name) to azure and ignore the file if it's earlier than the one sent last
     @Test
-    void shouldNotAppendTwiceToMainFileIfExceptionThrownDuringUpload() throws Exception {
-        URL firstFileUrl = getClass().getResource("/PART_OUT_once_test_1.xml");
-        URL secFileUrl = getClass().getResource("/PART_OUT_once_test_2.xml");
-        URL thirdFileUrl = getClass().getResource("/PART_OUT_once_test_3.xml");
+    void shouldOnlySendTheLatestFileToAzure() throws Exception {
+        URL firstFileUrl = getClass().getResource("/PART_OUT_test_1.xml");
+        URL secFileUrl = getClass().getResource("/PART_OUT_test_2.xml");
+        URL thirdFileUrl = getClass().getResource("/PART_OUT_test_3.xml");
         assertNotNull(firstFileUrl);
         assertNotNull(secFileUrl);
         assertNotNull(thirdFileUrl);
         Path firstTestFilePath = Paths.get(firstFileUrl.toURI());
         Path secTestFilePath = Paths.get(secFileUrl.toURI());
         Path thirdTestFilePath = Paths.get(thirdFileUrl.toURI());
-        Path inFirstTestFilePath = Paths.get("in/kasko/PART_OUT_once_test_1.xml");
-        Path inSecTestFilePath = Paths.get("in/kasko/PART_OUT_once_test_2.xml");
-        Path inThirdTestFilePath = Paths.get("in/kasko/PART_OUT_once_test_3.xml");
+        Path inFirstTestFilePath = Paths.get("in/kasko/PART_OUT_test_1.xml");
+        Path inSecTestFilePath = Paths.get("in/kasko/PART_OUT_test_2.xml");
+        Path inThirdTestFilePath = Paths.get("in/kasko/PART_OUT_test_3.xml");
 
-        mockEnrichFileKasko.whenExchangeReceived(1, e -> {
-            e.setException(new Exception("Exception during upload!"));
-        });
-        mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
+        mockUploadBlobToAzureKaskoAnyFileOutPart.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
-            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("00000X;Bla")).findFirst();
+            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("000001;First")).findFirst();
             assertTrue(foundFirstPart.isPresent());
-            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("00000Y;Second")).findFirst();
+            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("000002;Sec")).findFirst();
             assertTrue(foundSecPart.isPresent());
             assertEquals(3, lines.size());
         });
         try {
-            Files.copy(firstTestFilePath, inFirstTestFilePath);
-            Files.copy(secTestFilePath, inSecTestFilePath);
+            Files.copy(secTestFilePath, inSecTestFilePath); // second added first
+            Files.copy(firstTestFilePath, inFirstTestFilePath); // should be ignored
         } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
-        mockEnrichFileKasko.expectedMessageCount(2);
-        mockUploadBlobToAzureKaskoAnyFileOut.expectedMessageCount(1);
-        mockEnrichFileKasko.assertIsSatisfied();
-        mockUploadBlobToAzureKaskoAnyFileOut.assertIsSatisfied();
+        mockUploadBlobToAzureKaskoAnyFileOutPart.expectedMessageCount(1);
+        mockUploadBlobToAzureKaskoAnyFileOutPart.assertIsSatisfied();
 
-        mockEnrichFileKasko.reset();
-        mockUploadBlobToAzureKaskoAnyFileOut.reset();
+        mockUploadBlobToAzureKaskoAnyFileOutPart.reset();
 
-        mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
+        mockUploadBlobToAzureKaskoAnyFileOutPart.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
-            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("00000X;Bla")).findFirst();
+            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("000001;First")).findFirst();
             assertTrue(foundFirstPart.isPresent());
-            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("00000Y;Second")).findFirst();
+            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("000002;Sec")).findFirst();
             assertTrue(foundSecPart.isPresent());
-            Optional<String> thirdSecPart = lines.stream().filter(l -> l.equals("00000Z;Third")).findFirst();
+            Optional<String> thirdSecPart = lines.stream().filter(l -> l.equals("000003;Third")).findFirst();
             assertTrue(thirdSecPart.isPresent());
             assertEquals(4, lines.size());
         });
         try {
             Files.copy(thirdTestFilePath, inThirdTestFilePath);
         } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
-        mockUploadBlobToAzureKaskoAnyFileOut.expectedMessageCount(1);
-        mockUploadBlobToAzureKaskoAnyFileOut.assertIsSatisfied();
-        mockEnrichFileKasko.expectedMessageCount(1);
-        mockEnrichFileKasko.assertIsSatisfied();
+        mockUploadBlobToAzureKaskoAnyFileOutPart.expectedMessageCount(1);
+        mockUploadBlobToAzureKaskoAnyFileOutPart.assertIsSatisfied();
     }
 
+    @AfterAll
+    public static void afterAll() throws Exception {
+        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_1.xml"));
+        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_2.xml"));
+        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_3.xml"));
+    }
 }

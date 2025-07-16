@@ -3,8 +3,8 @@ Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP
 
 
 Library      ../../resources/FTPServer.py
-Library         DateTime
 Library     OperatingSystem
+Library     ../../resources/CreateTestFilesCommon.resource
 Resource    ../../resources/CreateToteumatTestFiles.resource
 
 
@@ -18,8 +18,7 @@ Lähetä kasko toteumat
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
-    ${CUR_DATE}     Get Current Date    result_format=datetime
-    ${CUR_DATE_STR}      Convert Date	${CUR_DATE}	exclude_millis=yes	result_format=%Y-%m-%d_%H:%M:%S
+    ${CUR_DATE_STR}      Get Current Time Text
     ${BUKRS}    Set Variable    3900
     ${RandBELNRSuffix}      Generate Random String  10
     ${BELNR}    Set Variable    ${CUR_DATE_STR}_${RandBELNRSuffix}

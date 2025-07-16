@@ -3,9 +3,9 @@ Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP
 
 
 Library      ../../resources/FTPServer.py
-Library         DateTime
 Library     OperatingSystem
 Resource    ../../resources/CreatePerustiedotTestFiles.resource
+Resource    ../../resources/CreateTestFilesCommon.resource
 
 
 Test Tags       perustiedot     sapkumppani
@@ -18,11 +18,12 @@ Lähetä kasko perustiedot SAPKUMPPANI
     ${RCOMP}    Set Variable    R COMP HERE
     ${NAME1}    Set Variable   R NAME 1 HERE " OK
     ${PART}      Create PART   ${RCOMP}    ${NAME1}
-    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1.xml   content=${PART}
+    ${CUR_DATE_STR}      Get Current Time Text
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1_${CUR_DATE_STR}.xml   content=${PART}
     ${RCOMP}    Set Variable    R COMP SECOND
     ${NAME1}    Set Variable   R NAME 2 HERE " OK
     ${PART}      Create PART   ${RCOMP}    ${NAME1}
-    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2.xml   content=${PART}
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2_${CUR_DATE_STR}.xml   content=${PART}
     ${CSV_ESCAPED_NAME1}   Set Variable     "R NAME 2 HERE "" OK"
     Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
     Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv      ${RCOMP}    ${CSV_ESCAPED_NAME1}

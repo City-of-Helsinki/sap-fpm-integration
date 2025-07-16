@@ -6,6 +6,7 @@ Library      ../../resources/FTPServer.py
 Library         DateTime
 Library     OperatingSystem
 Resource    ../../resources/CreatePerustiedotTestFiles.resource
+Resource    ../../resources/CreateTestFilesCommon.resource
 
 
 Test Tags       perustiedot     sapprojekti
@@ -28,8 +29,10 @@ Lähetä kasko perustiedot SAPPROJEKTI
 
     ${NonKaskoWBS}      Create WBS   9    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
-    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko.xml   content=${NonKaskoWBS}
-    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1.xml   content=${WBS}
+    ${CUR_DATE_STR}     Get Current Time Text
+
+    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko_${CUR_DATE_STR}.xml   content=${NonKaskoWBS}
+    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
 
     Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
     Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv

@@ -6,6 +6,7 @@ Library      ../../resources/FTPServer.py
 Library         DateTime
 Library     OperatingSystem
 Resource    ../../resources/CreatePerustiedotTestFiles.resource
+Resource    ../../resources/CreateTestFilesCommon.resource
 
 
 Test Tags       perustiedot     sapsistilaus
@@ -27,7 +28,10 @@ Lähetä kasko perustiedot sapsistilaus
     ${AUTYP2}   Set Variable    autyp2
     ${ORD}      Create ORD  ${BUKRS}   ${AUART}     ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
         ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}
-    Create File     ${KaskoPerustiedotFtpDir}/203/arch/ORD_OUT_should_not_be_handled.xml   content=${ORD}
+
+    ${CUR_DATE_STR}     Get Current Time Text
+
+    Create File     ${KaskoPerustiedotFtpDir}/203/arch/ORD_OUT_should_not_be_handled_${CUR_DATE_STR}.xml   content=${ORD}
 
     ${BUKRS}    Set Variable    1400
     ${AUART}    Set Variable   3901
@@ -41,7 +45,7 @@ Lähetä kasko perustiedot sapsistilaus
     ${AUTYP2}   Set Variable    autyp2
     ${ORD}      Create ORD  ${BUKRS}   ${AUART}     ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
         ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}
-    Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_1.xml   content=${ORD}
+    Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_1_${CUR_DATE_STR}.xml   content=${ORD}
     Wait Until Keyword Succeeds      2 minutes   15 seconds      Check SAPSISTILAUS ${KaskoPerustiedotFtpDir}/SAPSISTILAUS.csv
         ...     ${BUKRS}    ${AUART}    ${AUFNR1}   ${KTEXT1}   ${STTXT1}   ${AUTYP1}
         ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   ${AUTYP2}

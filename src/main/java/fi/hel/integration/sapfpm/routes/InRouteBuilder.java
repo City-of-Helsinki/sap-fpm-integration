@@ -69,7 +69,7 @@ public class InRouteBuilder extends RouteBuilder {
                 "maximumReconnectAttempts=9999&" +
                 "bridgeErrorHandler=true&" +
                 "timeout=120000&" +
-                "delay=60000";
+                "delay=30000"; // 30 seconds delay in between polls
     }
 
     public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {

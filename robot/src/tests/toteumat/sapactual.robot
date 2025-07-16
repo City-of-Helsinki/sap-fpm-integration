@@ -4,7 +4,7 @@ Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP
 
 Library      ../../resources/FTPServer.py
 Library     OperatingSystem
-Library     ../../resources/CreateTestFilesCommon.resource
+Resource     ../../resources/CreateTestFilesCommon.resource
 Resource    ../../resources/CreateToteumatTestFiles.resource
 
 

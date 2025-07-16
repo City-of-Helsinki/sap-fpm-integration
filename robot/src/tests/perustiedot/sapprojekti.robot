@@ -17,6 +17,7 @@ Lähetä kasko perustiedot SAPPROJEKTI
     [Tags]   kasko      perustiedot     sapprojekti     wbs_out
     ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
 
+    ${CUR_DATE_STR}     Get Current Time Text
     ${PBUKR}    Set Variable    1400
     ${PSPNR}    Set Variable   3901
     ${POSID}   Set Variable    01
@@ -24,12 +25,10 @@ Lähetä kasko perustiedot SAPPROJEKTI
     ${STUFE}   Set Variable    st text 1
     ${ERDAT}   Set Variable    autyp1
     ${AEDAT}   Set Variable    02
-    ${TXT40}   Set Variable    ktext2
+    ${TXT40}   Set Variable    ${CUR_DATE_STR}
     ${WBS}      Create WBS   ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
     ${NonKaskoWBS}      Create WBS   9    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
-
-    ${CUR_DATE_STR}     Get Current Time Text
 
     Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko_${CUR_DATE_STR}.xml   content=${NonKaskoWBS}
     Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
@@ -51,5 +50,6 @@ Check SAPPROJEKTI ${FilePath}
     ${LineCount}    Get Line Count  ${Lines}
     Should Be Equal As Numbers   ${LineCount}     10
     ${AllLinesCount}    Get Line Count  ${File}
-    Should Be Equal As Numbers   ${AllLinesCount}    11
+    # can contain lines from previous runs
+    Should Be True   ${AllLinesCount} >= 11
 

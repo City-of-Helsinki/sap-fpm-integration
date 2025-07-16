@@ -19,11 +19,13 @@ Lähetä kasko perustiedot SAPKUMPPANI
     ${NAME1}    Set Variable   R NAME 1 HERE " OK
     ${PART}      Create PART   ${RCOMP}    ${NAME1}
     ${CUR_DATE_STR}      Get Current Time Text
-    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_1_${CUR_DATE_STR}.xml   content=${PART}
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_${CUR_DATE_STR}_1.xml   content=${PART}
     ${RCOMP}    Set Variable    R COMP SECOND
     ${NAME1}    Set Variable   R NAME 2 HERE " OK
     ${PART}      Create PART   ${RCOMP}    ${NAME1}
-    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2_${CUR_DATE_STR}.xml   content=${PART}
+    Close Ftp Server
+    Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2_${CUR_DATE_STR}_2.xml   content=${PART}
+    Restart Ftp Server
     ${CSV_ESCAPED_NAME1}   Set Variable     "R NAME 2 HERE "" OK"
     Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
     Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv      ${RCOMP}    ${CSV_ESCAPED_NAME1}

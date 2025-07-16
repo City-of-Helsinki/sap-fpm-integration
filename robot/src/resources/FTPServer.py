@@ -15,14 +15,14 @@ class FTPServer(object):
 
     @keyword(types=['string'])
     def init_ftp_server(self, masquerade_address, relative_ftp_dir):
-        address = ("0.0.0.0", 2121)
+        self.address = ("0.0.0.0", 2121)
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
-        handler = FTPHandler
-        handler.masquerade_address = masquerade_address
-        handler.passive_ports = range(40000, 40007)
-        handler.authorizer = DummyAuthorizer()
-        self.server = servers.ThreadedFTPServer(address, handler)
+        self.handler = FTPHandler
+        self.handler.masquerade_address = masquerade_address
+        self.handler.passive_ports = range(40000, 40007)
+        self.handler.authorizer = DummyAuthorizer()
+        self.server = servers.ThreadedFTPServer(self.address, self.handler)
 
     @keyword()
     def start_ftp_server(self):
@@ -54,3 +54,8 @@ class FTPServer(object):
     @keyword()
     def close_ftp_server(self):
         self.server.close_all()
+
+    @keyword()
+    def restart_ftp_server(self):
+        self.server = servers.ThreadedFTPServer(self.address, self.handler)
+        self.start_ftp_server()

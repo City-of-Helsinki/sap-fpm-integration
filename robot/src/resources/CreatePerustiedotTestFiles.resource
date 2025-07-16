@@ -54,14 +54,12 @@ Create Segment ZHKI_PROJEKTIRAKENTEENOSA
 
 Create PART
     [Arguments]     ${RCOMP}    ${NAME1}
-    ${PART}     Get File	    ${CURDIR}/xml/perustiedot/PART_OUT_.xml
     ${AllSegments}  Create Segment Kumppaniyhtiö   ${RCOMP}    ${NAME1}
     FOR     ${index}    IN RANGE    9
         ${NewSeg}  Create Segment Kumppaniyhtiö   ${RCOMP}    ${NAME1}
         ${AllSegments}  Catenate    ${AllSegments}     ${NewSeg}
     END
-    ${PART}     Replace String 	    ${PART}   __Kumppaniyhtiö__        ${AllSegments}
-    RETURN  ${PART}
+    RETURN  <Kumppanit>${AllSegments}</Kumppanit>
 
 Create Segment Kumppaniyhtiö
     [Arguments]     ${RCOMP}    ${NAME1}

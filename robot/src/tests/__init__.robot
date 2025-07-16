@@ -8,6 +8,7 @@ Suite Teardown  Teardown Ftp Server
 *** Keywords ***
 
 Setup Ftp Server
+    Set Log Level   DEBUG
     Remove Directory    robot/sap_ftp    recursive=True
     Init Ftp Server     %{SAP_FPM_INTEGRATION_ROBOT_SERVICE_HOST}       robot/sap_ftp
     ${perustiedotDirs}		Create List		203 	204     210

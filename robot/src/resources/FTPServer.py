@@ -6,6 +6,24 @@ from pyftpdlib.authorizers import DummyAuthorizer
 import os
 
 
+class FtpServerHandler(FTPHandler):
+
+    connection_is_down = False
+
+    def __init__(self, *args, **kwargs):
+        FTPHandler.__init__(self, *args, **kwargs)
+
+    def process_command(self, *args, **kwargs):
+        if (self.connection_is_down):
+            self.log('Failing command')
+            self.respond('550 Broken connection simulated from tests')
+            self.close()
+        else: FTPHandler.process_command(self, *args, **kwargs)
+
+    def close(self):
+        FTPHandler.close(self)
+
+
 class FTPServer(object):
 
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
@@ -18,7 +36,7 @@ class FTPServer(object):
         self.address = ("0.0.0.0", 2121)
         self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
-        self.handler = FTPHandler
+        self.handler = FtpServerHandler
         self.handler.masquerade_address = masquerade_address
         self.handler.passive_ports = range(40000, 40007)
         self.handler.authorizer = DummyAuthorizer()
@@ -56,6 +74,10 @@ class FTPServer(object):
         self.server.close_all()
 
     @keyword()
-    def restart_ftp_server(self):
-        self.server = servers.ThreadedFTPServer(self.address, self.handler)
-        self.start_ftp_server()
+    def set_ftp_connection_as_down(self):
+        self.handler.connection_is_down = True
+
+
+    @keyword()
+    def set_ftp_connection_as_up(self):
+        self.handler.connection_is_down = False

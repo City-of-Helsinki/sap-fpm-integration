@@ -1,9 +1,12 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
+import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
@@ -11,7 +14,8 @@ import java.util.*;
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 50000;
+    @ConfigProperty(name = "tosite-db.page-limit", defaultValue = "1000")
+    int DB_PAGE_LIMIT;
 
     public String[] createCsvHeader() {
         return new String[]{
@@ -121,6 +125,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
         String fetchToteumatRouteUri = "direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala;
+
+        log.info("Tosite DB page limit: " + DB_PAGE_LIMIT);
 
         buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, toimiala,
             "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,

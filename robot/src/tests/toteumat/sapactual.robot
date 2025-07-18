@@ -135,7 +135,7 @@ Send kasko toteumat and cut FTP connection for a long time
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}_long_wait.xml   content=${TOSITE}
     Sleep    15 seconds
     Set Ftp Connection As Down
-    Sleep    8 minutes
+    Sleep    1 minutes
     Set Ftp Connection As Up
 
     Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv

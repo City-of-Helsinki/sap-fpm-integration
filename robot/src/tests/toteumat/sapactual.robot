@@ -82,6 +82,7 @@ Send kasko toteumat
 Send kasko toteumat and cut FTP connection for a long time
     [Documentation]     KASKO toteumat, FTP connection is cut, files should be sent after connection recovers
     [Tags]   kasko      toteumat     sapactual
+    [Timeout]    NONE
     ${KaskoToteumatFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID023}
     ${TOSITE_YEAR}    Set Variable    2024
     ${TOSITE_MONTH}    Set Variable   11
@@ -132,9 +133,9 @@ Send kasko toteumat and cut FTP connection for a long time
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
 
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}_long_wait.xml   content=${TOSITE}
-    Sleep    30 seconds
+    Sleep    15 seconds
     Set Ftp Connection As Down
-    Sleep    2 minutes
+    Sleep    8 minutes
     Set Ftp Connection As Up
 
     Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv

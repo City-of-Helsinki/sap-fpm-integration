@@ -29,6 +29,10 @@ public abstract class TositeDbCommon extends RouteBuilder {
                     .to(insertTositeAndRivitUri)
                     .log(fromUri + " in split, after insert")
                     .setBody(constant(""))
+                    .removeProperty("originalBody")
+                    .removeHeader("firstReceipt")
+                    .removeProperty("sqlNamedParams")
+                    .removeProperty("sqlValNames")
                 .end()
             .end()
             .setBody(constant(""));

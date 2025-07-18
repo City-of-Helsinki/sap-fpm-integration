@@ -24,7 +24,7 @@ public class AzureBlobOut extends RouteBuilder {
 
     public void createAzureBlobUploadingRoute(String toimiala) {
         onException(Exception.class)
-            .maximumRedeliveries(10);
+            .maximumRedeliveries(10).redeliveryDelay(10000);
         // check for local here
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
             .log("uploading ${headers.CamelFileName} to Azure {{%s.azure.directory}}".formatted(toimiala))

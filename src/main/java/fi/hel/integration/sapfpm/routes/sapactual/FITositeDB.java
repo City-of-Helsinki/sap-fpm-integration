@@ -110,10 +110,11 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
                 jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
                 setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
             })
+        .log("direct:insert-tosite-or-cotosite-rivi-into-db before INSERT")
             .setBody(simple(
                     "INSERT INTO ${exchangeProperty.DB_TABLE} (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+        .log("direct:insert-tosite-or-cotosite-rivi-into-db after INSERT")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 

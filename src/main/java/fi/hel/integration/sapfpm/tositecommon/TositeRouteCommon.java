@@ -58,6 +58,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .setProperty("outDir", constant(toimiala))
             .to(fetchYearsAndMonthsFromDbUri)
                 .split(body())
+                .log("after split")
                     .to(initDbFetchParamsAndFileNameUri)
                     .setProperty("fileExist", constant("Override"))
                     .setBody(constant(""))
@@ -65,6 +66,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .to("direct:any-file-out")
                     .setProperty("fileExist", constant("Append"))
                     .to(fetchCountUri)
+                .log("after fetch count")
                     .setHeader("pageLimit", constant(dbPageLimit))
                     .setProperty("dbHasMoreResults", constant(true))
                     .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
@@ -78,8 +80,10 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                                 e.getMessage().setHeader("lastId", res.getLast().get("id"));
                             }
                         })
+                .log("after process, before marshalHeaderlessCsvURI")
                         .to(marshalHeaderlessCsvURI)
                         .to("direct:any-file-out")
+                .log("after process, after marshalHeaderlessCsvURI and file out")
                         .setBody(constant(""))
                     .end()
                     .log("appending done, enriching and sending to azure")

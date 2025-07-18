@@ -23,12 +23,15 @@ public abstract class TositeDbCommon extends RouteBuilder {
                 .continued(true)
             .end()
             .log("receipts to insert: ${body.size()}")
-                .to(insertFileUri)
+            .to(insertFileUri)
             .choice().when(body().isNotNull())
                 .split(body())
                     .to(insertTositeAndRivitUri)
+                    .log(fromUri + " in split, after insert")
+                    .setBody(constant(""))
                 .end()
-            .end();
+            .end()
+            .setBody(constant(""));
     }
 
     public ProcessorDefinition<?> buildInsertReceiptAndLinesIntoDb(String fromUri, String insertReceiptUri, String insertReceiptLineUri) {
@@ -57,7 +60,9 @@ public abstract class TositeDbCommon extends RouteBuilder {
                         , () -> e.getMessage().removeHeader("firstReceipt"));
             })
             .transacted("PROPAGATION_REQUIRES_NEW")
+    .log("before receipt line insert")
             .to(insertReceiptUri)
+                .log("after receipt line insert")
             .choice()
                 .when(body().isNotNull())
                     .split(body())

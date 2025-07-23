@@ -108,9 +108,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         String processFileRouteUri = "direct:process-tosite-file";
         from(processFileRouteUri)
             .to("direct:unmarshal-xml")
-        .log("after direct:unmarshal-xml")
             .to("direct:process-tosite-file-contents")
-        .log("after direct:process-tosite-file-contents")
             .to("direct:insert-tosite-file-and-contents-into-db");
 
         String initDbFetchParamsAndFileNameUri = "direct:init-tosite-db-fetch-params";

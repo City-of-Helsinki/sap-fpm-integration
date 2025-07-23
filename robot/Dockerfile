@@ -10,4 +10,4 @@ RUN pip install pyftpdlib
 
 EXPOSE 2121 40000 40001 40002
 
-ENTRYPOINT robot -i toteumat . && until [ -e /tmp/robot_files_fetched.txt ]; do sleep 30; done
+ENTRYPOINT robot . && until [ -e /tmp/robot_files_fetched.txt ]; do sleep 30; done

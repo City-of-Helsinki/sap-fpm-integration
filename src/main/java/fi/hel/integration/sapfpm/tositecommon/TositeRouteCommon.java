@@ -26,8 +26,10 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .end()
             .log("read ${headers.CamelFileName}")
             .to(processFileUri)
-            .log("batch size: ${exchangeProperty.CamelBatchSize}, i: ${exchangeProperty.CamelBatchIndex}, done: ${exchangeProperty.CamelBatchComplete}")
-            .process(e -> e.getMessage().setBody(""))
+            .removeProperty("originalBody")
+            .removeProperty("sqlNamedParams")
+            .removeProperty("sqlValNames")
+            .setBody(constant(""))
             .process(e -> {
                 int newTotal = processedFileAmount.addAndGet(1);
                 e.setProperty("processedFileAmount", newTotal);

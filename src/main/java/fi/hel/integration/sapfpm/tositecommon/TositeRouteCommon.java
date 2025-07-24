@@ -71,6 +71,9 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .setProperty("dbHasMoreResults", constant(true))
                     .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
                         .to(fetchByYearAndMonthFromDbUri)
+                        .removeProperty("originalBody")
+                        .removeProperty("sqlNamedParams")
+                        .removeProperty("sqlValNames")
                         .process(e -> {
                             List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
                             if (res == null || res.isEmpty() || res.size() < dbPageLimit) {
@@ -81,11 +84,10 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                             }
                         })
                         .to(marshalHeaderlessCsvURI)
+                .log("after marshal headerless")
                         .to("direct:any-file-out")
-                        .removeProperty("originalBody")
-                        .removeProperty("sqlNamedParams")
-                        .removeProperty("sqlValNames")
                         .setBody(constant(""))
+                .log("after marshal headerless + file out")
                     .end()
                     .log("appending done, enriching and sending to azure")
                     .to(sendFileToAzureUri)

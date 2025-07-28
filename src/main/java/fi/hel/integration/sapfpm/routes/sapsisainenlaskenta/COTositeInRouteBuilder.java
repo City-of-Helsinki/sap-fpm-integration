@@ -4,13 +4,15 @@ import fi.hel.integration.sapfpm.routes.CoToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
 // ID***_CO_TOSITE_***20250217-000705-001
 @ApplicationScoped
 public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
-    final static int DB_PAGE_LIMIT = 50000;
+    @ConfigProperty(name = "tosite-db.page-limit", defaultValue = "1000")
+    int DB_PAGE_LIMIT;
 
     public String[] createCsvHeader() {
         return new String[] {

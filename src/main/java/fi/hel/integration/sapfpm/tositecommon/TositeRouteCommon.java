@@ -84,10 +84,8 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                             }
                         })
                         .to(marshalHeaderlessCsvURI)
-                .log("after marshal headerless")
                         .to("direct:any-file-out")
                         .setBody(constant(""))
-                .log("after marshal headerless + file out")
                     .end()
                     .log("appending done, enriching and sending to azure")
                     .to(sendFileToAzureUri)

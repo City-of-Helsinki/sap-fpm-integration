@@ -25,8 +25,8 @@ public class DevFakeAzureUpload extends AzureBlobOut {
     @Inject
     IsConfigEnabled mainConfig;
 
-    public void createUploadLocalFileToFakeFtpRoute(String perustiedotOrToteumat, String toimiala, String routeIdSuffix) {
-        createUploadLocalFileRoute(routeIdSuffix, "ftp://{{%s.ftp.%s.user}}@{{%s.ftp.host}}?password={{%s.ftp.%s.password}}&passiveMode=false&ftpClient.remoteVerificationEnabled=false".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
+    public void createUploadLocalFileToFakeFtpRoute(String perustiedotOrToteumat, String toimiala) {
+        createUploadLocalFileRoute(toimiala, "ftp://{{%s.ftp.%s.user}}@{{%s.ftp.host}}?password={{%s.ftp.%s.password}}&passiveMode=false&ftpClient.remoteVerificationEnabled=false".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
         // create triggers here
     }
 
@@ -34,25 +34,23 @@ public class DevFakeAzureUpload extends AzureBlobOut {
     public void configure() throws Exception {
         if (devConfig.ftpUploadEnabled().isPresent() && "true".equals(devConfig.ftpUploadEnabled().get())) {
             if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("perustiedot", "kasko", "kasko-perustiedot");
+                createUploadLocalFileToFakeFtpRoute("perustiedot", "kasko");
             }
             if (mainConfig.kaskoFTPToteumatEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("toteumat", "kasko", "kasko-toteumat");
+                createUploadLocalFileToFakeFtpRoute("toteumat", "kasko");
             }
             if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("perustiedot", "sotepe", "sotepe-perustiedot");
+                createUploadLocalFileToFakeFtpRoute("perustiedot", "sotepe");
             }
             if (mainConfig.sotepeFTPToteumatEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("toteumat", "sotepe", "sotepe-toteumat");
+                createUploadLocalFileToFakeFtpRoute("toteumat", "sotepe");
             }
             if (mainConfig.palkeFTPPerustiedotEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("perustiedot", "palke", "palke-perustiedot");
+                createUploadLocalFileToFakeFtpRoute("perustiedot", "palke");
             }
-            if (mainConfig.palkeFTPToteumatEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("toteumat", "palke", "palke-toteumat");
-            }
-            if (mainConfig.palkeFTPCoToteumatEnabled()) {
-                createUploadLocalFileToFakeFtpRoute("co_toteumat", "palke", "palke-cototeumat");
+            // use the same ftp account for toteumat & cototeumat to mimic azure account
+            if (mainConfig.palkeFTPToteumatEnabled() || mainConfig.palkeFTPCoToteumatEnabled()) {
+                createUploadLocalFileToFakeFtpRoute("toteumat", "palke");
             }
         }
 

@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
+Documentation   Luo FTP-palvelimen, luo toteumia palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
 
 
 Library      ../../resources/FTPServer.py
@@ -13,7 +13,7 @@ Test Tags       toteumat     sapactual
 *** Test Cases ***
 Send kasko toteumat
     [Documentation]     KASKO toteumat
-    [Tags]   kasko      toteumat     sapactual
+    [Tags]   kasko
     ${KaskoToteumatFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID023}
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01

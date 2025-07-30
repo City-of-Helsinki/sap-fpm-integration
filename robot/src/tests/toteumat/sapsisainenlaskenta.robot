@@ -32,13 +32,13 @@ Send palke cototeumat and cut FTP connection for a long time
     ${AWTYP}     Set Variable    AWTYP
     ${AWORG}     Set Variable    AWORG
     ${BUZEI}     Set Variable    BUZEI
-    ${PERIO}     Set Variable    PERIO
+    ${PERIO}     Set Variable    ${COTOSITE_MONTH}
     ${WOGBTR}     Set Variable    WOGBTR
     ${OBJNR}     Set Variable    OBJNR
     ${OBJ_TYPE}     Set Variable    OBJ_TYPE
     ${TYPE_NR}     Set Variable    TYPE_NR
     ${PRCTR}     Set Variable    PRCTR
-    ${GJAHR}     Set Variable    GJAHR
+    ${GJAHR}     Set Variable    ${COTOSITE_YEAR}
     ${KSTAR}     Set Variable    KSTAR
     ${BEKNZ}     Set Variable    BEKNZ
     ${BUKRS}     Set Variable    BUKRS

@@ -14,13 +14,13 @@ Create COTOSITEFILE
         ...     ${PERIO}   ${WOGBTR}    ${OBJNR}    ${OBJ_TYPE}    ${TYPE_NR}
         ...     ${PRCTR}    ${GJAHR}     ${KSTAR}     ${BEKNZ}     ${BUKRS}    ${SGTXT}   ${FKBER}
 
-    ${CoTositteet}   Create Segment ZCODCMT      {BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
+    ${CoTositteet}   Create Segment ZCODCMT      ${BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
      ...     ${REFBN}   ${VERSN}    ${AWTYP}    ${AWORG}      ${BUZEI}
      ...     ${PERIO}   ${WOGBTR}    ${OBJNR}    ${OBJ_TYPE}    ${TYPE_NR}
      ...     ${PRCTR}    ${GJAHR}     ${KSTAR}     ${BEKNZ}     ${BUKRS}    ${SGTXT}   ${FKBER}
 
     FOR     ${index}    IN RANGE    499
-       ${NewCoTosite}    Create Segment ZCODCMT      {BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
+       ${NewCoTosite}    Create Segment ZCODCMT      ${BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
        ...     ${REFBN}   ${VERSN}    ${AWTYP}    ${AWORG}      ${BUZEI}
        ...     ${PERIO}   ${WOGBTR}    ${OBJNR}    ${OBJ_TYPE}    ${TYPE_NR}
        ...     ${PRCTR}    ${GJAHR}     ${KSTAR}     ${BEKNZ}     ${BUKRS}    ${SGTXT}   ${FKBER}
@@ -49,7 +49,7 @@ Create Segment ZCODCMT
     ...     <REFBN>${REFBN}</REFBN>
     ...     <VERSN>${VERSN}</VERSN>
     ...     <AWTYP>${AWTYP}</AWTYP>
-    ...     <AWORG> ${AWORG}</AWORG>
+    ...     <AWORG>${AWORG}</AWORG>
     ...     <BUZEI>
     ...     <BUZEI>${BUZEI}</BUZEI>
     ...     <PERIO>${PERIO}</PERIO>

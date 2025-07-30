@@ -27,8 +27,9 @@ Create COTOSITEFILE
         ${CoTositteet}  Catenate    ${CoTositteet}     ${NewCoTosite}
     END
 
+
     ${COTOSITE_FILE}  catenate  SEPARATOR=
-    ...    <Atos_CODCMT xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TASDA8F90C876F3F5B00A05:740"><IDOC>${CoTositteet}</IDOC></Atos_CODCMT>
+    ...    <Atos_CODCMT xmlns:prx="urn:sap.com:proxy:P10:/1SAI/TASDA8F90C876F3F5B00A05:740">${CoTositteet}</Atos_CODCMT>
     RETURN  ${COTOSITE_FILE}
 
 Create Segment ZCODCMT

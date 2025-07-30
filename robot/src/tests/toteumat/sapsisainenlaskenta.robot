@@ -11,11 +11,12 @@ Resource    ../../resources/CreateCoToteumatTestFiles.resource
 Test Tags       cototeumat     sapsisainenlaskenta
 
 *** Test Cases ***
-Send kasko toteumat and cut FTP connection for a long time
+Send palke cototeumat and cut FTP connection for a long time
     [Documentation]     Palke  cototeumat, FTP connection is cut, files should be sent after connection recovers
     [Tags]   palke
-    [Timeout]    NONE
     ${PalkeCoToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID166}
+    # same as toteumat
+    ${PalkeResultCoToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID025}
     ${COTOSITE_YEAR}    Set Variable    2025
     ${COTOSITE_MONTH}    Set Variable   08
     ${COTOSITE_SIMPLE_MONTH}    Set Variable   8
@@ -55,8 +56,8 @@ Send kasko toteumat and cut FTP connection for a long time
     Sleep    2 minutes
     Set Ftp Connection As Up
 
-    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${PalkeCoToteumatFtpDir}/SAPSISAINENLASKENTA_${COTOSITE_YEAR}_${COTOSITE_SIMPLE_MONTH}.csv
-    Wait Until Keyword Succeeds     2 minutes   15 Seconds     Check SAPSISAINENLASKENTA ${PalkeCoToteumatFtpDir}/SAPSISAINENLASKENTA_${COTOSITE_YEAR}_${COTOSITE_SIMPLE_MONTH}.csv
+    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${PalkeResultCoToteumatFtpDir}/SAPSISAINENLASKENTA_${COTOSITE_YEAR}_${COTOSITE_SIMPLE_MONTH}.csv
+    Wait Until Keyword Succeeds     2 minutes   15 Seconds     Check SAPSISAINENLASKENTA ${PalkeResultCoToteumatFtpDir}/SAPSISAINENLASKENTA_${COTOSITE_YEAR}_${COTOSITE_SIMPLE_MONTH}.csv
     ...     BELNR=${BELNR}    BLDAT=${BLDAT}    BUDAT=${BUDAT}   CPUDT=${CPUDT}   BLART=${BLART}
     ...     REFBN=${REFBN}   VERSN=${VERSN}      AWTYP=${AWTYP}    AWORG=${AWORG}      BUZEI=${BUZEI}
     ...     PERIO=${PERIO}   WOGBTR=${WOGBTR}    OBJNR=${OBJNR}    OBJ_TYPE=${OBJ_TYPE}    TYPE_NR=${TYPE_NR}

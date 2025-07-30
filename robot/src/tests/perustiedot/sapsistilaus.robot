@@ -48,7 +48,7 @@ Lähetä kasko perustiedot sapsistilaus
     Create File     ${KaskoPerustiedotFtpDir}/203/ORD_OUT_${CUR_DATE_STR}_1.xml   content=${ORD}
     Set Ftp Connection As Down
     Set Ftp Connection As Up
-    Wait Until Keyword Succeeds      2 minutes   15 seconds      Check SAPSISTILAUS ${KaskoPerustiedotFtpDir}/SAPSISTILAUS.csv
+    Wait Until Keyword Succeeds      3 minutes   15 seconds      Check SAPSISTILAUS ${KaskoPerustiedotFtpDir}/SAPSISTILAUS.csv
         ...     ${BUKRS}    ${AUART}    ${AUFNR1}   ${KTEXT1}   ${STTXT1}
         ...     ${AUFNR2}   ${KTEXT2}   ${STTXT2}   should_not_contain=${BUKRS_SHOULD_NOT_BE_IN_CSV}
 

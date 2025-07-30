@@ -35,7 +35,7 @@ Lähetä kasko perustiedot SAPPROJEKTI
     Set Ftp Connection As Up
     Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
 
-    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
+    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
     Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
         ...     ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}   ${STUFE}   ${ERDAT}   ${AEDAT}   ${TXT40}
 

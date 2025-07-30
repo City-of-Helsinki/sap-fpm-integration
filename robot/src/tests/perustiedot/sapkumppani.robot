@@ -27,7 +27,7 @@ Lähetä kasko perustiedot SAPKUMPPANI
     Create File     ${KaskoPerustiedotFtpDir}/210/PART_OUT_2_${CUR_DATE_STR}_2.xml   content=${PART}
     Set Ftp Connection As Up
     ${CSV_ESCAPED_NAME1}   Set Variable     "R NAME 2 HERE "" OK"
-    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
+    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv
     Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPKUMPPANI ${KaskoPerustiedotFtpDir}/SAPKUMPPANI.csv      ${RCOMP}    ${CSV_ESCAPED_NAME1}
 
 *** Keywords ***

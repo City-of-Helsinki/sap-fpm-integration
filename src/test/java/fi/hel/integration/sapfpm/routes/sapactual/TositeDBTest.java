@@ -10,7 +10,7 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
-import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,8 +41,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         mockTositeRivitFetchStreamed.reset();
         mockJdbcSapActual.reset();
 
-
-
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
         });
@@ -50,7 +48,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
             b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual?*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
         });
     }
 

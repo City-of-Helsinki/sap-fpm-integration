@@ -1,7 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapkumppani;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
-import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
@@ -9,15 +8,14 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildFtpPerustiedotIn;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalPerustiedotIn;
 
 // PART_OUT_ _> SAPKUMPPANI
-// kaikki kumppanit, yksi tiedosto per päivä
-// eli tässä ei tarvita kaikkien lukemista, viimeisin riittää
+// Lukee viimeisimmän PART_OUT tiedoston FTP:ltä, prosessoi sen SAPKUMPPANI.csv tiedostoksi ja lähettää tiedoston Azuren Blob Storageen.
+// Jos FTP:ltä luettu tiedosto on nimen perusteella aikaisempi kuin viimeksi lähetetty tiedosto, tiedostoa ei käsitellä, sillä lähetetty tiedosto sisälsi jo uudemmat tiedot
 @ApplicationScoped
 public class PartInRouteBuilder extends RouteBuilder {
     public String[] createCsvHeader() {
@@ -73,8 +71,6 @@ public class PartInRouteBuilder extends RouteBuilder {
         return part;
     }
 
-    // PART_OUT_167_SOTE
-    // PALKE: PART_OUT_138_9500
     public String getFilePrefix() {
         return "PART_OUT_";
     }

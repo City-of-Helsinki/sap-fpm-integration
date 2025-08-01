@@ -37,6 +37,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         CamelContext ctx = producerTemplate.getCamelContext();
 
         mockJdbcSapActualCo.reset();
+        mockCoTositeRivitFetchStreamed.reset();
 
         AdviceWith.adviceWith(ctx,"insertCoTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActualCo.getEndpointUri());
@@ -63,7 +64,6 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
 
     @Test
     void duplicateCoTositePreventionTest() throws Exception {
-
         CamelContext ctx = producerTemplate.getCamelContext();
 
         // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)

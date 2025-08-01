@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS COTOSITESAPFILE(
                 .setBody(exchangeProperty("originalBody"));
 
         from("direct:insert-cotositerivi-into-db").routeId("insertCoTositeRiviIntoDb")
-                .errorHandler(noErrorHandler())
+            .errorHandler(noErrorHandler())
             .setProperty("DB_TABLE", constant("COTOSITERIVI"))
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
 

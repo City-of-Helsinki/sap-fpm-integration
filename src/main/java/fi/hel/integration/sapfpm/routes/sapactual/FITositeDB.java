@@ -97,12 +97,12 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             .setBody(exchangeProperty("originalBody"));
 
         from("direct:insert-tositerivi-into-db").routeId("insertTositeRiviIntoDb")
-                .errorHandler(noErrorHandler())
+            .errorHandler(noErrorHandler())
             .setProperty("DB_TABLE", constant("TOSITERIVI"))
             .to("direct:insert-tosite-or-cotosite-rivi-into-db");
 
         from("direct:insert-tosite-or-cotosite-rivi-into-db")
-                .routeId("insertTositeOrCoTositeRiviIntoDb")
+            .routeId("insertTositeOrCoTositeRiviIntoDb")
             .errorHandler(noErrorHandler())
             .process(e -> {
                 Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));

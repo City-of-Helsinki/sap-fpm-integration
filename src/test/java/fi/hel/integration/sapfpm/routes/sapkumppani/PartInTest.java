@@ -30,14 +30,14 @@ public class PartInTest {
     @Inject
     ProducerTemplate producerTemplate;
 
-    @EndpointInject("mock:direct:enrich-and-send-file-to-azure-kasko-Part")
-    private MockEndpoint mockUploadBlobToAzureKaskoAnyFileOutPart;
+    @EndpointInject("mock:direct:enrich-and-send-file-to-azure-palke-Part")
+    private MockEndpoint mockUploadBlobToAzurePalkeAnyFileOutPart;
 
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "Part-kasko-process", b -> {
-            b.interceptSendToEndpoint("direct:enrich-and-send-file-to-azure-kasko").to(mockUploadBlobToAzureKaskoAnyFileOutPart.getEndpointUri())
+        AdviceWith.adviceWith(ctx, "Part-palke-process", b -> {
+            b.interceptSendToEndpoint("direct:enrich-and-send-file-to-azure-palke").to(mockUploadBlobToAzurePalkeAnyFileOutPart.getEndpointUri())
                 .skipSendToOriginalEndpoint();
         });
     }
@@ -113,11 +113,11 @@ public class PartInTest {
         Path firstTestFilePath = Paths.get(firstFileUrl.toURI());
         Path secTestFilePath = Paths.get(secFileUrl.toURI());
         Path thirdTestFilePath = Paths.get(thirdFileUrl.toURI());
-        Path inFirstTestFilePath = Paths.get("in/kasko/PART_OUT_test_1.xml");
-        Path inSecTestFilePath = Paths.get("in/kasko/PART_OUT_test_2.xml");
-        Path inThirdTestFilePath = Paths.get("in/kasko/PART_OUT_test_3.xml");
+        Path inFirstTestFilePath = Paths.get("in/palke/PART_OUT_test_1.xml");
+        Path inSecTestFilePath = Paths.get("in/palke/PART_OUT_test_2.xml");
+        Path inThirdTestFilePath = Paths.get("in/palke/PART_OUT_test_3.xml");
 
-        mockUploadBlobToAzureKaskoAnyFileOutPart.whenExchangeReceived(1, e -> {
+        mockUploadBlobToAzurePalkeAnyFileOutPart.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
             Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("000001;First")).findFirst();
@@ -130,12 +130,12 @@ public class PartInTest {
             Files.copy(secTestFilePath, inSecTestFilePath); // second added first
             Files.copy(firstTestFilePath, inFirstTestFilePath); // should be ignored
         } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
-        mockUploadBlobToAzureKaskoAnyFileOutPart.expectedMessageCount(1);
-        mockUploadBlobToAzureKaskoAnyFileOutPart.assertIsSatisfied();
+        mockUploadBlobToAzurePalkeAnyFileOutPart.expectedMessageCount(1);
+        mockUploadBlobToAzurePalkeAnyFileOutPart.assertIsSatisfied();
 
-        mockUploadBlobToAzureKaskoAnyFileOutPart.reset();
+        mockUploadBlobToAzurePalkeAnyFileOutPart.reset();
 
-        mockUploadBlobToAzureKaskoAnyFileOutPart.whenExchangeReceived(1, e -> {
+        mockUploadBlobToAzurePalkeAnyFileOutPart.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
             Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("000001;First")).findFirst();
@@ -149,14 +149,14 @@ public class PartInTest {
         try {
             Files.copy(thirdTestFilePath, inThirdTestFilePath);
         } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
-        mockUploadBlobToAzureKaskoAnyFileOutPart.expectedMessageCount(1);
-        mockUploadBlobToAzureKaskoAnyFileOutPart.assertIsSatisfied();
+        mockUploadBlobToAzurePalkeAnyFileOutPart.expectedMessageCount(1);
+        mockUploadBlobToAzurePalkeAnyFileOutPart.assertIsSatisfied();
     }
 
     @AfterAll
     public static void afterAll() throws Exception {
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_1.xml"));
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_2.xml"));
-        Files.deleteIfExists(Paths.get("in/kasko/PART_OUT_test_3.xml"));
+        Files.deleteIfExists(Paths.get("in/palke/PART_OUT_test_1.xml"));
+        Files.deleteIfExists(Paths.get("in/palke/PART_OUT_test_2.xml"));
+        Files.deleteIfExists(Paths.get("in/palke/PART_OUT_test_3.xml"));
     }
 }

@@ -1,7 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapsistilaus;
 
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
 import org.apache.camel.EndpointInject;
@@ -9,13 +8,11 @@ import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
-import org.apache.camel.converter.stream.InputStreamCache;
 import org.apache.camel.support.DefaultExchange;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -23,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,6 +52,11 @@ public class OrdInTest {
     void shouldParse_ORD_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
+        String AUFNR1 = "12345678",
+                KTEXT1 = "KTXT KTXT öä",
+                AUFNR2 = "2345678",
+                KTEXT2 = "Another ktext ",
+                expectedKTEXT2 = "\"Another ktext \"";
 
         String xmlIn = """
     <ZHKI_TARSISTILAUKSET>
@@ -83,16 +84,20 @@ public class OrdInTest {
     <ZHKI_TARSISTILAUKSET SEGMENT="1">
     <BUKRS>3900</BUKRS>
     <AUART>3901</AUART>
-    <AUFNR>3963110753</AUFNR>
-    <KTEXT>Asumisen tuki/0753</KTEXT>
+    <AUFNR>""" + AUFNR1 + """
+    </AUFNR>
+    <KTEXT>""" + KTEXT1 + """
+    </KTEXT>
     <STTXT>VAPA</STTXT>
     <AUTYP>01</AUTYP>
     </ZHKI_TARSISTILAUKSET>
     <ZHKI_TARSISTILAUKSET SEGMENT="1">
     <BUKRS>3900</BUKRS>
     <AUART>3901</AUART>
-    <AUFNR>3974190310</AUFNR>
-    <KTEXT>LAKOSO Etelä-Itä kotipalvelu/0310</KTEXT>
+    <AUFNR>""" + AUFNR2 + """
+    </AUFNR>
+    <KTEXT>""" + KTEXT2 + """
+    </KTEXT>
     <STTXT>VAPA</STTXT>
     <AUTYP>01</AUTYP>
     </ZHKI_TARSISTILAUKSET>
@@ -110,8 +115,8 @@ public class OrdInTest {
         ex.getMessage().setBody(vals);
         Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-Ord-palke", ex);
         assertEquals(
-                "3900;3901;3963110753;Asumisen tuki/0753;VAPA\r\n" +
-                        "3900;3901;3974190310;LAKOSO Etelä-Itä kotipalvelu/0310;VAPA\r\n",
+                "3900;3901;" + AUFNR1 + ";" + KTEXT1 + ";VAPA\r\n" +
+                        "3900;3901;" + AUFNR2 + ";" + expectedKTEXT2 + ";VAPA\r\n",
                 resCsv.getMessage().getBody(String.class));
     }
 

@@ -28,17 +28,6 @@ public class TositeInTest {
     @Inject
     FITositeInRouteBuilder tositeRoute;
 
-    @EndpointInject("mock:file:out_something")
-    private MockEndpoint mockFileOut;
-
-    @BeforeEach
-    public void beforeEach() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-        AdviceWith.adviceWith(ctx, "AnyFileOut", b -> {
-            //b.interceptSendToEndpoint("file:*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
-        });
-    }
-
     @Test
     void shouldParse_Tosite_OUT() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
@@ -358,10 +347,6 @@ public class TositeInTest {
                 </IDOC>
                 </FIDCCP02>
                 """, headers);
-
-        // mock file out
-
     }
-
 
 }

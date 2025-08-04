@@ -72,12 +72,16 @@ public class IdempotentRepositoryProvider {
 
     public IdempotentRepository queryFileNamesFromDbAndAddToIdempotentRepository(String toimiala, String tableName) {
         Map<String, Object> repoCache = LRUCacheFactory.newLRUCache(50000);
-
+        try {
+            log.info("ds login timeout: " + ds.getLoginTimeout());
+            log.info("ds is healthy: " + ds.isHealthy(true));
+        } catch (SQLException sqlE) {
+            log.error("sqlExc while getting login timeout: ");
+            log.error(sqlE);
+        }
         try(Connection c = ds.getConnection();
             PreparedStatement stmt = c.prepareStatement("SELECT fileName FROM %s WHERE toimiala = ?".formatted(tableName))
         ) {
-            log.info("query timeout: " + stmt.getQueryTimeout());
-            //stmt.setQueryTimeout(15);
             stmt.setString(1, toimiala);
             try(ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

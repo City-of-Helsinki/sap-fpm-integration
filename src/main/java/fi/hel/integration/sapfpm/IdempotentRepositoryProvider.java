@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.apache.camel.spi.IdempotentRepository;
-import org.apache.camel.support.LRUCache;
 import org.apache.camel.support.LRUCacheFactory;
 import org.apache.camel.support.processor.idempotent.MemoryIdempotentRepository;
 import org.jboss.logging.Logger;
@@ -77,6 +76,8 @@ public class IdempotentRepositoryProvider {
         try(Connection c = ds.getConnection();
             PreparedStatement stmt = c.prepareStatement("SELECT fileName FROM %s WHERE toimiala = ?".formatted(tableName))
         ) {
+            log.info("query timeout: " + stmt.getQueryTimeout());
+            //stmt.setQueryTimeout(15);
             stmt.setString(1, toimiala);
             try(ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -86,7 +87,7 @@ public class IdempotentRepositoryProvider {
         } catch (SQLException e) {
             log.error(e);
         }
-        log.info("Files already processed: " + String.join(", ", repoCache.keySet()));
+        log.info("%s files already processed: %s".formatted(toimiala, repoCache.size()));
         return new MemoryIdempotentRepository(repoCache);
     }
 

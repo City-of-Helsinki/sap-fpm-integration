@@ -7,6 +7,8 @@ import org.apache.camel.Exchange;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -159,5 +161,27 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             .end()
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("db fetch done, size: ${body.size}, lastId: ${headers.lastId}");
+
+        from("direct:fetch-latest-createdtimestamp-from-db")
+            .setBody(constant(
+                "SELECT DISTINCT createdTimestamp FROM TOSITERIVI WHERE toimiala = :?toimiala ORDER BY createdTimestamp DESC LIMIT 1"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("${headers.toimiala} latest createdTimestamp ${body}");
+
+        from("direct:fetch-changed-years-and-months-from-db")
+            .process(e -> {
+                Integer daysToSubtract = e.getMessage().getHeader("daysToSubtract", Integer.class);
+                Timestamp latest = e.getMessage().getHeader("latestCreatedTimestamp", Timestamp.class);
+                if (daysToSubtract == null) {
+                    e.getMessage().setHeader("afterOrEqualTime", latest);
+                } else {
+                    e.getMessage().setHeader("afterOrEqualTime", Timestamp.from(latest.toInstant().minus(Duration.ofDays(daysToSubtract))));
+                }
+            })
+            .setBody(constant(
+            "SELECT DISTINCT POPER, GJAHR FROM TOSITERIVI WHERE toimiala = :?toimiala AND createdTimestamp >= :?afterOrEqualTime ORDER BY GJAHR DESC, POPER DESC"))
+            .to("jdbc:sapactual?useHeadersAsParameters=true")
+            .log("${headers.toimiala} years and months changed at or after ${headers.afterOrEqualTime}: ${body}");
+
     }
 }

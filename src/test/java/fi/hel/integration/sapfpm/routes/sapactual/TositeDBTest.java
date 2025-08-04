@@ -14,9 +14,15 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.camel.builder.Builder.exchangeProperty;
 import static org.apache.camel.builder.Builder.header;
@@ -182,6 +188,85 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         assertIterableEquals(expMonths, resMonths);
     }
 
+    @Test
+    void fetchLatestCreatedTimestampTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        String toimiala = "latest";
+
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
+
+        Exchange ex = new DefaultExchange(ctx);
+        List<String> createdTimestamps = List.of("2025-08-01 10:10:11.000001", "2025-01-01 00:00:00.000001", "2025-08-01 10:10:13.000001");
+
+        ex.getMessage().setBody("INSERT INTO TOSITERIVI(createdTimestamp, fileName, toimiala, BUKRS, BELNR, GJAHR, POPER) VALUES (" +
+            createdTimestamps.stream().map(t -> "'" + t + "','file','" + toimiala + "','BUKRS','BELNR','GJAHR','POPER'").collect(Collectors.joining("), ("))
+                + ");");
+        producerTemplate.send("jdbc:sapactual", ex);
+
+        ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("toimiala", toimiala);
+        Exchange resCsv = producerTemplate.send("direct:fetch-latest-createdtimestamp-from-db", ex);
+        LinkedHashMap<String, Object> resBody = (LinkedHashMap<String, Object>)resCsv.getMessage().getBody(List.class).get(0);
+        Timestamp createdTimestamp = (Timestamp)resBody.get("createdTimestamp");
+        assertEquals(createdTimestamps.get(2), createdTimestamp.toString());
+    }
+
+    @Test
+    void fetchLatelyChangedYearsAndMonthsTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        String toimiala = "lately";
+
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
+
+        Exchange ex = new DefaultExchange(ctx);
+        List<TsWithPOPERGJAHR> created = List.of(
+            new TsWithPOPERGJAHR(LocalDateTime.of(2025, 1, 15, 0, 0), "POPER1", "GJAHR1"),
+            new TsWithPOPERGJAHR(LocalDateTime.of(2025, 1, 14, 0, 0), "POPER2", "GJAHR2"),
+            new TsWithPOPERGJAHR(LocalDateTime.of(2025, 1, 1, 0, 0), "POPER3", "GJAHR3")
+        );
+
+        ex.getMessage().setBody("INSERT INTO TOSITERIVI(createdTimestamp, fileName, toimiala, BUKRS, BELNR, GJAHR, POPER) VALUES (" +
+                created.stream().map(t -> "'" + t.creationTimestamp + "','file','" + toimiala + "','BUKRS','BELNR','" + t.GJAHR + "','" + t.POPER + "'").collect(Collectors.joining("), ("))
+                + ");");
+        producerTemplate.send("jdbc:sapactual", ex);
+
+        ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("toimiala", toimiala);
+        TsWithPOPERGJAHR ts = created.getFirst(); // latest
+        ex.getMessage().setHeader("latestCreatedTimestamp", toTimestamp(ts.creationTimestamp));
+        ex.getMessage().setHeader("daysToSubtract", 0);
+        Exchange resCsv = producerTemplate.send("direct:fetch-changed-years-and-months-from-db", ex);
+        List<LinkedHashMap<String, Object>> resBody = resCsv.getMessage().getBody(List.class);
+        assertEquals(1, resBody.size());
+        assertEquals(ts.POPER(), resBody.getFirst().get("POPER").toString());
+        assertEquals(ts.GJAHR(), resBody.getFirst().get("GJAHR").toString());
+
+        ex.getMessage().setHeader("latestCreatedTimestamp", toTimestamp(ts.creationTimestamp));
+        ex.getMessage().setHeader("daysToSubtract", 1);
+        resCsv = producerTemplate.send("direct:fetch-changed-years-and-months-from-db", ex);
+        resBody = resCsv.getMessage().getBody(List.class);
+        assertEquals(2, resBody.size());
+        assertEquals(created.getFirst().POPER(), resBody.getLast().get("POPER").toString()); // ordered by DESC POPER + GJAHR
+        assertEquals(created.get(1).POPER(), resBody.getFirst().get("POPER").toString());
+
+        ex.getMessage().setHeader("latestCreatedTimestamp", toTimestamp(ts.creationTimestamp));
+        ex.getMessage().setHeader("daysToSubtract", 13);
+        resCsv = producerTemplate.send("direct:fetch-changed-years-and-months-from-db", ex);
+        resBody = resCsv.getMessage().getBody(List.class);
+        assertEquals(2, resBody.size());
+        assertEquals(created.getFirst().POPER(), resBody.getLast().get("POPER").toString());
+        assertEquals(created.get(1).POPER(), resBody.getFirst().get("POPER").toString());
+
+        ex.getMessage().setHeader("latestCreatedTimestamp", toTimestamp(ts.creationTimestamp));
+        ex.getMessage().setHeader("daysToSubtract", 14);
+        resCsv = producerTemplate.send("direct:fetch-changed-years-and-months-from-db", ex);
+        resBody = resCsv.getMessage().getBody(List.class);
+        assertEquals(3, resBody.size());
+        assertEquals(created.getFirst().POPER(), resBody.getLast().get("POPER").toString());
+        assertEquals(created.get(1).POPER(), resBody.get(1).get("POPER").toString());
+        assertEquals(created.getLast().POPER(), resBody.getFirst().get("POPER").toString());
+    }
+
     public LinkedHashMap<String, Object> createTositeMeta(String BUKRS, String BELNR, String GJAHR, String POPER) {
         LinkedHashMap<String, Object> tosite = new LinkedHashMap<>();
         tosite.put("BUKRS", BUKRS);
@@ -191,4 +276,9 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         return tosite;
     }
 
+    public Timestamp toTimestamp(LocalDateTime t) {
+        return Timestamp.from(t.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    record TsWithPOPERGJAHR(LocalDateTime creationTimestamp, String POPER, String GJAHR) {}
 }

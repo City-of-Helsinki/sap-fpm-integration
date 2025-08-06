@@ -1,7 +1,9 @@
 package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 
 
+import fi.hel.integration.sapfpm.Profiles;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
@@ -21,6 +23,7 @@ import static org.apache.camel.builder.Builder.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@TestProfile(Profiles.CoTositeTestProfile.class)
 public class CoTositeDBTest extends CamelQuarkusTestSupport {
 
     @Inject
@@ -35,7 +38,6 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
-
         mockJdbcSapActualCo.reset();
         mockCoTositeRivitFetchStreamed.reset();
 

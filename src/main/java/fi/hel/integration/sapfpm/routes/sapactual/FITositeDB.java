@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
         String tositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
 
         from("direct:fetch-tositerivit-from-db-by-year-and-month")
+            .routeId("fetchTositeRivitFromDbByYearAndMonth")
             .choice().when(header("lastId").isNull())
                 .setBody(constant(tositeRiviSelect + tositeRiviSelectOrderBy))
             .otherwise()

@@ -8,7 +8,7 @@ Library         String
 *** Keywords ***
 
 Create TOSITEFILE
-    [Documentation]     Creates a tosite from the given params + tositteet with BELNR_0 ... BELNR_998
+    [Documentation]     Creates a tosite from the given params + tositteet with BELNR_0 ... BELNR_498
     [Arguments]     ${BUKRS}     ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
     ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}

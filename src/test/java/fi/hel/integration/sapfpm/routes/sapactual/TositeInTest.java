@@ -10,9 +10,13 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +31,13 @@ public class TositeInTest {
 
     @Inject
     FITositeInRouteBuilder tositeRoute;
+
+    String testTositeFileName = "ID022_FI_TOSITE_OUT_20250219-000123-999.xml";
+
+    @AfterEach
+    public void afterEach() throws IOException {
+        Files.deleteIfExists(Paths.get("in/" + testTositeFileName));
+    }
 
     @Test
     void shouldParse_Tosite_OUT() throws Exception {
@@ -323,7 +334,7 @@ public class TositeInTest {
 
     @Test
     void exceptionThrownWhenReadingFileInTest() {
-        Map<String, Object> headers = Map.of(Exchange.FILE_NAME, "ID022_FI_TOSITE_OUT_20250219-000123-456.xml");
+        Map<String, Object> headers = Map.of(Exchange.FILE_NAME, testTositeFileName);
 
         producerTemplate.sendBodyAndHeaders("file:in", """
                 <FIDCCP02>

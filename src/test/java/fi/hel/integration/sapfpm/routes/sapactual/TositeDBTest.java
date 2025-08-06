@@ -1,7 +1,9 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
 
+import fi.hel.integration.sapfpm.Profiles;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.apache.camel.builder.Builder.exchangeProperty;
@@ -29,6 +33,7 @@ import static org.apache.camel.builder.Builder.header;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
+@TestProfile(Profiles.TositeTestProfile.class)
 public class TositeDBTest extends CamelQuarkusTestSupport {
 
     @Inject
@@ -37,8 +42,14 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     @EndpointInject("mock:jdbc:sapactual")
     private MockEndpoint mockJdbcSapActual;
 
+    @EndpointInject("mock:mockFetchTositeRivitFromDb")
+    private MockEndpoint mockFetchTositeRivitFromDb;
+
     @EndpointInject("mock:tositerivit-fetch-streamed")
     private MockEndpoint mockTositeRivitFetchStreamed;
+
+    @EndpointInject("mock:any-file-out")
+    private MockEndpoint mockAnyFileOut;
 
     @BeforeEach
     public void beforeEach() throws Exception {
@@ -46,6 +57,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
 
         mockTositeRivitFetchStreamed.reset();
         mockJdbcSapActual.reset();
+        mockAnyFileOut.reset();
 
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
@@ -55,6 +67,10 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         });
         AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual?*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "fetchTositeAllYearsAndMonthsAndWriteToAzure-palke", b -> {
+            b.interceptSendToEndpoint("direct:fetch-tositerivit-from-db-by-year-and-month").to(mockFetchTositeRivitFromDb.getEndpointUri());
+            b.interceptSendToEndpoint("direct:any-file-out").to(mockAnyFileOut.getEndpointUri());
         });
     }
 
@@ -187,6 +203,50 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         assertIterableEquals(expYears, resYears);
         assertIterableEquals(expMonths, resMonths);
     }
+
+    @Test
+    void fetchTositeRivitFromDbErrorTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+
+        mockFetchTositeRivitFromDb.whenExchangeReceived(1, e -> {
+            e.setException(new SQLException("sql exception!"));
+        });
+
+        Exchange ex = new DefaultExchange(ctx);
+        String toimiala = "palke";
+        ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
+
+        String POPER = "02",
+                GJAHR = "2027",
+                tosite1BELNR = "BELNR123",
+                tosite2BELNR = "BELNR234";
+        LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", tosite1BELNR, GJAHR, POPER);
+        LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", tosite2BELNR, GJAHR, POPER);
+        List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1), List.of(tosite2));
+        ex.getMessage().setBody(tositteet);
+
+        producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
+
+        AtomicInteger tosite1Count = new AtomicInteger(0),
+                tosite2Count = new AtomicInteger(0);
+        mockAnyFileOut.whenAnyExchangeReceived(e -> {
+            String body = e.getMessage().getBody(String.class);
+            if (body.contains(tosite1BELNR)) {
+                tosite1Count.incrementAndGet();
+            } else if (body.contains(tosite2BELNR)) {
+                tosite2Count.incrementAndGet();
+            }
+        });
+        mockAnyFileOut.expectedMessageCount(3); // header + two tosite
+
+        producerTemplate.send("direct:fetch-tositteet-from-db-and-write-to-azure-palke", new DefaultExchange(ctx));
+        assertEquals(1, tosite1Count.get());
+        assertEquals(1, tosite2Count.get());
+    }
+
 
     @Test
     void fetchLatestCreatedTimestampTest() throws Exception {

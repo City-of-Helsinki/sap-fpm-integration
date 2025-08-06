@@ -51,10 +51,14 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .end();
     }
 
-    public void buildFileAppendingFromDbPageRoute(String fromUri, String toimiala,
+    public void buildFileAppendingFromDbPageRoute(String fromUri, String routeId, String toimiala,
               String fetchYearsAndMonthsFromDbUri, String initDbFetchParamsAndFileNameUri,
                   String marshalWithHeaderCsvURI, String fetchCountUri, int dbPageLimit, String fetchByYearAndMonthFromDbUri, String marshalHeaderlessCsvURI, String sendFileToAzureUri) {
         from(fromUri)
+            .routeId(routeId)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(1000)
+            .end()
             .setHeader("toimiala", constant(toimiala))
             .log("Writing db out to azure for ${headers.toimiala}")
             .setProperty("outDir", constant(toimiala))
@@ -83,12 +87,15 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                                 e.getMessage().setHeader("lastId", res.getLast().get("id"));
                             }
                         })
-                        .to(marshalHeaderlessCsvURI)
-                        .to("direct:any-file-out")
+                        .choice()
+                            .when(simple("${body} != null && ${body.size()} > 0"))
+                                .to(marshalHeaderlessCsvURI)
+                                .to("direct:any-file-out")
+                        .end()
                         .setBody(constant(""))
                     .end()
                     .log("appending done, enriching and sending to azure")
-                    .to(sendFileToAzureUri)
+                .to(sendFileToAzureUri)
                     .setBody(constant(""))
                 .end()
             .log("${headers.toimiala} all months and years sent to Azure from db");

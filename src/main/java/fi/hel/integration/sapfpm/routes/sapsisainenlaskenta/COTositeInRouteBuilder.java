@@ -92,7 +92,7 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
         String fetchCoToteumatRouteUri = "direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala;
 
-        buildFileAppendingFromDbPageRoute(fetchCoToteumatRouteUri, toimiala,
+        buildFileAppendingFromDbPageRoute(fetchCoToteumatRouteUri,  "fetchCoTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
                 "direct:fetch-all-cotosite-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
                 marshalWithHeaderCsvURI, "direct:fetch-cotosite-years-and-months-count-from-db", DB_PAGE_LIMIT,
                 "direct:fetch-cotositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);

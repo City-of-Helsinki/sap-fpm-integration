@@ -10,6 +10,7 @@ import org.apache.camel.dataformat.csv.CsvDataFormat;
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
+import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildFtpPerustiedotIn;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalPerustiedotIn;
 
@@ -35,6 +36,8 @@ public class PartInRouteBuilder extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        errorHandler(buildDefaultErrorHandler(this, log));
+
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
             log.info("Starting palke ftp perustiedot Part");
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");

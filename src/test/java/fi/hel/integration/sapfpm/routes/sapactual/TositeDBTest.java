@@ -58,6 +58,7 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         mockTositeRivitFetchStreamed.reset();
         mockJdbcSapActual.reset();
         mockAnyFileOut.reset();
+        mockFetchTositeRivitFromDb.reset();
 
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
@@ -208,14 +209,9 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     void fetchTositeRivitFromDbErrorTest() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
-        mockFetchTositeRivitFromDb.whenExchangeReceived(1, e -> {
-            e.setException(new SQLException("sql exception!"));
-        });
+        SQLException thrownException = new SQLException("sql exception!");
 
-        Exchange ex = new DefaultExchange(ctx);
-        String toimiala = "palke";
-        ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
-        ex.getMessage().setHeader("toimiala", toimiala);
+        mockFetchTositeRivitFromDb.whenExchangeReceived(1, e -> e.setException(thrownException));
 
         producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
@@ -226,6 +222,10 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", tosite1BELNR, GJAHR, POPER);
         LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", tosite2BELNR, GJAHR, POPER);
         List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1), List.of(tosite2));
+        Exchange ex = new DefaultExchange(ctx);
+        String toimiala = "palke";
+        ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
         ex.getMessage().setBody(tositteet);
 
         producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
@@ -241,10 +241,29 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
             }
         });
         mockAnyFileOut.expectedMessageCount(3); // header + two tosite
+        mockFetchTositeRivitFromDb.expectedMessageCount(4);
 
         producerTemplate.send("direct:fetch-tositteet-from-db-and-write-to-azure-palke", new DefaultExchange(ctx));
+        mockAnyFileOut.assertIsSatisfied();
+        mockFetchTositeRivitFromDb.assertIsSatisfied();
         assertEquals(1, tosite1Count.get());
         assertEquals(1, tosite2Count.get());
+
+        mockAnyFileOut.reset();
+        mockFetchTositeRivitFromDb.reset();
+
+        mockFetchTositeRivitFromDb.whenAnyExchangeReceived(e -> e.setException(thrownException));
+
+        mockAnyFileOut.expectedMessageCount(1);
+        mockFetchTositeRivitFromDb.expectedMessageCount(11);
+
+        ex = new DefaultExchange(ctx);
+        producerTemplate.send("direct:fetch-tositteet-from-db-and-write-to-azure-palke", ex);
+
+        mockAnyFileOut.assertIsSatisfied();
+        mockFetchTositeRivitFromDb.assertIsSatisfied();
+        assertNotNull(ex.getException());
+        assertEquals(thrownException, ex.getException(SQLException.class));
     }
 
 

@@ -22,6 +22,9 @@ public abstract class TositeDbCommon extends RouteBuilder {
                 .removeHeader(JdbcConstants.JDBC_PARAMETERS)
                 .continued(true)
             .end()
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
             .log("receipts to insert: ${body.size()}")
             .to(insertFileUri)
             .choice().when(body().isNotNull())
@@ -55,6 +58,9 @@ public abstract class TositeDbCommon extends RouteBuilder {
                     .continued(true)
                     .process(e -> e.getMessage().setBody(null))
                     .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+            .end()
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
             .end()
             .process(e -> {
                 List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);

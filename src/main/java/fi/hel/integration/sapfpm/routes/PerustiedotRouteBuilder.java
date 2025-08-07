@@ -2,15 +2,18 @@ package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import jakarta.inject.Inject;
+import org.apache.camel.builder.DefaultErrorHandlerBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
+import org.apache.camel.model.errorhandler.DefaultErrorHandlerDefinition;
+import org.slf4j.Logger;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 
@@ -30,6 +33,8 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
     @Override
     public void configure() throws Exception {
+        errorHandler(buildDefaultErrorHandler(this, log));
+
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
             log.info("Starting palke ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");

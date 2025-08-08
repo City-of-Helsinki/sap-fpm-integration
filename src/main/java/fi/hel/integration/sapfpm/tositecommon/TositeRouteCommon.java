@@ -15,6 +15,9 @@ public abstract class TositeRouteCommon extends RouteBuilder {
         AtomicInteger processedFileAmount = new AtomicInteger(0);
 
         from(fromUri).routeId(routeId).to(initRouteUri)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
             .choice()
                 .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
                 .process(e -> {

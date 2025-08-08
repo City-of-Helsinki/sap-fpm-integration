@@ -89,6 +89,9 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             .to("direct:any-file-out");
 
         from(fromURI).id(idPrefix + "-" + toimiala)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
             .log("%s %s read ${headers.CamelFileName}, batch: ${exchangeProperty.CamelBatchIndex}/${exchangeProperty.CamelBatchSize}, complete: ${exchangeProperty.CamelBatchComplete}".formatted(idPrefix, toimiala))
             .choice()
                 .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))

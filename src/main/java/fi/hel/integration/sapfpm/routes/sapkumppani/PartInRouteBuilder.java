@@ -88,6 +88,9 @@ public class PartInRouteBuilder extends RouteBuilder {
                 processFileRouteId = idPrefix + "-" + toimiala + "-process";
 
         from(fileOrFtpIn).id(idPrefix + "-" + toimiala)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
             .log("%s %s read ${headers.CamelFileName}, last modified ${headers.CamelFileLastModified}".formatted(idPrefix, toimiala))
             .process(e -> {
                 String lastSentFile = e.getVariable("route:%s:lastSentFile".formatted(processFileRouteId), String.class);

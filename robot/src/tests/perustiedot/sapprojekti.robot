@@ -13,33 +13,41 @@ Test Tags       perustiedot     sapprojekti
 
 *** Test Cases ***
 Lähetä kasko perustiedot SAPPROJEKTI
-    [Documentation]     KASKO perustiedot   sapprojekti
-    [Tags]   kasko      perustiedot     sapprojekti     wbs_out
-    ${KaskoPerustiedotFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID137}
+    Lähetä kasko perustiedot SAPPROJEKTI    %{KASKO_SFTP_USER_ID137}   PBUKR=1400    PSPNR=1401
+
+Lähetä palke perustiedot SAPPROJEKTI
+    Lähetä palke perustiedot SAPPROJEKTI   %{PALKE_SFTP_USER_ID138}     PBUKR=9500    PSPNR=9501
+
+Lähetä sotepe perustiedot SAPPROJEKTI
+    Lähetä sotepe perustiedot SAPPROJEKTI   %{SOTEPE_SFTP_USER_ID167}     PBUKR=3900    PSPNR=3901
+
+*** Keywords ***
+
+Lähetä ${TOIMIALA} perustiedot SAPPROJEKTI
+    [Documentation]     ${TOIMIALA}   perustiedot   sapprojekti
+    [Arguments]     ${SFTP_USER}    ${PBUKR}    ${PSPNR}
+    [Tags]   ${TOIMIALA}      perustiedot     sapprojekti     wbs_out
+    ${PerustiedotFtpDir}   Get FTP Dir For     ${SFTP_USER}
 
     ${CUR_DATE_STR}     Get Current Time Text
-    ${PBUKR}    Set Variable    1400
-    ${PSPNR}    Set Variable   3901
-    ${POSID}   Set Variable    01
-    ${POST1}   Set Variable    ktxt1
-    ${STUFE}   Set Variable    st text 1
-    ${ERDAT}   Set Variable    autyp1
-    ${AEDAT}   Set Variable    02
+    ${POSID}   Set Variable    02
+    ${POST1}   Set Variable    ktxt2
+    ${STUFE}   Set Variable    st text 2
+    ${ERDAT}   Set Variable    autyp2
+    ${AEDAT}   Set Variable    03
     ${TXT40}   Set Variable    ${CUR_DATE_STR}
     ${WBS}      Create WBS   ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
-    ${NonKaskoWBS}      Create WBS   9    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
+    ${NonToimialaWBS}      Create WBS   10    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
     Set Ftp Connection As Down
-    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_non_kasko_${CUR_DATE_STR}.xml   content=${NonKaskoWBS}
+    Create File     ${PerustiedotFtpDir}/204/WBS_OUT_non_palke_${CUR_DATE_STR}.xml   content=${NonToimialaWBS}
     Set Ftp Connection As Up
-    Create File     ${KaskoPerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
+    Create File     ${PerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
 
-    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
-    Check SAPPROJEKTI ${KaskoPerustiedotFtpDir}/SAPPROJEKTI.csv
+    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${PerustiedotFtpDir}/SAPPROJEKTI.csv
+    Check SAPPROJEKTI ${PerustiedotFtpDir}/SAPPROJEKTI.csv
         ...     ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}   ${STUFE}   ${ERDAT}   ${AEDAT}   ${TXT40}
-
-*** Keywords ***
 
 Check SAPPROJEKTI ${FilePath}
     [Documentation]     Opens SAPPROJEKTI.csv sent to the FTP and checks it contains the correct lines

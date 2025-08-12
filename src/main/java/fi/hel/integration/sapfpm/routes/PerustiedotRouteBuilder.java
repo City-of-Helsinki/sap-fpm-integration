@@ -41,15 +41,15 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-            //log.info("Kasko ftp perustiedot disabled!");
-            log.info("Starting kasko ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
+            log.info("Kasko ftp perustiedot disabled!");
+            //log.info("Starting kasko ftp perustiedot");
+            //buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-            //log.info("Sotepe ftp perustiedot disabled!");
-            log.info("Starting sotepe ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
+            log.info("Sotepe ftp perustiedot disabled!");
+            //log.info("Starting sotepe ftp perustiedot");
+            //buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {

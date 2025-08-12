@@ -20,7 +20,7 @@ Create COTOSITEFILE
      ...     ${PRCTR}    ${GJAHR}     ${KSTAR}     ${BEKNZ}     ${BUKRS}    ${SGTXT}   ${FKBER}
 
     FOR     ${index}    IN RANGE    499
-       ${NewCoTosite}    Create Segment ZCODCMT      ${BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
+       ${NewCoTosite}    Create Segment ZCODCMT      ${BELNR}_${index}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
        ...     ${REFBN}   ${VERSN}    ${AWTYP}    ${AWORG}      ${BUZEI}
        ...     ${PERIO}   ${WOGBTR}    ${OBJNR}    ${OBJ_TYPE}    ${TYPE_NR}
        ...     ${PRCTR}    ${GJAHR}     ${KSTAR}     ${BEKNZ}     ${BUKRS}    ${SGTXT}   ${FKBER}

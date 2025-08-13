@@ -12,18 +12,18 @@ Test Tags       perustiedot     sapkumppani
 
 *** Test Cases ***
 Lähetä kasko perustiedot SAPKUMPPANI
-    ${RCOMP}    Set Variable    R COMP SECOND
-    ${NAME1}    Set Variable    Kasko name
+    ${RCOMP}    Generate Random String  20
+    ${NAME1}     Generate Random String  20
     Lähetä kasko perustiedot SAPKUMPPANI    %{KASKO_SFTP_USER_ID137}   ${RCOMP}    ${NAME1}
 
 Lähetä sotepe perustiedot SAPKUMPPANI
-    ${RCOMP}    Set Variable    SOTEPE COMP
-    ${NAME1}    Set Variable   R NAME SOTEPE HERE
+    ${RCOMP}    Generate Random String  20
+    ${NAME1}    Generate Random String  20
     Lähetä sotepe perustiedot SAPKUMPPANI    %{SOTEPE_SFTP_USER_ID167}   ${RCOMP}    ${NAME1}
 
 Lähetä palke perustiedot SAPKUMPPANI
-    ${RCOMP}    Set Variable    PALKE " COMP
-    ${NAME1}    Set Variable   R NAME palke
+    ${RCOMP}    Generate Random String  20
+    ${NAME1}    Generate Random String  20
     Lähetä sotepe perustiedot SAPKUMPPANI   %{PALKE_SFTP_USER_ID138}   ${RCOMP}    ${NAME1}
 
 *** Keywords ***

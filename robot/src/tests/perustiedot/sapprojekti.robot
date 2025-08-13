@@ -31,8 +31,8 @@ Lähetä ${TOIMIALA} perustiedot SAPPROJEKTI
 
     ${CUR_DATE_STR}     Get Current Time Text
     ${POSID}   Set Variable    02
-    ${POST1}   Set Variable    ktxt2
-    ${STUFE}   Set Variable    st text 2
+    ${POST1}   Generate Random String  20
+    ${STUFE}   Generate Random String  20
     ${ERDAT}   Set Variable    autyp2
     ${AEDAT}   Set Variable    03
     ${TXT40}   Set Variable    ${CUR_DATE_STR}
@@ -56,7 +56,10 @@ Check SAPPROJEKTI ${FilePath}
     ${ExpHeader}     Set Variable     PBUKR;PSPNR;POSID;POST1;STUFE;ERDAT;AEDAT;TXT40
     ${FirstLine} =	Get Line	${File}    0
     Should Be Equal     ${FirstLine}       ${ExpHeader}
-    ${Lines}    Get Lines Containing String    ${File}   ${PBUKR};${PSPNR};${POSID};${POST1};${STUFE};${ERDAT};${AEDAT};${TXT40}
+    ${CSV_ESCAPED_POST1}  Escape CSV Value      ${POST1}
+    ${CSV_ESCAPED_STUFE}    Escape CSV Value      ${STUFE}
+    ${CSV_ESCAPED_TXT40}    Escape CSV Value      ${TXT40}
+    ${Lines}    Get Lines Containing String    ${File}   ${PBUKR};${PSPNR};${POSID};${CSV_ESCAPED_POST1};${CSV_ESCAPED_STUFE};${ERDAT};${AEDAT};${CSV_ESCAPED_TXT40}
     ${LineCount}    Get Line Count  ${Lines}
     Should Be Equal As Numbers   ${LineCount}     10
     ${AllLinesCount}    Get Line Count  ${File}

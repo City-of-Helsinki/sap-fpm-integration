@@ -24,10 +24,6 @@ import static fi.hel.integration.sapfpm.IdempotentRepositoryProvider.idempotentR
 @ApplicationScoped
 public class InRouteBuilder extends RouteBuilder {
 
-    public static String buildInParamsWithExclude(String excludeRegexp) {
-        return buildInParamsWithExclude(excludeRegexp, "file:name");
-    }
-
     public static String buildInParamsWithExclude(String excludeRegexp, String sortBy) {
         return "includeExt=xml&exclude=" + excludeRegexp + "&" +
                 "noop=true&" +
@@ -35,9 +31,9 @@ public class InRouteBuilder extends RouteBuilder {
                 "preSort=true&sortBy=" + sortBy;
     }
 
-    // TODO: move to mainConfig
-    public static String buildFtpParams(String filePrefix, String passiveMode, String sortBy) {
-        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)", sortBy) +
+    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {
+        return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
+                buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)", sortBy) +
                 "&passiveMode=" + passiveMode +
                 "&autoCreate=false&disconnect=true&" +
                 "localWorkDirectory=/tmp&" +
@@ -45,11 +41,6 @@ public class InRouteBuilder extends RouteBuilder {
                 "bridgeErrorHandler=true&" +
                 "timeout=120000&" +
                 "delay=30000"; // 30 seconds delay in between polls
-    }
-
-    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {
-        return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
-                buildFtpParams(filePrefix, passiveMode, sortBy);
     }
 
     public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix, String sortBy) {
@@ -61,7 +52,7 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {
-        return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix, "file:name");
+        return buildFtpPerustiedotIn(toimiala, ftpDir, filePrefix, "file:name");
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix, String sortBy) {
@@ -77,8 +68,7 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildLocalIn(String perusOrToteumat, String toimiala, String filePrefix) {
-        return buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)") +
-                idempotentRepositoryParam(perusOrToteumat, toimiala);
+        return buildLocalIn(perusOrToteumat, toimiala, filePrefix, "file:name");
     }
 
     public static String buildLocalIn(String perusOrToteumat, String toimiala, String filePrefix, String sortBy) {
@@ -87,7 +77,7 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildLocalPerustiedotIn(String toimiala, String filePrefix) {
-        return buildLocalIn("perustiedot", toimiala, filePrefix);
+        return buildLocalPerustiedotIn(toimiala, filePrefix, "file:name");
     }
 
     public static String buildLocalPerustiedotIn(String toimiala, String filePrefix, String sortBy) {

@@ -44,15 +44,15 @@ public class PartInRouteBuilder extends RouteBuilder {
         }
 
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-            log.info("Kasko ftp perustiedot part disabled!");
-            //log.info("Starting kasko ftp perustiedot Part");
-            //buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
+            //log.info("Kasko ftp perustiedot part disabled!");
+            log.info("Starting kasko ftp perustiedot Part");
+            buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
         }
 
         if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-            log.info("Sotepe ftp perustiedot part disabled!");
-            //log.info("Starting sotepe ftp perustiedot Part");
-            //buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
+            //log.info("Sotepe ftp perustiedot part disabled!");
+            log.info("Starting sotepe ftp perustiedot Part");
+            buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {

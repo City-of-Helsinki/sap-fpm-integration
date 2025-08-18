@@ -31,8 +31,8 @@ public class InRouteBuilder extends RouteBuilder {
                 "preSort=true&sortBy=" + sortBy;
     }
 
-    public static String buildFtpIn(String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {
-        return "ftp://%s@%s/%s?password=%s&".formatted(user, host, ftpDir, password) +
+    public static String buildFtpIn(String protocol, String user, String password, String host, String ftpDir, String filePrefix, String passiveMode, String sortBy) {
+        return "%s://%s@%s/%s?password=%s&".formatted(protocol, user, host, ftpDir, password) +
                 buildInParamsWithExclude("RAW(^(?!" + filePrefix + ").+)", sortBy) +
                 "&passiveMode=" + passiveMode +
                 "&autoCreate=false&disconnect=true&" +
@@ -44,23 +44,35 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildFtpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix, String sortBy) {
-        return buildFtpIn("{{%s.ftp.%s.user}}".formatted(toimiala, perusOrToteumat),
+        return buildFtpIn("ftp", "{{%s.ftp.%s.user}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.%s.password}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.ftp.host}}".formatted(toimiala),
                 ftpDir,
                 filePrefix, "{{%s.ftp.passiveMode}}".formatted(toimiala), sortBy) + idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
-    public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix) {
-        return buildFtpPerustiedotIn(toimiala, ftpDir, filePrefix, "file:name");
+    public static String buildS4SftpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix, String sortBy) {
+        return buildFtpIn("sftp", "{{%s.sftp.%s.user}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.sftp.%s.password}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.sftp.host}}".formatted(toimiala),
+                ftpDir,
+                filePrefix, "{{%s.sftp.passiveMode}}".formatted(toimiala), sortBy) + idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix, String sortBy) {
         return buildFtpIn("perustiedot", toimiala, ftpDir, filePrefix, sortBy);
     }
 
+    public static String buildS4SFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix, String sortBy) {
+        return buildS4SftpIn("perustiedot", toimiala, ftpDir, filePrefix, sortBy);
+    }
+
     public static String buildFtpToteumatIn(String toimiala, String ftpDir, String filePrefix) {
         return buildFtpIn("toteumat", toimiala, ftpDir, filePrefix, "file:name");
+    }
+
+    public static String buildS4SFtpToteumatIn(String toimiala, String ftpDir, String filePrefix) {
+        return buildS4SftpIn("toteumat", toimiala, ftpDir, filePrefix, "file:name");
     }
 
     public static String buildFtpCoToteumatIn(String toimiala, String ftpDir, String filePrefix) {

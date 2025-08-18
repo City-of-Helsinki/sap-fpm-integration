@@ -7,6 +7,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.apache.camel.model.errorhandler.DefaultErrorHandlerDefinition;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.util.HashSet;
@@ -21,6 +22,9 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     @Inject
     IsConfigEnabled mainConfig;
 
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    int DEFAULT_REDELIVERY_DELAY;
+
     abstract public String[] createCsvHeader();
 
     public CsvDataFormat createCsvDataFormat() {
@@ -28,7 +32,11 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
     public String ftpPerustiedotIn(String toimiala) {
-        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix());
+        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "file:name");
+    }
+
+    public String s4SftpPerustiedotIn(String toimiala) {
+        return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "file:name");
     }
 
     @Override
@@ -50,6 +58,18 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             //log.info("Sotepe ftp perustiedot disabled!");
             log.info("Starting sotepe ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
+        }
+
+        if (mainConfig.palkeS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpPerustiedotIn("palke"), "palke");
+        }
+
+        if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
+        }
+
+        if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {
@@ -90,7 +110,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
         from(fromURI).id(idPrefix + "-" + toimiala)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("%s %s read ${headers.CamelFileName}, batch: ${exchangeProperty.CamelBatchIndex}/${exchangeProperty.CamelBatchSize}, complete: ${exchangeProperty.CamelBatchComplete}".formatted(idPrefix, toimiala))
             .choice()

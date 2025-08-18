@@ -25,18 +25,16 @@ public class IsConfigEnabled {
     public boolean palkeFTPPerustiedotEnabled() {
         return palkeConfig.ftpPasswordPerustiedot().isPresent();
     }
+    public boolean palkeS4SFTPToteumatEnabled() { return palkeConfig.s4SftpPasswordToteumat().isPresent(); }
 
     public boolean palkeFTPCoToteumatEnabled() {
         return palkeConfig.ftpPasswordCoToteumat().isPresent();
     }
 
-    public boolean sotepeFTPToteumatEnabled() {
-        return sotepeConfig.ftpPasswordToteumat().isPresent();
-    }
+    public boolean sotepeFTPToteumatEnabled() { return sotepeConfig.ftpPasswordToteumat().isPresent(); }
+    public boolean sotepeS4SFTPToteumatEnabled() { return sotepeConfig.s4SftpPasswordToteumat().isPresent(); }
 
-    public boolean sotepeFTPPerustiedotEnabled() {
-        return sotepeConfig.ftpPasswordPerustiedot().isPresent();
-    }
+    public boolean sotepeFTPPerustiedotEnabled() { return sotepeConfig.ftpPasswordPerustiedot().isPresent(); }
 
     public boolean kaskoFTPToteumatEnabled() {
         return kaskoConfig.ftpPasswordToteumat().isPresent();
@@ -45,6 +43,8 @@ public class IsConfigEnabled {
     public boolean kaskoFTPPerustiedotEnabled() {
         return kaskoConfig.ftpPasswordPerustiedot().isPresent();
     }
+    public boolean kaskoS4SFTPToteumatEnabled() { return kaskoConfig.s4SftpPasswordToteumat().isPresent(); }
+
 
     public boolean localPerustiedotEnabled() {
         return localFileConfig.perustiedot().orElse(false);

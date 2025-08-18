@@ -30,6 +30,12 @@
             co_toteumat:
                 user: "${PALKE_SFTP_USER_ID166}"
                 password: "${PALKE_SFTP_PASSWORD_ID166}"
+        sftp:
+            host: "${PALKE_S4_SFTP_HOST}"
+            passiveMode: "${PALKE_S4_SFTP_PASSIVE_MODE:true}"
+            toteumat:
+                user: "${PALKE_S4_SFTP_USER_XXX}"
+                password: "${PALKE_S4_SFTP_PASSWORD_XXX}"
     kasko:
         azure:
             sasToken: "${KASKO_SAS_TOKEN}"
@@ -45,6 +51,12 @@
             toteumat:
                 user: "${KASKO_SFTP_USER_ID023}"
                 password: "${KASKO_SFTP_PASSWORD_ID023}"
+        sftp:
+            host: "${KASKO_S4_SFTP_HOST}"
+            passiveMode: "${KASKO_S4_SFTP_PASSIVE_MODE:true}"
+            toteumat:
+                user: "${KASKO_S4_SFTP_USER_IDXXX}"
+                password: "${KASKO_S4_SFTP_PASSWORD_IDXXXX}"
     sotepe:
         azure:
             sasToken: "${SOTEPE_SAS_TOKEN}"
@@ -60,3 +72,9 @@
             toteumat:
                 user: "${SOTEPE_SFTP_USER_ID022}"
                 password: "${SOTEPE_SFTP_PASSWORD_ID022}"
+        sftp:
+            host: "${SOTEPE_S4_SFTP_HOST}"
+            passiveMode: "${SOTEPE_S4_SFTP_PASSIVE_MODE:true}"
+            toteumat:
+                user: "${SOTEPE_S4_SFTP_USER_IDXXX}"
+                password: "${SOTEPE_S4_SFTP_PASSWORD_IDXXXX}"

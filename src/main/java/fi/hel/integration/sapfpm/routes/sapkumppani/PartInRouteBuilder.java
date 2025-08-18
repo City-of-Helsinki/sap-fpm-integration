@@ -11,8 +11,7 @@ import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
 import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildFtpPerustiedotIn;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalPerustiedotIn;
+import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 // PART_OUT_ _> SAPKUMPPANI
 // Lukee viimeisimmän PART_OUT tiedoston FTP:ltä, prosessoi sen SAPKUMPPANI.csv tiedostoksi ja lähettää tiedoston Azuren Blob Storageen.
@@ -34,6 +33,10 @@ public class PartInRouteBuilder extends RouteBuilder {
         return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "reverse:file:name");
     }
 
+    public String s4SftpPerustiedotIn(String toimiala) {
+        return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "reverse:file:name");
+    }
+
     @Override
     public void configure() throws Exception {
         errorHandler(buildDefaultErrorHandler(this, log));
@@ -53,6 +56,21 @@ public class PartInRouteBuilder extends RouteBuilder {
             //log.info("Sotepe ftp perustiedot part disabled!");
             log.info("Starting sotepe ftp perustiedot Part");
             buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
+        }
+
+        if (mainConfig.palkeS4SFTPToteumatEnabled()) {
+            log.info("Starting palke sftp perustiedot Part");
+            buildMainRoute(s4SftpPerustiedotIn("palke"), "palke");
+        }
+
+        if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
+            log.info("Starting kasko sftp perustiedot Part");
+            buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
+        }
+
+        if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
+            log.info("Starting sotepe sftp perustiedot Part");
+            buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {

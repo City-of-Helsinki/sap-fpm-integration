@@ -25,6 +25,12 @@ public interface SotepeConfig {
     @WithName("ftp.passiveMode")
     Optional<String> ftpPassiveMode();
 
+    @WithName("sftp.host")
+    Optional<String> s4SftpHost();
+
+    @WithName("sftp.passiveMode")
+    Optional<String> s4SftpPassiveMode();
+
     @WithName("ftp.perustiedot.user")
     Optional<String> ftpUserPerustiedot();
 
@@ -36,5 +42,11 @@ public interface SotepeConfig {
 
     @WithName("ftp.toteumat.password")
     Optional<String> ftpPasswordToteumat();
+
+    @WithName("sftp.toteumat.user")
+    Optional<String> s4SftpUserToteumat();
+
+    @WithName("sftp.toteumat.password")
+    Optional<String> s4SftpPasswordToteumat();
 
 }

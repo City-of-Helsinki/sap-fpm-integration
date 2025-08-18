@@ -22,6 +22,13 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
         return buildFtpToteumatIn(toimiala, getFtpDir(toimiala), getFilePrefix());
     }
 
+    public String s4SftpToteumatIn(String toimiala) {
+        return buildS4SFtpToteumatIn(toimiala, getFtpDir(toimiala), getFilePrefix());
+    }
+
+    // s4SftpPerustedotIn
+
+
     @Override
     public void configure() throws Exception {
         errorHandler(buildDefaultErrorHandler(this, log));
@@ -36,6 +43,18 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
 
         if (mainConfig.sotepeFTPToteumatEnabled()) {
             buildMainRoute(ftpToteumatIn("sotepe"), "sotepe");
+        }
+
+        if (mainConfig.palkeS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpToteumatIn("palke"), "palke");
+        }
+
+        if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpToteumatIn("kasko"), "kasko");
+        }
+
+        if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
+            buildMainRoute(s4SftpToteumatIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localToteumatEnabled()) {

@@ -10,10 +10,14 @@ public class DefaultErrorHandlerBuilder {
             .maximumRedeliveries(5)
             .redeliveryDelay(5000)
             .onExceptionOccurred(e -> {
-                log.error("Exception occurred: ");
-                Exception exc = e.getException(Exception.class);
-                if (exc != null) {
-                    log.error(exc.getMessage());
+                Integer redeliveries = e.getMessage().getHeader("CamelRedeliveryCounter", Integer.class),
+                        maxRedeliveries = e.getMessage().getHeader("CamelRedeliveryMaxCounter", Integer.class);
+                if (redeliveries != null && maxRedeliveries != null && redeliveries > maxRedeliveries) {
+                    log.error("Exception occurred after retries (%s/%s): ".formatted(redeliveries, maxRedeliveries));
+                    Exception exc = e.getException(Exception.class);
+                    if (exc != null) {
+                        log.error(exc.getMessage());
+                    }
                 }
             });
     }

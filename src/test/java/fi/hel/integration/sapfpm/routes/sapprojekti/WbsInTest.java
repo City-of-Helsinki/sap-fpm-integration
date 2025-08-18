@@ -4,21 +4,58 @@ package fi.hel.integration.sapfpm.routes.sapprojekti;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.apache.camel.*;
+import org.apache.camel.builder.AdviceWith;
+import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 public class WbsInTest {
 
     @Inject
     ProducerTemplate producerTemplate;
+
+    @EndpointInject("mock:sotepeexception")
+    private MockEndpoint mockWbsSotepeExceptionThrower;
+
+    @EndpointInject("mock:direct:enrich-and-send-file-to-azure-sotepe-Wbs")
+    private MockEndpoint mockUploadBlobToAzureSotepeAnyFileOutWbs;
+
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        mockWbsSotepeExceptionThrower.reset();
+        mockUploadBlobToAzureSotepeAnyFileOutWbs.reset();
+        AdviceWith.adviceWith(ctx, "Wbs-sotepe", b -> {
+            b.interceptSendToEndpoint("direct:unmarshal-xml").to(mockWbsSotepeExceptionThrower.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "append-wip-main-Wbs-sotepe", b ->
+            b.interceptSendToEndpoint("direct:enrich-and-send-file-to-azure-sotepe").to(mockUploadBlobToAzureSotepeAnyFileOutWbs.getEndpointUri()).skipSendToOriginalEndpoint()
+        );
+    }
+
+    String testWbsFileName = "WBS_OUT_read_exception.xml";
+
+    @AfterEach
+    public void afterEach() throws IOException {
+        Files.deleteIfExists(Paths.get("in/sotepe/" + testWbsFileName));
+    }
 
     @Test
     void shouldParse_WBS_OUT_palke() throws Exception {
@@ -41,21 +78,31 @@ public class WbsInTest {
         List<LinkedHashMap<String, Object>> vals = res.getMessage().getBody(List.class);
         assertEquals(1, vals.size());
         assertEquals(PBUKR, vals.getFirst().get("PBUKR"));
+    }
 
-        toimiala = "palke";
-        PBUKR = "9500";
-        res = producerTemplate.send("direct:process-wbs-" + toimiala, producerTemplate.send("direct:unmarshal-xml", createTestExchange(List.of(PBUKR))));
-        vals = res.getMessage().getBody(List.class);
-        assertEquals(1, vals.size());
-        assertEquals(PBUKR, vals.getFirst().get("PBUKR"));
+    @Test
+    void WBS_OUT_retryWhenExceptionThrownDuringFileReading() throws Exception {
+        URL fileUrl = getClass().getResource("/" + testWbsFileName);
+        assertNotNull(fileUrl);
+        Path testFilePath = Paths.get(fileUrl.toURI());
+        Path inTestFilePath = Paths.get("in/sotepe/" + testWbsFileName);
 
-        toimiala = "sotepe";
-        PBUKR = "3900";
-        res = producerTemplate.send("direct:process-wbs-" + toimiala, producerTemplate.send("direct:unmarshal-xml", createTestExchange(List.of(PBUKR))));
-        vals = res.getMessage().getBody(List.class);
-        assertEquals(1, vals.size());
-        assertEquals(PBUKR, vals.getFirst().get("PBUKR"));
-        assertEquals("00004047", vals.getFirst().get("PSPNR"));
+        String expectedFileName = testWbsFileName.replace(".xml", ".csv");
+
+        mockWbsSotepeExceptionThrower.whenExchangeReceived(1, e -> {
+            e.setException(new Exception("wbsSotepeReadException"));
+        });
+        mockUploadBlobToAzureSotepeAnyFileOutWbs.expectedMessageCount(1);
+        mockUploadBlobToAzureSotepeAnyFileOutWbs.whenAnyExchangeReceived(e -> {
+            Set<String> allProcessedFileNames =  e.getProperty("allProcessedFileNames", Set.class);
+            assertEquals(1, allProcessedFileNames.size());
+            assertTrue(allProcessedFileNames.contains(expectedFileName));
+        });
+        try {
+            Files.copy(testFilePath, inTestFilePath);
+        } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
+
+        mockUploadBlobToAzureSotepeAnyFileOutWbs.assertIsSatisfied();
     }
 
     Exchange createTestExchange(List<String> PBUKRs) {

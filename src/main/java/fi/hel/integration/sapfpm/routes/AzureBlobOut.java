@@ -23,10 +23,11 @@ public class AzureBlobOut extends RouteBuilder {
     Logger log;
 
     public void createAzureBlobUploadingRoute(String toimiala) {
-        onException(Exception.class)
-            .maximumRedeliveries(10).redeliveryDelay(10000);
         // check for local here
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
             .log("uploading ${headers.CamelFileName} to Azure {{%s.azure.directory}}".formatted(toimiala))
             .setHeader(BlobConstants.BLOB_NAME, simple("{{%s.azure.directory}}/${header.CamelFileName}".formatted(toimiala)))
             .toD("azure-storage-blob://{{%s.azure.accountName}}/{{%s.azure.containerName}}".formatted(toimiala, toimiala) +

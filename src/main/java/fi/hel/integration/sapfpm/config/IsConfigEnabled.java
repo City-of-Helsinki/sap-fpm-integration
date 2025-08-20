@@ -21,11 +21,12 @@ public class IsConfigEnabled {
     public boolean palkeFTPToteumatEnabled() {
         return palkeConfig.ftpPasswordToteumat().isPresent();
     }
+    public boolean palkeS4SFTPToteumatEnabled() { return palkeConfig.s4SftpPasswordToteumat().isPresent(); }
 
     public boolean palkeFTPPerustiedotEnabled() {
         return palkeConfig.ftpPasswordPerustiedot().isPresent();
     }
-    public boolean palkeS4SFTPToteumatEnabled() { return palkeConfig.s4SftpPasswordToteumat().isPresent(); }
+    public boolean palkeS4SFTPPerustiedotEnabled() { return palkeConfig.s4SftpPasswordPerustiedot().isPresent(); }
 
     public boolean palkeFTPCoToteumatEnabled() {
         return palkeConfig.ftpPasswordCoToteumat().isPresent();
@@ -35,16 +36,17 @@ public class IsConfigEnabled {
     public boolean sotepeS4SFTPToteumatEnabled() { return sotepeConfig.s4SftpPasswordToteumat().isPresent(); }
 
     public boolean sotepeFTPPerustiedotEnabled() { return sotepeConfig.ftpPasswordPerustiedot().isPresent(); }
+    public boolean sotepeS4SFTPPerustiedotEnabled() { return sotepeConfig.s4SftpPasswordPerustiedot().isPresent(); }
 
     public boolean kaskoFTPToteumatEnabled() {
         return kaskoConfig.ftpPasswordToteumat().isPresent();
     }
+    public boolean kaskoS4SFTPToteumatEnabled() { return kaskoConfig.s4SftpPasswordToteumat().isPresent(); }
 
     public boolean kaskoFTPPerustiedotEnabled() {
         return kaskoConfig.ftpPasswordPerustiedot().isPresent();
     }
-    public boolean kaskoS4SFTPToteumatEnabled() { return kaskoConfig.s4SftpPasswordToteumat().isPresent(); }
-
+    public boolean kaskoS4SFTPPerustiedotEnabled() { return kaskoConfig.s4SftpPasswordPerustiedot().isPresent(); }
 
     public boolean localPerustiedotEnabled() {
         return localFileConfig.perustiedot().orElse(false);
@@ -58,6 +60,7 @@ public class IsConfigEnabled {
         return localFileConfig.coToteumat().orElse(false);
     }
 
+    // TODO: add s4
     public boolean localOrFTPPerustiedotEnabled() {
         return localPerustiedotEnabled() || sotepeFTPPerustiedotEnabled() || palkeFTPPerustiedotEnabled() || kaskoFTPPerustiedotEnabled();
     }

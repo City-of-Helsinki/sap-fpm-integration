@@ -88,10 +88,6 @@ public class InRouteBuilder extends RouteBuilder {
                 idempotentRepositoryParam(perusOrToteumat, toimiala);
     }
 
-    public static String buildLocalPerustiedotIn(String toimiala, String filePrefix) {
-        return buildLocalPerustiedotIn(toimiala, filePrefix, "file:name");
-    }
-
     public static String buildLocalPerustiedotIn(String toimiala, String filePrefix, String sortBy) {
         return buildLocalIn("perustiedot", toimiala, filePrefix, sortBy);
     }

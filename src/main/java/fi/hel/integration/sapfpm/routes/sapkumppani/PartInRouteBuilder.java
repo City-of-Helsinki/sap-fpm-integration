@@ -1,23 +1,21 @@
 package fi.hel.integration.sapfpm.routes.sapkumppani;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
+import fi.hel.integration.sapfpm.routes.PerustiedotRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
-import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 // PART_OUT_ _> SAPKUMPPANI
 // Lukee viimeisimmän PART_OUT tiedoston FTP:ltä, prosessoi sen SAPKUMPPANI.csv tiedostoksi ja lähettää tiedoston Azuren Blob Storageen.
 // Jos FTP:ltä luettu tiedosto on nimen perusteella aikaisempi kuin viimeksi lähetetty tiedosto, tiedostoa ei käsitellä, sillä lähetetty tiedosto sisälsi jo uudemmat tiedot
 @ApplicationScoped
-public class PartInRouteBuilder extends RouteBuilder {
+public class PartInRouteBuilder extends PerustiedotRouteBuilder {
     public String[] createCsvHeader() {
         return new String[] { "RCOMP", "NAME1" };
     }
@@ -29,61 +27,8 @@ public class PartInRouteBuilder extends RouteBuilder {
         return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(false).setHeader(createCsvHeader()).setSkipHeaderRecord(false);
     }
 
-    public String ftpPerustiedotIn(String toimiala) {
-        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "reverse:file:name");
-    }
-
-    public String s4SftpPerustiedotIn(String toimiala) {
-        return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "reverse:file:name");
-    }
-
     @Override
-    public void configure() throws Exception {
-        errorHandler(buildDefaultErrorHandler(this, log));
-
-        if (mainConfig.palkeFTPPerustiedotEnabled()) {
-            log.info("Starting palke ftp perustiedot Part");
-            buildMainRoute(ftpPerustiedotIn("palke"), "palke");
-        }
-
-        if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-            log.info("Kasko ftp perustiedot part disabled!");
-            //log.info("Starting kasko ftp perustiedot Part");
-            //buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
-        }
-
-        if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-            log.info("Sotepe ftp perustiedot part disabled!");
-            //log.info("Starting sotepe ftp perustiedot Part");
-            //buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
-        }
-
-        if (mainConfig.palkeS4SFTPToteumatEnabled()) {
-            log.info("Starting palke sftp perustiedot Part");
-            buildMainRoute(s4SftpPerustiedotIn("palke"), "palke");
-        }
-
-        if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
-            log.info("Starting kasko sftp perustiedot Part");
-            buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
-        }
-
-        if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
-            log.info("Starting sotepe sftp perustiedot Part");
-            buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
-        }
-
-        if (mainConfig.localPerustiedotEnabled()) {
-            log.info("Starting local perustiedot Part");
-            buildMainRoute("file:in/kasko?" + buildLocalPerustiedotIn("kasko", getFilePrefix(),"reverse:file:name"), "kasko");
-            buildMainRoute("file:in/sotepe?" + buildLocalPerustiedotIn("sotepe", getFilePrefix(), "reverse:file:name"), "sotepe");
-            buildMainRoute("file:in/palke?" + buildLocalPerustiedotIn("palke", getFilePrefix(), "reverse:file:name"), "palke");
-        }
-
-        if (mainConfig.localOrFTPPerustiedotEnabled()) {
-            buildSupportingRoutes();
-        }
-    }
+    public String getSortBy() { return "reverse:file:name"; }
 
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> valuesLine) {
         LinkedHashMap<String, Object> part = new LinkedHashMap<>(); // order matters
@@ -100,6 +45,7 @@ public class PartInRouteBuilder extends RouteBuilder {
         return "210";
     }
 
+    @Override
     public void buildMainRoute(String fileOrFtpIn, String toimiala) {
         String idPrefix = "Part";
         String processFileUri = "direct:process-part-and-send-to-azure-" + idPrefix + "-" + toimiala,

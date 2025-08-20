@@ -49,4 +49,10 @@ public interface SotepeConfig {
     @WithName("sftp.toteumat.password")
     Optional<String> s4SftpPasswordToteumat();
 
+    @WithName("sftp.perustiedot.user")
+    Optional<String> s4SftpUserPerustiedot();
+
+    @WithName("sftp.perustiedot.password")
+    Optional<String> s4SftpPasswordPerustiedot();
+
 }

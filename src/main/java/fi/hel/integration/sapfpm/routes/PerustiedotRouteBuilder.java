@@ -31,12 +31,17 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
         return new CsvDataFormat().setDelimiter(';').setQuoteDisabled(false).setHeader(createCsvHeader());
     }
 
+    public String getSortBy() {
+        return "file:name";
+    }
+
     public String ftpPerustiedotIn(String toimiala) {
-        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "file:name");
+        System.out.println("SORT BY: " + getSortBy());
+        return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), getSortBy());
     }
 
     public String s4SftpPerustiedotIn(String toimiala) {
-        return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), "file:name");
+        return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), getSortBy());
     }
 
     @Override
@@ -60,23 +65,23 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             //buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
 
-        if (mainConfig.palkeS4SFTPToteumatEnabled()) {
+        if (mainConfig.palkeS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("palke"), "palke");
         }
 
-        if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
+        if (mainConfig.kaskoS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
         }
 
-        if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
+        if (mainConfig.sotepeS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
         }
 
         if (mainConfig.localPerustiedotEnabled()) {
             log.info("Starting local perustiedot");
-            buildMainRoute("file:in/kasko?" + buildLocalPerustiedotIn("kasko", getFilePrefix()), "kasko");
-            buildMainRoute("file:in/sotepe?" + buildLocalPerustiedotIn("sotepe", getFilePrefix()), "sotepe");
-            buildMainRoute("file:in/palke?" + buildLocalPerustiedotIn("palke", getFilePrefix()), "palke");
+            buildMainRoute("file:in/kasko?" + buildLocalPerustiedotIn("kasko", getFilePrefix(), getSortBy()), "kasko");
+            buildMainRoute("file:in/sotepe?" + buildLocalPerustiedotIn("sotepe", getFilePrefix(), getSortBy()), "sotepe");
+            buildMainRoute("file:in/palke?" + buildLocalPerustiedotIn("palke", getFilePrefix(), getSortBy()), "palke");
 
         }
 

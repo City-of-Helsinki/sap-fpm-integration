@@ -60,13 +60,17 @@ public class IsConfigEnabled {
         return localFileConfig.coToteumat().orElse(false);
     }
 
-    // TODO: add s4
+
     public boolean localOrFTPPerustiedotEnabled() {
-        return localPerustiedotEnabled() || sotepeFTPPerustiedotEnabled() || palkeFTPPerustiedotEnabled() || kaskoFTPPerustiedotEnabled();
+        return localPerustiedotEnabled() ||
+                sotepeFTPPerustiedotEnabled() || palkeFTPPerustiedotEnabled() || kaskoFTPPerustiedotEnabled() ||
+                sotepeS4SFTPPerustiedotEnabled() || palkeS4SFTPPerustiedotEnabled() || kaskoS4SFTPPerustiedotEnabled();
     }
 
     public boolean localOrFTPToteumatEnabled() {
-        return localToteumatEnabled() || sotepeFTPToteumatEnabled() || palkeFTPToteumatEnabled() || kaskoFTPToteumatEnabled();
+        return localToteumatEnabled() ||
+                sotepeFTPToteumatEnabled() || palkeFTPToteumatEnabled() || kaskoFTPToteumatEnabled() ||
+                sotepeS4SFTPToteumatEnabled() || palkeS4SFTPToteumatEnabled() || kaskoS4SFTPToteumatEnabled();
     }
 
     public boolean localOrFTPCoToteumatEnabled() {

@@ -26,7 +26,14 @@ public class DevFakeAzureUpload extends AzureBlobOut {
     IsConfigEnabled mainConfig;
 
     public void createUploadLocalFileToFakeFtpRoute(String perustiedotOrToteumat, String toimiala) {
-        createUploadLocalFileRoute(toimiala, "ftp://{{%s.ftp.%s.user}}@{{%s.ftp.host}}?password={{%s.ftp.%s.password}}&passiveMode=false&ftpClient.remoteVerificationEnabled=false".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
+        String uploadUri = "direct:upload-local-file-to-fake-ftp-%s-%s".formatted(perustiedotOrToteumat, toimiala);
+        from(uploadUri)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
+            .to("ftp://{{%s.ftp.%s.user}}@{{%s.ftp.host}}?password={{%s.ftp.%s.password}}&passiveMode=false&ftpClient.remoteVerificationEnabled=false".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
+
+        createUploadLocalFileRoute(toimiala, uploadUri);
     }
 
     @Override

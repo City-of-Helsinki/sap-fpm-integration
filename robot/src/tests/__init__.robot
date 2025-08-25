@@ -1,9 +1,10 @@
 *** Settings ***
 Library      ../resources/FTPServer.py
+Library      ../resources/S4SFTPServer.py
 Library      OperatingSystem
 
-Suite Setup     Setup Ftp Server
-Suite Teardown  Teardown Ftp Server
+Suite Setup     Setup S4SFtp Server
+Suite Teardown  Teardown S4SFtp Server
 
 *** Keywords ***
 
@@ -25,3 +26,9 @@ Setup Ftp Server
 
 Teardown Ftp Server
     Close Ftp Server
+
+Setup S4SFtp Server
+    Start S4 Sftp Server
+
+Teardown S4SFtp Server
+    Log To Console     Closed

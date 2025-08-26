@@ -7,9 +7,11 @@ from paramiko import ServerInterface, SFTPServerInterface, SFTPServer, SFTPAttri
 from robot.api.deco import keyword, not_keyword
 from threading import Thread, current_thread
 
-
+# can pass in user dirs here
 class S4Server (ServerInterface):
     def check_auth_password(self, username, password):
+        self.logged_in_user = username
+        self.logged_in_user_dir = self.user_dirs.get(username)
         return AUTH_SUCCESSFUL
 
     def check_auth_publickey(self, username, key):
@@ -21,6 +23,10 @@ class S4Server (ServerInterface):
     def get_allowed_auths(self, username):
         return "password"
 
+    def check_channel_shell_request(self, channel):
+        return True
+
+
 
 class S4SFTPHandle (SFTPHandle):
     def stat(self):
@@ -31,12 +37,13 @@ class S4SFTPHandle (SFTPHandle):
 
 # paramiko subsystem handler
 class S4SFTPServerHandler (SFTPServerInterface):
-    # assume current folder is a fine root
-    # (the tests always create and eventualy delete a subfolder, so there shouldn't be any mess)
-    ROOT = os.getcwd()
+
+    def __init__(self, server, *args, **kwargs):
+        self.server = server
+        super().__init__(*args, **kwargs)
 
     def _realpath(self, path):
-        return self.ROOT + self.canonicalize(path)
+        return self.server.logged_in_user_dir + self.canonicalize(path)
 
     def list_folder(self, path):
         path = self._realpath(path)
@@ -51,19 +58,17 @@ class S4SFTPServerHandler (SFTPServerInterface):
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
 
-    def stat(self, path):
-        path = self._realpath(path)
+    def _stat(self, path, run_stat):
         try:
-            return SFTPAttributes.from_stat(os.stat(path))
+            return SFTPAttributes.from_stat(run_stat(self._realpath(path)))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
 
+    def stat(self, path):
+       return self._stat(path, os.stat)
+
     def lstat(self, path):
-        path = self._realpath(path)
-        try:
-            return SFTPAttributes.from_stat(os.lstat(path))
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
+        return self._stat(path, os.lstat)
 
     def open(self, path, flags, attr):
         path = self._realpath(path)
@@ -99,61 +104,53 @@ class S4SFTPServerHandler (SFTPServerInterface):
             f = os.fdopen(fd, fstr)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
-        fobj = SFTPHandle(flags)
+        fobj = S4SFTPHandle(flags)
         fobj.filename = path
         fobj.readfile = f
         fobj.writefile = f
         return fobj
 
-    def remove(self, path):
-        path = self._realpath(path)
+    def _OK_or_ERR(self, exec):
         try:
-            os.remove(path)
+            exec()
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
 
+    def remove(self, path):
+        return self._OK_or_ERR(lambda: os.remove(self._realpath(path)))
+
     def rename(self, oldpath, newpath):
-        oldpath = self._realpath(oldpath)
-        newpath = self._realpath(newpath)
-        try:
-            os.rename(oldpath, newpath)
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
-        return SFTP_OK
+        return self._OK_or_ERR(lambda: os.rename(self._realpath(oldpath), self._realpath(newpath)))
 
     def mkdir(self, path, attr):
         path = self._realpath(path)
-        try:
+        def do_exec():
             os.mkdir(path)
             if attr is not None:
                 SFTPServer.set_file_attr(path, attr)
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
-        return SFTP_OK
+        return self._OK_or_ERR(do_exec)
 
     def rmdir(self, path):
-        path = self._realpath(path)
-        try:
-            os.rmdir(path)
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
-        return SFTP_OK
+        return self._OK_or_ERR(lambda: os.rmdir(self._realpath(path)))
 
     def chattr(self, path, attr):
-        path = self._realpath(path)
-        try:
-            SFTPServer.set_file_attr(path, attr)
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
-        return SFTP_OK
+        return self._OK_or_ERR(lambda: SFTPServer.set_file_attr(self._realpath(path), attr))
 
 class S4SFTPServer(object):
 
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
+    def __init__(self):
+        self.user_dirs = {}
+
+    @keyword(types=['string'])
+    def init_sftp_server(self, relative_ftp_dir):
+        self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
+        if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
+
     @keyword()
-    def start_s4_sftp_server(self):
+    def start_sftp_server(self):
         paramiko.common.logging.basicConfig(level=paramiko.common.logging.DEBUG)
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
@@ -170,12 +167,44 @@ class S4SFTPServer(object):
             transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
 
             transport.start_server(server=server)
-            channel = transport.accept()
+            self.channel = transport.accept()
             while transport.is_active():
                 time.sleep(1)
 
+        self.server.ftp_dir = self.ftp_dir
+        self.server.user_dirs = self.user_dirs
         self.server = S4Server()
-        serve_forever(self.server)
-       # self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
-       # self.ftp_thread.setDaemon(True)
-       # self.ftp_thread.start()
+        self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
+        self.ftp_thread.setDaemon(True)
+        self.ftp_thread.start()
+
+    @keyword(types=['string', 'string', 'string', 'list'])
+    def add_sftp_user(self, user, password, dir_name, subdir_names):
+        user_dir = os.path.join(self.ftp_dir, dir_name)
+        if not os.path.exists(user_dir): os.makedirs(user_dir)
+        for subdir_name in subdir_names:
+            dir = os.path.join(self.ftp_dir, dir_name, subdir_name)
+            if not os.path.exists(dir): os.makedirs(dir)
+        #.server.handler.authorizer.add_user(user, password, user_dir, perm="elradfmwMT")
+        self.user_dirs[user] = user_dir
+        return user_dir
+
+    @keyword(types=['string'])
+    def get_sftp_dir_for(self, user):
+        return self.user_dirs.get(user)
+
+    @keyword()
+    def get_main_sftp_dir(self):
+        return self.ftp_dir
+
+    @keyword()
+    def close_sftp_server(self):
+        self.channel.close()
+
+    @keyword()
+    def set_sftp_connection_as_down(self):
+        self.connection_is_down = True
+
+    @keyword()
+    def set_sftp_connection_as_up(self):
+        self.connection_is_down = False

@@ -28,7 +28,20 @@ Teardown Ftp Server
     Close Ftp Server
 
 Setup S4SFtp Server
-    Start S4 Sftp Server
+    Set Log Level   DEBUG
+    Remove Directory    ${CURDIR}/robot/sap_s4_sftp    recursive=True
+    Init Sftp Server        robot/sap_s4_sftp
+    ${perustiedotDirs}		Create List		203 	204     210
+    ${toteumatDirs}      Create List
+    Add Sftp User    %{KASKO_SFTP_USER_ID023}    %{KASKO_SFTP_PASSWORD_ID023}    kasko/toteumat      ${toteumatDirs}
+    Add Sftp User    %{KASKO_SFTP_USER_ID137}    %{KASKO_SFTP_PASSWORD_ID137}    kasko/perustiedot   ${perustiedotDirs}
+    Add Sftp User    %{SOTEPE_SFTP_USER_ID022}   %{SOTEPE_SFTP_PASSWORD_ID022}   sotepe/toteumat     ${toteumatDirs}
+    Add Sftp User    %{SOTEPE_SFTP_USER_ID167}   %{SOTEPE_SFTP_PASSWORD_ID167}   sotepe/perustiedot  ${perustiedotDirs}
+    Add Sftp User    %{PALKE_SFTP_USER_ID025}    %{PALKE_SFTP_PASSWORD_ID025}    palke/toteumat      ${toteumatDirs}
+    # cototeumat result files get uploaded to palke/toteumat to mimic how azure upload works
+    Add Sftp User    %{PALKE_SFTP_USER_ID166}    %{PALKE_SFTP_PASSWORD_ID166}    palke/cototeumat    ${toteumatDirs}
+    Add Sftp User    %{PALKE_SFTP_USER_ID138}    %{PALKE_SFTP_PASSWORD_ID138}    palke/perustiedot   ${perustiedotDirs}
+    Start Sftp Server
 
 Teardown S4SFtp Server
     Log To Console     Closed

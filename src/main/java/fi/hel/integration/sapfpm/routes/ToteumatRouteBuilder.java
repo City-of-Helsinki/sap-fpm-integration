@@ -26,9 +26,6 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
         return buildS4SFtpToteumatIn(toimiala, getFtpDir(toimiala), getFilePrefix());
     }
 
-    // s4SftpPerustedotIn
-
-
     @Override
     public void configure() throws Exception {
         errorHandler(buildDefaultErrorHandler(this, log));

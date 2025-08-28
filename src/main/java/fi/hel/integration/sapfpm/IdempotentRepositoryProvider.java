@@ -64,6 +64,12 @@ public class IdempotentRepositoryProvider {
         return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "TOSITESAPFILE");
     }
 
+    /*@Named("s4_toteumat_sotepe_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4ToteumatSotepeIdempotentRepository() {
+        return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "S4TOSITESAPFILE");
+    }*/
+
     public IdempotentRepository createIdempotentRepository() {
         MemoryIdempotentRepository memoryIdempotentRepo = new MemoryIdempotentRepository();
         memoryIdempotentRepo.setCacheSize(50000);

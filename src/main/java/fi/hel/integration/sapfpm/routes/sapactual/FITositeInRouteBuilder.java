@@ -196,5 +196,8 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         return getReceiptIdWithoutTime(receipt) + "_" +
                 receipt.get("GJAHR") + "_" + receipt.get("POPER");
     }
+
+    // S4 rivin id ehkä: BUKRS + BELNR + GJAHR + POPER + DOCLN
+    // BUZEI tai CO_BUZEI ei toimi koska joissain aina 000
 }
 

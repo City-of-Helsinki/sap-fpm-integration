@@ -47,8 +47,8 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         AdviceWith.adviceWith(ctx, "insertCoTositeIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActualCo.getEndpointUri());
         });
-        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("COTOSITERIVI")).to(mockJdbcSapActualCo.getEndpointUri());
+        AdviceWith.adviceWith(ctx, "insertCoTositeRiviIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActualCo.getEndpointUri());
         });
     }
 

@@ -1,5 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapsisainenlaskenta;
 
+import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -15,12 +16,19 @@ public class COTositeDB extends TositeDbCommon {
     @Inject
     COTositeInRouteBuilder coTtositeInRoute;
 
+    @Inject
+    IsConfigEnabled mainConfig;
+
     // cotosite unique by BUKRS, BELNR, GJAHR, PERIO
     // inserted in transaction with lines
     // to make sure only 1 exists
     // to allow from multiple files: PRIMARY KEY (fileName, toimiala, BUKRS, ...
     @Override
     public void configure() throws Exception {
+        if (!mainConfig.localOrFTPCoToteumatEnabled()) {
+            return;
+        }
+
         from("direct:init-cotositerivi-db")
             .to("direct:init-tositerivi-db") // TODO: move into db init
                 .setProperty("originalBody", body())
@@ -93,10 +101,7 @@ CREATE TABLE IF NOT EXISTS COTOSITESAPFILE(
                 .removeHeader(JdbcConstants.JDBC_PARAMETERS)
                 .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-cotositerivi-into-db").routeId("insertCoTositeRiviIntoDb")
-            .errorHandler(noErrorHandler())
-            .setProperty("DB_TABLE", constant("COTOSITERIVI"))
-            .to("direct:insert-tosite-or-cotosite-rivi-into-db");
+        buildInsertRiviIntoDb("direct:insert-cotositerivi-into-db", "insertCoTositeRiviIntoDb", "COTOSITERIVI");
 
         from("direct:insert-cotositesapfile-into-db").routeId("insertCoTositeSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route

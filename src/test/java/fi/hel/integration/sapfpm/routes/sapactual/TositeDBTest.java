@@ -66,8 +66,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         AdviceWith.adviceWith(ctx, "insertTositeIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActual.getEndpointUri());
         });
-        AdviceWith.adviceWith(ctx, "insertTositeOrCoTositeRiviIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual?*").onWhen(exchangeProperty("DB_TABLE").isEqualTo("TOSITERIVI")).to(mockJdbcSapActual.getEndpointUri());
+        AdviceWith.adviceWith(ctx, "insertTositeRiviIntoDb", b -> {
+            b.interceptSendToEndpoint("jdbc:sapactual?*").to(mockJdbcSapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "fetchTositeAllYearsAndMonthsAndWriteToAzure-palke", b -> {
             b.interceptSendToEndpoint("direct:fetch-tositerivit-from-db-by-year-and-month").to(mockFetchTositeRivitFromDb.getEndpointUri());

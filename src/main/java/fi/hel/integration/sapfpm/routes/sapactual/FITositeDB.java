@@ -1,5 +1,6 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
+import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import fi.hel.integration.sapfpm.tositecommon.TositeDbCommon;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,12 +12,13 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @ApplicationScoped
 public class FITositeDB extends TositeDbCommon {
 
     @Inject
-    FITositeInRouteBuilder tositeInRoute;
+    IsConfigEnabled mainConfig;
 
     // tosite unique by BUKRS, BELNR, GJAHR, POPER
     // inserted in transaction with lines
@@ -24,6 +26,10 @@ public class FITositeDB extends TositeDbCommon {
     // to allow from multiple files: PRIMARY KEY (fileName, toimiala, BUKRS, ...
     @Override
     public void configure() throws Exception {
+        if (!mainConfig.localOrFTPToteumatEnabled()) {
+            return;
+        }
+
         from("direct:init-tositerivi-db")
             .setProperty("originalBody", body())
             .setBody(constant("""
@@ -44,18 +50,17 @@ CREATE TABLE IF NOT EXISTS TOSITERIVI(
   createdTimestamp TIMESTAMP default now() not null,
   fileName varchar(255) not null,
   toimiala varchar(10) not null,
-""" + Arrays.stream(tositeInRoute.createCsvHeader()).map(csvHead -> {
-    if (csvHead.equals("BUKRS") || csvHead.equals("BELNR") || csvHead.equals("GJAHR") || csvHead.equals("POPER")) {
-        return csvHead + " varchar(50) not null";
-    } else {
-        return csvHead + " varchar(255) default null";
-    }
-}).collect(Collectors.joining(", ")) +
-"""
-,
-primary key (id)
-""" +
-");"
+  BUKRS varchar(50) not null,
+  BELNR varchar(50) not null,
+  CO_BELNR varchar(255) default null,
+  GJAHR varchar(50) not null,
+  POPER varchar(50) not null,""" +
+Stream.of("BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
+                "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
+                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP"
+).map(csvVal -> csvVal + " varchar(255) default null").collect(Collectors.joining(", "))
+                    // ALTER TABLE TOSITERIVI ADD COLUMN new_csv_val varchar(255) default null;
++ ", primary key (id) );"
             ))
                 .to("jdbc:sapactual")
                 .setBody(constant("""
@@ -67,6 +72,22 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
 );
                 """))
                 .to("jdbc:sapactual")
+/*
+                .setBody(constant("""
+CREATE TABLE IF NOT EXISTS S4TOSITERIVI(
+createdTimestamp TIMESTAMP default now() not null,
+fileName varchar(255) not null,
+toimiala varchar(10) not null,
+BUKRS varchar(50) not null,
+BELNR varchar(50) not null,
+GJAHR varchar(10) not null,
+POPER varchar(10) not null,
+DOCLN varchar(50) not null,
+primary key (toimiala, BUKRS, BELNR, GJAHR, POPER, DOCLN)
+);
+                """))
+                .to("jdbc:sapactual")*/
+
                 .setBody(exchangeProperty("originalBody"));
 
         buildFileAndContentsDbRoute("direct:insert-tosite-file-and-contents-into-db",
@@ -98,26 +119,7 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 
-        from("direct:insert-tositerivi-into-db").routeId("insertTositeRiviIntoDb")
-            .errorHandler(noErrorHandler())
-            .setProperty("DB_TABLE", constant("TOSITERIVI"))
-            .to("direct:insert-tosite-or-cotosite-rivi-into-db");
-
-        from("direct:insert-tosite-or-cotosite-rivi-into-db")
-            .routeId("insertTositeOrCoTositeRiviIntoDb")
-            .errorHandler(noErrorHandler())
-            .process(e -> {
-                Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));
-                jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
-                jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
-                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
-            })
-            .setBody(simple(
-                    "INSERT INTO ${exchangeProperty.DB_TABLE} (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
-            .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-            .setBody(exchangeProperty("originalBody"));
-
+        buildInsertRiviIntoDb("direct:insert-tositerivi-into-db", "insertTositeRiviIntoDb", "TOSITERIVI");
 
         from("direct:insert-tositesapfile-into-db").routeId("insertTositeSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route
@@ -133,7 +135,6 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
-
 
         from("direct:fetch-years-and-months-count-from-db")
             .onException(Exception.class)

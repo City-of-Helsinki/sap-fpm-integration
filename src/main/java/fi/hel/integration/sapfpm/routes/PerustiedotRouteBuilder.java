@@ -36,7 +36,6 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     }
 
     public String ftpPerustiedotIn(String toimiala) {
-        System.out.println("SORT BY: " + getSortBy());
         return buildFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), getSortBy());
     }
 

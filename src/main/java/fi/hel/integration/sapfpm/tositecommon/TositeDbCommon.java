@@ -78,6 +78,23 @@ public abstract class TositeDbCommon extends RouteBuilder {
             .end();
     }
 
+    public ProcessorDefinition<?> buildInsertRiviIntoDb(String fromUri, String routeId, String dbTable) {
+        return from(fromUri)
+                .routeId(routeId)
+                .errorHandler(noErrorHandler())
+                .process(e -> {
+                    Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));
+                    jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
+                    jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
+                    setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
+                })
+                .setBody(simple(
+                        "INSERT INTO %s (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})".formatted(dbTable)))
+                .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .setBody(exchangeProperty("originalBody"));
+    }
+
     public void setSqlValNamesAndNamedParams(Exchange e, Map<String, String> jdbcParams) {
         Set<String> keySet = jdbcParams.keySet();
         e.setProperty("sqlValNames", String.join(",", keySet));

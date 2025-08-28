@@ -171,9 +171,9 @@ class S4SFTPServer(object):
             while transport.is_active():
                 time.sleep(1)
 
+        self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir
         self.server.user_dirs = self.user_dirs
-        self.server = S4Server()
         self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()

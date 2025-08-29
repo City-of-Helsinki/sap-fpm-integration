@@ -40,7 +40,7 @@ Lähetä ${TOIMIALA} perustiedot SAPKUMPPANI
     Create File     ${PerustiedotFtpDir}/210/PART_OUT_${CUR_DATE_STR}_1.xml   content=${PART_1}
     ${PART_2}      Create PART   ${RCOMP}    ${NAME1}
     Set Ftp Connection As Down
-    Create File     ${PerustiedotFtpDir}/210/PART_OUT_2_${CUR_DATE_STR}_2.xml   content=${PART_2}
+    Create File     ${PerustiedotFtpDir}/210/PART_OUT_${CUR_DATE_STR}_2.xml   content=${PART_2}
     Set Ftp Connection As Up
 
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${PerustiedotFtpDir}/SAPKUMPPANI.csv

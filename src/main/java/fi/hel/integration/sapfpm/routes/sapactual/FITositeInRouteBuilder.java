@@ -112,16 +112,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
             .to("direct:insert-tosite-file-and-contents-into-db");
 
         String initDbFetchParamsAndFileNameUri = "direct:init-tosite-db-fetch-params";
-        from(initDbFetchParamsAndFileNameUri)
-            .process(e -> {
-                LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                String year = (String)row.get("GJAHR");
-                String month = (String)row.get("POPER");
-                e.getMessage().setHeader("GJAHR", year);
-                e.getMessage().setHeader("POPER", month);
-                String simpleMonth = month.replaceFirst("^0+", "");
-                e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPACTUAL_" + year + "_" + simpleMonth + ".csv");
-            });
+        buildDbFetchAndFileNameInitializer(initDbFetchParamsAndFileNameUri, "initTositeDbFetchParams-%s".formatted(toimiala), "POPER", "SAPACTUAL");
 
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
         String fetchToteumatRouteUri = "direct:fetch-tositteet-from-db-and-write-to-azure-" + toimiala;

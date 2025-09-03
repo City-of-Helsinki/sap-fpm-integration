@@ -9,3 +9,4 @@ smallrye:
     perustiedot: true
     toteumat: true
     co_toteumat: true
+    s4_toteumat: true

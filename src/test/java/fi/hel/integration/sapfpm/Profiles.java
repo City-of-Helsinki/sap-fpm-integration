@@ -7,4 +7,5 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 public class Profiles {
     public static class TositeTestProfile implements QuarkusTestProfile { }
     public static class CoTositeTestProfile implements QuarkusTestProfile { }
+    public static class S4TositeTestProfile implements QuarkusTestProfile { }
 }

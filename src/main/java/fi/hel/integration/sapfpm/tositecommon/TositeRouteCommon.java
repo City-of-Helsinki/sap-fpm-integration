@@ -1,6 +1,7 @@
 package fi.hel.integration.sapfpm.tositecommon;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.file.FileConstants;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         AtomicInteger processedFileAmount = new AtomicInteger(0);
 
+        // TODO: call initRouteUri only once at start
         from(fromUri).routeId(routeId).to(initRouteUri)
             .onException(Exception.class)
                 .maximumRedeliveries(10).redeliveryDelay(10000)
@@ -102,6 +104,18 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .setBody(constant(""))
                 .end()
             .log("${headers.toimiala} all months and years sent to Azure from db");
+    }
 
+    public void buildDbFetchAndFileNameInitializer(String fromUri, String routeId, String monthValName, String fileNamePrefix) {
+        from(fromUri).routeId(routeId)
+            .process(e -> {
+                LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
+                String year = (String)row.get("GJAHR");
+                String month = (String)row.get(monthValName);
+                e.getMessage().setHeader("GJAHR", year);
+                e.getMessage().setHeader(monthValName, month);
+                String simpleMonth = month.replaceFirst("^0+", "");
+                e.getMessage().setHeader(FileConstants.FILE_NAME, fileNamePrefix + "_" + year + "_" + simpleMonth + ".csv");
+            });
     }
 }

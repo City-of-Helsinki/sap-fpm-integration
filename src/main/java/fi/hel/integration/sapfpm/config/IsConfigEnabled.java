@@ -69,11 +69,19 @@ public class IsConfigEnabled {
 
     public boolean localOrFTPToteumatEnabled() {
         return localToteumatEnabled() ||
-                sotepeFTPToteumatEnabled() || palkeFTPToteumatEnabled() || kaskoFTPToteumatEnabled() ||
-                sotepeS4SFTPToteumatEnabled() || palkeS4SFTPToteumatEnabled() || kaskoS4SFTPToteumatEnabled();
+                sotepeFTPToteumatEnabled() || palkeFTPToteumatEnabled() || kaskoFTPToteumatEnabled();
     }
 
     public boolean localOrFTPCoToteumatEnabled() {
         return localCoToteumatEnabled() || palkeFTPCoToteumatEnabled();
+    }
+
+    public boolean localS4ToteumatEnabled() {
+        return localFileConfig.s4Toteumat().orElse(false);
+    }
+
+    public boolean localOrSFTPS4ToteumatEnabled() {
+        return localS4ToteumatEnabled() ||
+                sotepeS4SFTPToteumatEnabled() || palkeS4SFTPToteumatEnabled() || kaskoS4SFTPToteumatEnabled();
     }
 }

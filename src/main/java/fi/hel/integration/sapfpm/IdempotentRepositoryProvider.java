@@ -64,11 +64,23 @@ public class IdempotentRepositoryProvider {
         return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "TOSITESAPFILE");
     }
 
-    /*@Named("s4_toteumat_sotepe_idempotentRepository")
+    @Named("s4_toteumat_sotepe_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository s4ToteumatSotepeIdempotentRepository() {
         return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "S4TOSITESAPFILE");
-    }*/
+    }
+
+    @Named("s4_toteumat_palke_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4ToteumatPalkeIdempotentRepository() {
+        return queryFileNamesFromDbAndAddToIdempotentRepository("palke", "S4TOSITESAPFILE");
+    }
+
+    @Named("s4_toteumat_kasko_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4ToteumatKaskoIdempotentRepository() {
+        return queryFileNamesFromDbAndAddToIdempotentRepository("kasko", "S4TOSITESAPFILE");
+    }
 
     public IdempotentRepository createIdempotentRepository() {
         MemoryIdempotentRepository memoryIdempotentRepo = new MemoryIdempotentRepository();

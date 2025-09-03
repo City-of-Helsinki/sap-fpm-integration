@@ -328,10 +328,6 @@ public class TositeInTest {
         assertEquals(tositeRoute.createCsvHeader().length, emptyCsv.getMessage().getBody(String.class).split(";").length);
     }
 
-    public Map<String, Object> createReceipt(String fileName, String gjahr, String poper, String bukrs, String belnr) {
-        return Map.of("fileName", fileName,"GJAHR", gjahr, "POPER", poper, "BUKRS", bukrs, "BELNR", belnr);
-    }
-
     @Test
     void exceptionThrownWhenReadingFileInTest() {
         Map<String, Object> headers = Map.of(Exchange.FILE_NAME, testTositeFileName);

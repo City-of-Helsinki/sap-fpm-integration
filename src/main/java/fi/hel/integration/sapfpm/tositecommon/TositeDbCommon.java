@@ -13,10 +13,12 @@ import java.util.stream.Collectors;
 
 public abstract class TositeDbCommon extends RouteBuilder {
 
+    public final static String DUPLICATE_ENTRY_EXCEPTION_MESSAGE = "${exception.message} contains 'Duplicate entry' || ${exception.message} contains 'primary key violation'";
+
     public ProcessorDefinition<?> buildFileAndContentsDbRoute(String fromUri, String routeId, String insertFileUri, String insertTositeAndRivitUri) {
         return from(fromUri).routeId(routeId)
             .onException(SQLIntegrityConstraintViolationException.class)
-                .onWhen(simple("${exception.message} contains 'Duplicate entry' || ${exception.message} contains 'primary key violation'"))
+                .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
                 .log("Failed to insert file ${headers.CamelFileName} into the db, already processed!")
                 .process(e -> e.getMessage().setBody(null))
                 .removeHeader(JdbcConstants.JDBC_PARAMETERS)
@@ -43,7 +45,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
     public ProcessorDefinition<?> buildInsertReceiptAndLinesIntoDb(String fromUri, String insertReceiptUri, String insertReceiptLineUri) {
         return from(fromUri)
             .onException(SQLIntegrityConstraintViolationException.class)
-                    .onWhen(simple("${exception.message} contains 'Duplicate entry' || ${exception.message} contains 'primary key violation'"))
+                    .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
                     .process(e -> {
                         Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
                         if (jdbcParams != null && !jdbcParams.isEmpty()) {

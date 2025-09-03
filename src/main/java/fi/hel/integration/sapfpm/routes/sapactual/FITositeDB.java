@@ -72,22 +72,6 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
 );
                 """))
                 .to("jdbc:sapactual")
-/*
-                .setBody(constant("""
-CREATE TABLE IF NOT EXISTS S4TOSITERIVI(
-createdTimestamp TIMESTAMP default now() not null,
-fileName varchar(255) not null,
-toimiala varchar(10) not null,
-BUKRS varchar(50) not null,
-BELNR varchar(50) not null,
-GJAHR varchar(10) not null,
-POPER varchar(10) not null,
-DOCLN varchar(50) not null,
-primary key (toimiala, BUKRS, BELNR, GJAHR, POPER, DOCLN)
-);
-                """))
-                .to("jdbc:sapactual")*/
-
                 .setBody(exchangeProperty("originalBody"));
 
         buildFileAndContentsDbRoute("direct:insert-tosite-file-and-contents-into-db",

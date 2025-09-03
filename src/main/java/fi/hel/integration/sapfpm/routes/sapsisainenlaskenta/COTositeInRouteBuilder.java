@@ -73,21 +73,8 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
             .to("direct:process-cotosite-file-contents")
             .to("direct:insert-cotosite-file-and-contents-into-db");
 
-        // from timer, if no starting fetch time or if last time sent > x
-        // set starting fetch time, then set last sent time
-       // from("timer://").to("direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala);
-
         String initDbFetchParamsAndFileNameUri = "direct:init-cotosite-db-fetch-params";
-        from(initDbFetchParamsAndFileNameUri)
-            .process(e -> {
-                LinkedHashMap<String, Object> row = e.getMessage().getBody(LinkedHashMap.class);
-                String year = (String)row.get("GJAHR");
-                String month = (String)row.get("PERIO");
-                e.getMessage().setHeader("GJAHR", year);
-                e.getMessage().setHeader("PERIO", month);
-                String simpleMonth = month.replaceFirst("^0+", "");
-                e.getMessage().setHeader(FileConstants.FILE_NAME, "SAPSISAINENLASKENTA_" + year + "_" + simpleMonth + ".csv");
-            });
+        buildDbFetchAndFileNameInitializer(initDbFetchParamsAndFileNameUri, "initCoTositeDbFetchParams-%s".formatted(toimiala), "PERIO", "SAPSISAINENLASKENTA");
 
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
         String fetchCoToteumatRouteUri = "direct:fetch-cotositteet-from-db-and-write-to-azure-" + toimiala;

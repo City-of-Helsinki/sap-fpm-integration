@@ -15,4 +15,7 @@ public interface LocalFileConfig {
 
     @WithName("co_toteumat")
     Optional<Boolean> coToteumat();
+
+    @WithName("s4_toteumat")
+    Optional<Boolean> s4Toteumat();
 }

@@ -100,6 +100,10 @@ public class InRouteBuilder extends RouteBuilder {
         return buildLocalIn("toteumat", toimiala, filePrefix);
     }
 
+    public static String buildLocalS4ToteumatIn(String toimiala, String filePrefix) {
+        return buildLocalIn("s4_toteumat", toimiala, filePrefix);
+    }
+
     @Inject
     Logger log;
 

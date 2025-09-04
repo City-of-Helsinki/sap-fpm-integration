@@ -64,6 +64,22 @@ public class IdempotentRepositoryProvider {
         return queryFileNamesFromDbAndAddToIdempotentRepository("sotepe", "TOSITESAPFILE");
     }
 
+    @Named("s4_perustiedot_kasko_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4PerustiedotKaskoIdempotentRepository() { return createIdempotentRepository();}
+
+    @Named("s4_perustiedot_palke_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4PerustiedotPalkeIdempotentRepository() {
+        return createIdempotentRepository();
+    }
+
+    @Named("s4_perustiedot_sotepe_idempotentRepository")
+    @ApplicationScoped
+    public IdempotentRepository s4PerustiedotSotepeIdempotentRepository() {
+        return createIdempotentRepository();
+    }
+
     @Named("s4_toteumat_sotepe_idempotentRepository")
     @ApplicationScoped
     public IdempotentRepository s4ToteumatSotepeIdempotentRepository() {

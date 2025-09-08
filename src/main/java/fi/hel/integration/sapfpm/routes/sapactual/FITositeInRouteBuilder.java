@@ -119,10 +119,13 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         log.info("Tosite DB page limit: " + DB_PAGE_LIMIT);
 
+        String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
+        buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+
         buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
             "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
-            marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", DB_PAGE_LIMIT,
-            "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);
+            marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", appendFromDbRouteUri
+            , sendFileToAzureUri);
 
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
 

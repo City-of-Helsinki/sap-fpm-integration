@@ -56,7 +56,7 @@ public class InRouteBuilder extends RouteBuilder {
                 "{{%s.sftp.%s.password}}".formatted(toimiala, perusOrToteumat),
                 "{{%s.sftp.host}}".formatted(toimiala),
                 ftpDir,
-                filePrefix, "{{%s.sftp.passiveMode}}".formatted(toimiala), sortBy) + idempotentRepositoryParam(perusOrToteumat, toimiala);
+                filePrefix, "{{%s.sftp.passiveMode}}".formatted(toimiala), sortBy) + idempotentRepositoryParam("s4_" + perusOrToteumat, toimiala);
     }
 
     public static String buildFtpPerustiedotIn(String toimiala, String ftpDir, String filePrefix, String sortBy) {

@@ -16,6 +16,9 @@ import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildD
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalS4ToteumatIn;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildS4SFtpToteumatIn;
 
+// TODO:
+// insert from ECC and S4 and write out from BOTH!
+// otherwise, if both ECC and S4 contain the same GJAHR POPER, they will overwrite
 
 @ApplicationScoped
 public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOrFileRouteBuilder {
@@ -128,10 +131,20 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         log.info("S4 Tosite DB page limit: " + DB_PAGE_LIMIT);
 
+        // TODO: fetch ECC also!
+        String appendFromDbRouteUri = "direct:fetch-and-append-ecc-tositteet-from-db";
+        String appendFromS4DbRouteUri = "direct:fetch-and-append-s4-tositteet-from-db";
+        buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+        buildAppendDbToExistingFileRoute(appendFromS4DbRouteUri,"appendS4TositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-s4-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+
+        String appendFromBothS4AndEccRouteUri = "direct:fetch-and-append-s4-and-ecc-tositteet-from-db";
+        from(appendFromBothS4AndEccRouteUri).to(appendFromDbRouteUri).to(appendFromS4DbRouteUri);
+
+
+        //  TODO: fetch from TOSITERIVI AND S4TOSITERIVI
         buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
-            "direct:fetch-all-s4-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
-            marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", DB_PAGE_LIMIT,
-            "direct:fetch-s4-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI, sendFileToAzureUri);
+                "direct:fetch-all-s4-years-and-months-from-db",initDbFetchParamsAndFileNameUri,
+                marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", appendFromS4DbRouteUri, sendFileToAzureUri);
 
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
     }

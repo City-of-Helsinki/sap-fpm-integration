@@ -9,12 +9,14 @@ import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
+import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +37,15 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     @EndpointInject("mock:cotositerivit-fetch-streamed")
     private MockEndpoint mockCoTositeRivitFetchStreamed;
 
+    String testFetchCoTositeRivitUri = "direct:fetch-cotositerivit-from-db-by-year-and-month-and-stream";
+
     @BeforeEach
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         mockJdbcSapActualCo.reset();
         mockCoTositeRivitFetchStreamed.reset();
+
+        producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
 
         AdviceWith.adviceWith(ctx,"insertCoTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActualCo.getEndpointUri());
@@ -57,7 +63,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         return new RouteBuilder() {
             @Override
             public void configure() throws Exception {
-                from("direct:fetch-cotositerivit-from-db-by-year-and-month-and-stream")
+                from(testFetchCoTositeRivitUri)
                     .to("direct:fetch-cotositerivit-from-db-by-year-and-month")
                         .split(body()).to(mockCoTositeRivitFetchStreamed.getEndpointUri()).end();
             }
@@ -68,8 +74,12 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     void duplicateCoTositePreventionTest() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
-        // file + tosite1 + 2 meta lines, 1 file and tosite2 (which fails)
+        // file + tosite1 + 2 meta lines, tosite2 (which fails)
         mockJdbcSapActualCo.expectedMessageCount(5);
+        mockJdbcSapActualCo.whenAnyExchangeReceived(e -> {
+            String sqlBody = e.getMessage().getBody(String.class);
+            Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+        });
 
         String toimiala = "toimiala";
         String year = "GJAHR";
@@ -86,8 +96,6 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1, tosite1Meta), List.of(tosite2));
         ex.getMessage().setBody(tositteet);
 
-        producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
-
         Exchange insertRes = producerTemplate.send("direct:insert-cotosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
 
@@ -101,7 +109,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         fetchMsg.setHeader("GJAHR", year);
         fetchMsg.setHeader("PERIO", month);
         fetchMsg.setHeader("pageLimit", 100);
-        producerTemplate.send("direct:fetch-cotositerivit-from-db-by-year-and-month-and-stream", fetchEx);
+        producerTemplate.send(testFetchCoTositeRivitUri, fetchEx);
 
         mockCoTositeRivitFetchStreamed.assertIsSatisfied();
 
@@ -113,14 +121,72 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
     }
 
     @Test
+    void transactedFileAndContentsInsertTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+
+        // 1 file, tosite1 + tosite1row, tosite2 + tosite2row + duplicate tosite2row, tosite3 + meta + meta that is then retried 10 times, no file or tositteet should be inserted due to db exception
+        mockJdbcSapActualCo.expectedMessageCount(1 + 2 + 3 + 2 + 11);
+
+        String toimiala = "coexcep";
+        String year = "GJAHR";
+        String month = "POPER";
+
+        Exchange ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("CamelFileName", "ID016_CO_TOSITE_OUT_transaction.xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+        LinkedHashMap<String, Object> tosite1 = createCoTositeMeta("BUKRS", "BELNR1", year, month);
+        LinkedHashMap<String, Object> tosite2 = createCoTositeMeta("BUKRS", "BELNR2", year, month);
+
+
+        LinkedHashMap<String, Object> tosite3 = createCoTositeMeta("BUKRS", "BELNR3", year, month);
+        LinkedHashMap<String, Object> tosite3Meta = createCoTositeMeta("BUKRS", "BELNR3", year, month);
+        tosite3Meta.put("BLDAT", "tosite3RiviBLDAT");
+
+        // tosite2 has 1 duplicate row
+        List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1), List.of(tosite2, tosite2), List.of(tosite3, tosite3Meta));
+        ex.getMessage().setBody(tositteet);
+
+        SQLException thrownException = new SQLException("sql exception!");
+        // inserting tosite2 fails, tosite3 should not be inserted (and tosite1 should be rolled back as well)
+        mockJdbcSapActualCo.whenAnyExchangeReceived(e -> {
+            String sqlBody = e.getMessage().getBody(String.class);
+            Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+            if (sqlBody.contains("COTOSITERIVI") && tosite3Meta.get("BLDAT").equals(jdbcParams.get("BLDAT"))) {
+                e.setException(thrownException);
+            }
+        });
+
+        Exchange insertRes = producerTemplate.send("direct:insert-cotosite-file-and-contents-into-db", ex);
+        // 2 splits
+        assertEquals(thrownException, insertRes.getException().getCause().getCause());
+
+        mockJdbcSapActualCo.assertIsSatisfied();
+        Exchange fetchEx = new DefaultExchange(ctx);
+        Message fetchMsg = fetchEx.getMessage();
+        fetchMsg.setHeader("toimiala", toimiala);
+        fetchMsg.setHeader("GJAHR", year);
+        fetchMsg.setHeader("POPER", month);
+        fetchMsg.setHeader("pageLimit", 100);
+
+        producerTemplate.send(testFetchCoTositeRivitUri, fetchEx);
+
+        List<Map<String, String>> receivedLines = mockCoTositeRivitFetchStreamed.getExchanges().stream().map(e -> (Map<String, String>)e.getMessage().getBody(Map.class)).toList();
+        assertTrue(receivedLines.isEmpty());
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT fileName FROM COTOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(fileNameRes.isEmpty());
+    }
+
+    @Test
     void fetchAllYearsAndMonthsTest() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         Exchange ex = new DefaultExchange(ctx);
         String toimiala = "fetchAllCo";
         ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
         ex.getMessage().setHeader("toimiala", toimiala);
-
-        producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
 
         LinkedHashMap<String, Object> tosite1 = createCoTositeMeta("BUKRS", "BELNR", "2025", "12");
         LinkedHashMap<String, Object> tosite2 = createCoTositeMeta("BUKRS", "BELNR", "2025", "01");

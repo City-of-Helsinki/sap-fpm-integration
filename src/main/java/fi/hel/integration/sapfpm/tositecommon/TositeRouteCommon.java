@@ -56,9 +56,44 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .end();
     }
 
+    public void buildAppendDbToExistingFileRoute(String fromUri, String routeId, int dbPageLimit, String fetchByYearAndMonthFromDbUri,
+             String marshalHeaderlessCsvURI) {
+        // outDir has to be set
+        from(fromUri).routeId(routeId)
+            .errorHandler(noErrorHandler()) // upper route handles errors to avoid duplicate lines in the file
+            .setProperty("fileExist", constant("Append"))
+            .setHeader("pageLimit", constant(dbPageLimit))
+            .setProperty("dbHasMoreResults", constant(true))
+            // .to(fetchCountUri) // TODO: not needed
+            .setHeader("pageLimit", constant(dbPageLimit))
+            .setProperty("dbHasMoreResults", constant(true))
+            .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
+                .to(fetchByYearAndMonthFromDbUri)
+                .removeProperty("originalBody")
+                .removeProperty("sqlNamedParams")
+                .removeProperty("sqlValNames")
+                .process(e -> {
+                    List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
+                    if (res == null || res.isEmpty() || res.size() < dbPageLimit) {
+                        e.removeProperty("dbHasMoreResults");
+                        e.getMessage().removeHeader("lastId");
+                    } else {
+                        e.getMessage().setHeader("lastId", res.getLast().get("id"));
+                    }
+                })
+                .choice()
+                    .when(simple("${body} != null && ${body.size()} > 0"))
+                        .to(marshalHeaderlessCsvURI)
+                        .to("direct:any-file-out")
+                .end()
+                .setBody(constant(""))
+            .end();
+    }
+
     public void buildFileAppendingFromDbPageRoute(String fromUri, String routeId, String toimiala,
               String fetchYearsAndMonthsFromDbUri, String initDbFetchParamsAndFileNameUri,
-                  String marshalWithHeaderCsvURI, String fetchCountUri, int dbPageLimit, String fetchByYearAndMonthFromDbUri, String marshalHeaderlessCsvURI, String sendFileToAzureUri) {
+                  String marshalWithHeaderCsvURI, String fetchCountUri, String appendFromDbToFileUri, String sendFileToAzureUri) {
+
         from(fromUri)
             .routeId(routeId)
             .onException(Exception.class)
@@ -74,31 +109,8 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .setBody(constant(""))
                     .to(marshalWithHeaderCsvURI)
                     .to("direct:any-file-out")
-                    .setProperty("fileExist", constant("Append"))
                     .to(fetchCountUri)
-                    .setHeader("pageLimit", constant(dbPageLimit))
-                    .setProperty("dbHasMoreResults", constant(true))
-                    .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
-                        .to(fetchByYearAndMonthFromDbUri)
-                        .removeProperty("originalBody")
-                        .removeProperty("sqlNamedParams")
-                        .removeProperty("sqlValNames")
-                        .process(e -> {
-                            List<LinkedHashMap<String, Object>> res = e.getMessage().getBody(List.class);
-                            if (res == null || res.isEmpty() || res.size() < dbPageLimit) {
-                                e.removeProperty("dbHasMoreResults");
-                                e.getMessage().removeHeader("lastId");
-                            } else {
-                                e.getMessage().setHeader("lastId", res.getLast().get("id"));
-                            }
-                        })
-                        .choice()
-                            .when(simple("${body} != null && ${body.size()} > 0"))
-                                .to(marshalHeaderlessCsvURI)
-                                .to("direct:any-file-out")
-                        .end()
-                        .setBody(constant(""))
-                    .end()
+                    .to(appendFromDbToFileUri)
                     .log("appending done, enriching and sending to azure")
                 .to(sendFileToAzureUri)
                     .setBody(constant(""))

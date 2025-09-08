@@ -8,6 +8,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.*;
@@ -26,7 +27,8 @@ public class FITositeDB extends TositeDbCommon {
     // to allow from multiple files: PRIMARY KEY (fileName, toimiala, BUKRS, ...
     @Override
     public void configure() throws Exception {
-        if (!mainConfig.localOrFTPToteumatEnabled()) {
+        //
+        if (!mainConfig.localOrFTPToteumatEnabled() && !mainConfig.localOrSFTPS4ToteumatEnabled()) {
             return;
         }
 
@@ -99,9 +101,26 @@ CREATE TABLE IF NOT EXISTS TOSITESAPFILE(
             })
             .setBody(simple(
                     "INSERT INTO TOSITE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
-            .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-            .setBody(exchangeProperty("originalBody"));
+            .doTry()
+                .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .setBody(exchangeProperty("originalBody"))
+            .doCatch(SQLIntegrityConstraintViolationException.class)
+                .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
+                .process(e -> {
+                    Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+                    if (jdbcParams != null && !jdbcParams.isEmpty()) {
+                        log.info("Failed to insert %s %s into db due to a duplicate in %s".formatted(
+                                jdbcParams.get("BUKRS"), jdbcParams.get("BELNR"),
+                                e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)
+                        ));
+                    } else {
+                        log.info("Failed to insert receipt into the db due to a duplicate in %s".formatted(e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)));
+                    }
+                })
+                .process(e -> e.getMessage().setBody(null))
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+            .end();
 
         buildInsertRiviIntoDb("direct:insert-tositerivi-into-db", "insertTositeRiviIntoDb", "TOSITERIVI");
 

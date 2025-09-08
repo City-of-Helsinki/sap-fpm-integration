@@ -9,6 +9,7 @@ import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
+import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
@@ -60,6 +61,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         mockAnyFileOut.reset();
         mockFetchTositeRivitFromDb.reset();
 
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
+
         AdviceWith.adviceWith(ctx, "insertTositeSapFileIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcSapActual.getEndpointUri());
         });
@@ -70,6 +73,9 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
             b.interceptSendToEndpoint("jdbc:sapactual?*").to(mockJdbcSapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "fetchTositeAllYearsAndMonthsAndWriteToAzure-palke", b -> {
+            b.interceptSendToEndpoint("direct:any-file-out").to(mockAnyFileOut.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "appendTositeFromDb-palke", b -> {
             b.interceptSendToEndpoint("direct:fetch-tositerivit-from-db-by-year-and-month").to(mockFetchTositeRivitFromDb.getEndpointUri());
             b.interceptSendToEndpoint("direct:any-file-out").to(mockAnyFileOut.getEndpointUri());
         });
@@ -100,7 +106,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         String month = "POPER";
 
         Exchange ex = new DefaultExchange(ctx);
-        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_1.xml");
+        String fileName1 = "ID022_FI_TOSITE_OUT_1.xml";
+        ex.getMessage().setHeader("CamelFileName", fileName1);
         ex.getMessage().setHeader("toimiala", toimiala);
         LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", "BELNR", year, month);
         LinkedHashMap<String, Object> tosite1Meta = createTositeMeta("BUKRS", "BELNR", year, month);
@@ -109,8 +116,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", "BELNR", year, month);
         List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1, tosite1Meta), List.of(tosite2));
         ex.getMessage().setBody(tositteet);
-
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
         Exchange insertRes = producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
         assertNull(insertRes.getException());
@@ -140,7 +145,8 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
 
         // new file with duplicates + 1 new tosite
         ex = new DefaultExchange(ctx);
-        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_2.xml");
+        String fileName2 = "ID022_FI_TOSITE_OUT_2.xml";
+        ex.getMessage().setHeader("CamelFileName", fileName2);
         ex.getMessage().setHeader("toimiala", toimiala);
         LinkedHashMap<String, Object> tosite3 = createTositeMeta("BUKRS_tosite3", "BELNR_tosite3", year, month);
         tositteet = List.of(List.of(tosite1, tosite1Meta), List.of(tosite2), List.of(tosite3));
@@ -173,6 +179,75 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(1L, tosite1Bldats);
         long tosite3Belnrs = receivedLines.stream().filter(l -> tosite3.get("BELNR").equals(l.get("BELNR"))).count();
         assertEquals(1L, tosite3Belnrs);
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT fileName FROM TOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(fileNameRes.stream().anyMatch(f -> f.get("fileName").equals(fileName1)));
+        assertTrue(fileNameRes.stream().anyMatch(f -> f.get("fileName").equals(fileName2)));
+    }
+
+    @Test
+    void transactedFileAndContentsInsertTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+
+        // 1 file, tosite1 + tosite1meta + tosite2meta which fails and then retried 10 times, no file or tositteet should be inserted due to db exception
+        mockJdbcSapActual.expectedMessageCount(1 + 2 + 12);
+
+        String toimiala = "excep";
+        String year = "GJAHR";
+        String month = "POPER";
+
+        Exchange ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_transaction.xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+        LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", "BELNR1", year, month);
+        LinkedHashMap<String, Object> tosite1Meta1 = createTositeMeta("BUKRS", "BELNR1", year, month);
+        tosite1Meta1.put("BLDAT", "excBLDAT1");
+        LinkedHashMap<String, Object> tosite1Meta2 = createTositeMeta("BUKRS", "BELNR1", year, month);
+        tosite1Meta2.put("BLDAT", "excBLDAT2");
+        LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", "BELNR2", year, month);
+        List<List<LinkedHashMap<String, Object>>> tositteet = List.of(List.of(tosite1, tosite1Meta1, tosite1Meta2), List.of(tosite2));
+        ex.getMessage().setBody(tositteet);
+
+        SQLException thrownException = new SQLException("sql exception!");
+        mockJdbcSapActual.whenAnyExchangeReceived(e -> {
+            String sqlBody = e.getMessage().getBody(String.class);
+            Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+            assertNotEquals(tosite2.get("BELNR"), jdbcParams.get("BELNR")); // shouldn't proceed to inserting tosite2
+            if (sqlBody.contains("TOSITERIVI") && tosite1Meta2.get("BLDAT").equals(jdbcParams.get("BLDAT"))) {
+                e.setException(thrownException);
+            }
+        });
+
+        Exchange insertRes = producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
+        // split + split
+        assertEquals(thrownException, insertRes.getException().getCause().getCause());
+
+        mockJdbcSapActual.assertIsSatisfied();
+        Exchange fetchEx = new DefaultExchange(ctx);
+        Message fetchMsg = fetchEx.getMessage();
+        fetchMsg.setHeader("toimiala", toimiala);
+        fetchMsg.setHeader("GJAHR", year);
+        fetchMsg.setHeader("POPER", month);
+        fetchMsg.setHeader("pageLimit", 100);
+        producerTemplate.send("direct:fetch-tositerivit-from-db-by-year-and-month-and-stream", fetchEx);
+
+        List<Map<String, String>> receivedLines = mockTositeRivitFetchStreamed.getExchanges().stream().map(e -> (Map<String, String>)e.getMessage().getBody(Map.class)).toList();
+        assertTrue(receivedLines.isEmpty());
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT fileName FROM TOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(fileNameRes.isEmpty());
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT * FROM TOSITE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> tositeRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(tositeRes.isEmpty());
     }
 
     @Test
@@ -182,8 +257,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         String toimiala = "fetchAllYe";
         ex.getMessage().setHeader("CamelFileName", toimiala + ".xml");
         ex.getMessage().setHeader("toimiala", toimiala);
-
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
         LinkedHashMap<String, Object> tosite1 = createTositeMeta("BUKRS", "BELNR", "2025", "12");
         LinkedHashMap<String, Object> tosite2 = createTositeMeta("BUKRS", "BELNR", "2025", "01");
@@ -212,8 +285,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         SQLException thrownException = new SQLException("sql exception!");
 
         mockFetchTositeRivitFromDb.whenExchangeReceived(1, e -> e.setException(thrownException));
-
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
         String POPER = "02",
                 GJAHR = "2027",
@@ -272,8 +343,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
         CamelContext ctx = producerTemplate.getCamelContext();
         String toimiala = "latest";
 
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
-
         Exchange ex = new DefaultExchange(ctx);
         List<String> createdTimestamps = List.of("2025-08-01 10:10:11.000001", "2025-01-01 00:00:00.000001", "2025-08-01 10:10:13.000001");
 
@@ -294,8 +363,6 @@ public class TositeDBTest extends CamelQuarkusTestSupport {
     void fetchLatelyChangedYearsAndMonthsTest() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
         String toimiala = "lately";
-
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(ctx));
 
         Exchange ex = new DefaultExchange(ctx);
         List<TsWithPOPERGJAHR> created = List.of(

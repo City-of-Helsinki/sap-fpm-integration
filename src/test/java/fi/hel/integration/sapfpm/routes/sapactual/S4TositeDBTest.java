@@ -9,6 +9,7 @@ import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
+import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.quarkus.test.CamelQuarkusTestSupport;
 import org.apache.camel.support.DefaultExchange;
@@ -65,6 +66,9 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
             b.interceptSendToEndpoint("jdbc:sapactual?*").to(mockJdbcS4SapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-palke", b -> {
+            b.interceptSendToEndpoint("direct:any-file-out").to(mockAnyS4FileOut.getEndpointUri());
+        });
+        AdviceWith.adviceWith(ctx, "appendS4TositeFromDb-palke", b -> {
             b.interceptSendToEndpoint("direct:fetch-s4-tositerivit-from-db-by-year-and-month").to(mockFetchS4TositeRivitFromDb.getEndpointUri());
             b.interceptSendToEndpoint("direct:any-file-out").to(mockAnyS4FileOut.getEndpointUri());
         });
@@ -97,7 +101,8 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         String month = "POPER";
 
         Exchange ex = new DefaultExchange(ctx);
-        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_1.xml");
+        String fileName1 = "ID022_FI_TOSITE_OUT_1.xml";
+        ex.getMessage().setHeader("CamelFileName", fileName1);
         ex.getMessage().setHeader("toimiala", toimiala);
         LinkedHashMap<String, Object> tosite1Row1 = createS4TositeRow("BUKRS", "BELNR", year, month, "DOCLN1");
         tosite1Row1.put("BLDAT", "tosite1BLDAT");
@@ -135,7 +140,8 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
 
         // new file with duplicates + 1 new tosite row
         ex = new DefaultExchange(ctx);
-        ex.getMessage().setHeader("CamelFileName", "ID022_FI_TOSITE_OUT_2.xml");
+        String fileName2 = "ID022_FI_TOSITE_OUT_2.xml";
+        ex.getMessage().setHeader("CamelFileName", fileName2);
         ex.getMessage().setHeader("toimiala", toimiala);
         // same DOCLN as tosite1Row1
         LinkedHashMap<String, Object> tosite3Row = createS4TositeRow("BUKRS_tosite3", "BELNR_tosite3", year, month, "DOCLN1");
@@ -172,6 +178,69 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         assertTrue(receivedLines.stream().anyMatch(l -> tosite1Row2.get("DOCLN").equals(l.get("DOCLN"))));
         // tosite1Row1 and tosite3Row share DOCLN
         assertEquals(2L, receivedLines.stream().filter(l -> tosite3Row.get("DOCLN").equals(l.get("DOCLN"))).count());
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT fileName FROM S4TOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(fileNameRes.stream().anyMatch(f -> f.get("fileName").equals(fileName1)));
+        assertTrue(fileNameRes.stream().anyMatch(f -> f.get("fileName").equals(fileName2)));
+    }
+
+
+    @Test
+    void transactedFileAndContentsInsertTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+
+        // 1 file, tosite1, tosite2 insert and then retried 10 times, no file or tositteet should be inserted due to db exception
+        mockJdbcS4SapActual.expectedMessageCount(1 + 1 + 11);
+
+        String toimiala = "excep";
+        String year = "GJAHR";
+        String month = "POPER";
+
+        Exchange ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("CamelFileName", "ID023_FI_TOSITE_OUT_transaction.xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+        LinkedHashMap<String, Object> tosite1 = createS4TositeRow("BUKRS", "BELNR1", year, month, "DOCLN1");
+        // TODO: + 1 duplicate
+        LinkedHashMap<String, Object> tosite2 = createS4TositeRow("BUKRS", "BELNR2", year, month, "DOCLN1");
+        LinkedHashMap<String, Object> tosite3 = createS4TositeRow("BUKRS", "BELNR3", year, month, "DOCLN1");
+        List<LinkedHashMap<String, Object>> tositteet = List.of(tosite1, tosite2, tosite3);
+        ex.getMessage().setBody(tositteet);
+
+        SQLException thrownException = new SQLException("sql exception!");
+        // inserting tosite2 fails, tosite3 should not be inserted (and tosite1 should be rolled back as well)
+        mockJdbcS4SapActual.whenAnyExchangeReceived(e -> {
+            String sqlBody = e.getMessage().getBody(String.class);
+            Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+            assertNotEquals(tosite3.get("BELNR"), jdbcParams.get("BELNR")); // shouldn't proceed to inserting tosite3
+            if (sqlBody.contains("S4TOSITERIVI") && tosite2.get("BELNR").equals(jdbcParams.get("BELNR"))) {
+                e.setException(thrownException);
+            }
+        });
+
+        Exchange insertRes = producerTemplate.send("direct:insert-s4-tosite-file-and-contents-into-db", ex);
+        // 1 split
+        assertEquals(thrownException, insertRes.getException().getCause());
+
+        mockJdbcS4SapActual.assertIsSatisfied();
+        Exchange fetchEx = new DefaultExchange(ctx);
+        Message fetchMsg = fetchEx.getMessage();
+        fetchMsg.setHeader("toimiala", toimiala);
+        fetchMsg.setHeader("GJAHR", year);
+        fetchMsg.setHeader("POPER", month);
+        fetchMsg.setHeader("pageLimit", 100);
+        producerTemplate.send(testFetchTositeS4RivitUri, fetchEx);
+
+        List<Map<String, String>> receivedLines = mockS4TositeRivitFetch.getExchanges().stream().map(e -> (Map<String, String>)e.getMessage().getBody(Map.class)).toList();
+        assertTrue(receivedLines.isEmpty());
+
+        fetchEx = new DefaultExchange(ctx);
+        fetchEx.getMessage().setBody("SELECT fileName FROM S4TOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
+        producerTemplate.send("jdbc:sapactual", fetchEx);
+        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        assertTrue(fileNameRes.isEmpty());
     }
 
     @Test

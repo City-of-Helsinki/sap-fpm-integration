@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -97,9 +98,26 @@ CREATE TABLE IF NOT EXISTS COTOSITESAPFILE(
                 })
                 .setBody(simple(
                         "INSERT INTO COTOSITE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-                .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
-                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-                .setBody(exchangeProperty("originalBody"));
+                .doTry()
+                    .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+                    .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                    .setBody(exchangeProperty("originalBody"))
+                .doCatch(SQLIntegrityConstraintViolationException.class)
+                    .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
+                    .process(e -> {
+                        Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+                        if (jdbcParams != null && !jdbcParams.isEmpty()) {
+                            log.info("Failed to insert co %s %s into db due to a duplicate in %s".formatted(
+                                    jdbcParams.get("BUKRS"), jdbcParams.get("BELNR"),
+                                    e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)
+                            ));
+                        } else {
+                            log.info("Failed to insert co receipt into the db due to a duplicate in %s".formatted(e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)));
+                        }
+                    })
+                    .process(e -> e.getMessage().setBody(null))
+                    .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .end();
 
         buildInsertRiviIntoDb("direct:insert-cotositerivi-into-db", "insertCoTositeRiviIntoDb", "COTOSITERIVI");
 

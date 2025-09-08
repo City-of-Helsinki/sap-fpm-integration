@@ -28,11 +28,11 @@ public class S4TositeInTest {
     @Inject
     S4FITositeInRouteBuilder s4tositeRoute;
 
-    String testTositeFileName = "ID022_FI_TOSITE_OUT_20250902-000123-999.xml";
+    String testTositeFileName = "ID023_FI_TOSITE_OUT_20250809-000123-999.xml";
 
     @AfterEach
     public void afterEach() throws IOException {
-        Files.deleteIfExists(Paths.get("in/" + testTositeFileName));
+        Files.deleteIfExists(Paths.get("in/s4/" + testTositeFileName));
     }
 
     @Test

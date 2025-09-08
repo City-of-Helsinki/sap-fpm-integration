@@ -6,6 +6,7 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.component.jdbc.JdbcConstants;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.camel.model.RouteDefinition;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
@@ -14,6 +15,9 @@ import java.util.stream.Collectors;
 public abstract class TositeDbCommon extends RouteBuilder {
 
     public final static String DUPLICATE_ENTRY_EXCEPTION_MESSAGE = "${exception.message} contains 'Duplicate entry' || ${exception.message} contains 'primary key violation'";
+
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    public int DEFAULT_REDELIVERY_DELAY;
 
     public ProcessorDefinition<?> buildFileAndContentsDbRoute(String fromUri, String routeId, String insertFileUri, String insertTositeAndRivitUri) {
         return from(fromUri).routeId(routeId)
@@ -25,12 +29,14 @@ public abstract class TositeDbCommon extends RouteBuilder {
                 .continued(true)
             .end()
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("receipts to insert: ${body.size()}")
+            //.transacted("PROPAGATION_REQUIRES_NEW")
+            .transacted()
             .to(insertFileUri)
             .choice().when(body().isNotNull())
-                .split(body())
+                .split(body()).stopOnException(true)
                     .to(insertTositeAndRivitUri)
                     .setBody(constant(""))
                     .removeProperty("originalBody")
@@ -45,7 +51,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
     public ProcessorDefinition<?> buildInsertReceiptAndLinesIntoDb(String fromUri, String insertReceiptUri, String insertReceiptLineUri) {
         return from(fromUri)
             .onException(SQLIntegrityConstraintViolationException.class)
-                    .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
+                .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
                     .process(e -> {
                         Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
                         if (jdbcParams != null && !jdbcParams.isEmpty()) {
@@ -61,8 +67,8 @@ public abstract class TositeDbCommon extends RouteBuilder {
                     .process(e -> e.getMessage().setBody(null))
                     .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .end()
-            .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+            .onException(Exception.class) // due to transaction, will retry in calling route and also this whole route
+                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .process(e -> {
                 List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);
@@ -70,11 +76,11 @@ public abstract class TositeDbCommon extends RouteBuilder {
                                 e.getMessage().setHeader("firstReceipt", firstReceipt)
                         , () -> e.getMessage().removeHeader("firstReceipt"));
             })
-            .transacted("PROPAGATION_REQUIRES_NEW")
+            .transacted()
             .to(insertReceiptUri)
             .choice()
                 .when(body().isNotNull())
-                    .split(body())
+                    .split(body()).stopOnException(true)
                         .to(insertReceiptLineUri)
                     .end()
             .end();
@@ -90,6 +96,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
                     jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
                     setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
                 })
+                //.transacted()
                 .setBody(simple(
                         "INSERT INTO %s (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})".formatted(dbTable)))
                 .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")

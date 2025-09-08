@@ -30,6 +30,9 @@ public class S4FITositeDB extends TositeDbCommon {
         }
 
         from("direct:init-s4-tositerivi-db")
+
+            .to("direct:init-tositerivi-db")
+
             .setProperty("originalBody", body())
                 //   Incorrect table definition; there can be only one auto column and it must be defined as a key
             .setBody(constant("""
@@ -71,8 +74,20 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
 
         from("direct:insert-s4-tositerivi-into-db")
             .routeId("insertS4TositeRiviIntoDb")
-            //.transacted("PROPAGATION_REQUIRES_NEW") // TODO: CHECK
-            .onException(SQLIntegrityConstraintViolationException.class)
+            .errorHandler(noErrorHandler())
+            .process(e -> {
+                Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));
+                jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
+                jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
+                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
+            })
+            .setBody(simple(
+                    "INSERT INTO S4TOSITERIVI (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
+            .doTry()
+                .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
+                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+                .setBody(exchangeProperty("originalBody"))
+            .doCatch(SQLIntegrityConstraintViolationException.class)
                 .onWhen(simple(DUPLICATE_ENTRY_EXCEPTION_MESSAGE))
                 .process(e -> {
                     Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
@@ -85,24 +100,11 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
                         log.info("Failed to insert receipt line into the db due to a duplicate in %s".formatted(e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)));
                     }
                 })
-                .continued(true)
-                .process(e -> e.getMessage().setBody(null))
-                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-            .end()
-            .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
-            .end()
-            .process(e -> {
-                Map<String, String> jdbcParams = copyNonNullValues(e.getMessage().getBody(Map.class));
-                jdbcParams.put("toimiala", e.getMessage().getHeader("toimiala", String.class));
-                jdbcParams.put("fileName", e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
-                setJdbcParamsSqlValsAndOriginalBody(e, jdbcParams);
-            })
-            .setBody(simple(
-                    "INSERT INTO S4TOSITERIVI (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true") //&resetAutoCommit=false TODO: check resetAutoCommit
-            .removeHeader(JdbcConstants.JDBC_PARAMETERS)
-            .setBody(exchangeProperty("originalBody"));
+               .process(e -> e.getMessage().setBody(null)) // TODO: check
+               .removeHeader(JdbcConstants.JDBC_PARAMETERS)
+            .end();
+
+        //buildInsertRiviIntoDb("direct:insert-s4-tositerivi-into-db", "insertS4TositeRiviIntoDb", "S4TOSITERIVI");
 
         from("direct:insert-s4-tositesapfile-into-db").routeId("insertS4TositeSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route
@@ -115,7 +117,7 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
             })
             .setBody(simple(
                     "INSERT INTO S4TOSITESAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true") // &resetAutoCommit=false
+            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false") // &resetAutoCommit=false
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 

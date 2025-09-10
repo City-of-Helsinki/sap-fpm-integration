@@ -25,16 +25,13 @@ public class S4FITositeDB extends TositeDbCommon {
     // s4 tosite rivi unique by BUKRS, BELNR, GJAHR, POPER, DOCLN
     @Override
     public void configure() throws Exception {
-        if (!mainConfig.localOrSFTPS4ToteumatEnabled()) {
+        // palke FTP toteumat needs to send both ECC and S4 data
+        if (!mainConfig.localOrSFTPS4ToteumatEnabled() && !mainConfig.localOrFTPToteumatEnabled() && !mainConfig.palkeFTPToteumatEnabled()) {
             return;
         }
 
         from("direct:init-s4-tositerivi-db")
-
-            .to("direct:init-tositerivi-db")
-
             .setProperty("originalBody", body())
-                //   Incorrect table definition; there can be only one auto column and it must be defined as a key
             .setBody(constant("""
 CREATE TABLE IF NOT EXISTS S4TOSITERIVI(
 id bigint NOT NULL AUTO_INCREMENT,
@@ -104,8 +101,6 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
                .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .end();
 
-        //buildInsertRiviIntoDb("direct:insert-s4-tositerivi-into-db", "insertS4TositeRiviIntoDb", "S4TOSITERIVI");
-
         from("direct:insert-s4-tositesapfile-into-db").routeId("insertS4TositeSapFileIntoDb")
             .errorHandler(noErrorHandler()) // propagate errors to calling route
             .process(e -> {
@@ -117,7 +112,7 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
             })
             .setBody(simple(
                     "INSERT INTO S4TOSITESAPFILE (${exchangeProperty.sqlValNames}) VALUES (${exchangeProperty.sqlNamedParams})"))
-            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false") // &resetAutoCommit=false
+            .to("jdbc:sapactual?useHeadersAsParameters=true&resetAutoCommit=false")
             .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .setBody(exchangeProperty("originalBody"));
 

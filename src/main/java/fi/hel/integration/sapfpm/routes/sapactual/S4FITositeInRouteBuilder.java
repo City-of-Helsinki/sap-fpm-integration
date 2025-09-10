@@ -8,17 +8,11 @@ import jakarta.inject.Inject;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalS4ToteumatIn;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildS4SFtpToteumatIn;
-
-// TODO:
-// insert from ECC and S4 and write out from BOTH!
-// otherwise, if both ECC and S4 contain the same GJAHR POPER, they will overwrite
 
 @ApplicationScoped
 public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOrFileRouteBuilder {
@@ -43,6 +37,10 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP"
         };
     }
+
+    public static final String palkeFetchECCAndS4ToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-palke";
+
+    public static final String appendFromS4DbRouteUri = "direct:fetch-and-append-s4-tositteet-from-db";
 
     // <ROWS><ROW>...</ROW></ROWS>
     public LinkedHashMap<String, Object> extractValues(Map<String, Object> tositeRow) {
@@ -107,15 +105,6 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             log.error("s4 tosite toimiala is null!");
             return;
         }
-        String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
-        from(marshalHeaderlessCsvURI).routeId("s4tositeHeaderlessCsv")
-            .marshal(createCsvDataFormat().setSkipHeaderRecord(true));
-
-        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
-        from(marshalWithHeaderCsvURI).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
-
-        String initRouteUri = "direct:init-s4-toteumat-route";
-        from(initRouteUri).setHeader("toimiala", constant(toimiala)).to("direct:init-s4-tositerivi-db");
 
         String processFileRouteUri = "direct:process-s4-tosite-file";
         from(processFileRouteUri)
@@ -124,29 +113,97 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             .to("direct:insert-s4-tosite-file-and-contents-into-db");
 
         String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
-        buildDbFetchAndFileNameInitializer(initDbFetchParamsAndFileNameUri, "s4InitTositeDbFetchParams-%s".formatted(toimiala), "POPER", "SAPACTUAL");
-
+        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
+
         String fetchToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-" + toimiala;
 
+        buildFetchingRoutes(toimiala);
+
+        if ("palke".equals(toimiala)) {
+            buildSS4AndECCFetchingRoute();
+        } else {
+            String fetchS4YearsAndMonthsUri = "direct:fetch-all-s4-years-and-months-from-db";
+
+            buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
+                    fetchS4YearsAndMonthsUri, initDbFetchParamsAndFileNameUri,
+                    marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", appendFromS4DbRouteUri, sendFileToAzureUri);
+        }
         log.info("S4 Tosite DB page limit: " + DB_PAGE_LIMIT);
 
-        // TODO: fetch ECC also!
-        String appendFromDbRouteUri = "direct:fetch-and-append-ecc-tositteet-from-db";
-        String appendFromS4DbRouteUri = "direct:fetch-and-append-s4-tositteet-from-db";
-        buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+        String initDbUri = "direct:init-s4-toteumat-route";
+        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", toimiala, initDbUri, processFileRouteUri, fetchToteumatRouteUri);
+    }
+
+    //
+    public void buildFetchingRoutes(String toimiala) {
+        String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
+        from(marshalHeaderlessCsvURI).routeId("s4tositeHeaderlessCsv")
+            .marshal(createCsvDataFormat().setSkipHeaderRecord(true));
+
         buildAppendDbToExistingFileRoute(appendFromS4DbRouteUri,"appendS4TositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-s4-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
 
+        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
+        from(marshalWithHeaderCsvURI).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
+
+        String initDbUri = "direct:init-s4-toteumat-route";
+        from(initDbUri)
+            .choice().when(constant(mainConfig.palkeS4SFTPToteumatEnabled() || mainConfig.localOrFTPToteumatEnabled()))
+                .to("direct:init-tositerivi-db")
+            .end()
+            .to("direct:init-s4-tositerivi-db");
+
+        String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
+        buildDbFetchAndFileNameInitializer(initDbFetchParamsAndFileNameUri, "s4InitTositeDbFetchParams-%s".formatted(toimiala), "POPER", "SAPACTUAL");
+    }
+
+    // fetches from both ECC and S4 and creates and sends SAPACTUAL_ files from them
+    public void buildSS4AndECCFetchingRoute() {
+        String toimiala = "palke";
+        String fetchToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-" + toimiala;
+        String appendFromECCDbRouteUri = "direct:fetch-and-append-ecc-tositteet-from-db";
+
+        String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
+        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
+        String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
+        String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
+
+        buildAppendDbToExistingFileRoute(appendFromECCDbRouteUri, "appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT, "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI);
+
         String appendFromBothS4AndEccRouteUri = "direct:fetch-and-append-s4-and-ecc-tositteet-from-db";
-        from(appendFromBothS4AndEccRouteUri).to(appendFromDbRouteUri).to(appendFromS4DbRouteUri);
+        from(appendFromBothS4AndEccRouteUri)
+            .errorHandler(noErrorHandler())
+            .to(appendFromECCDbRouteUri)
+            .to(appendFromS4DbRouteUri);
 
+        String fetchS4YearsAndMonthsUri = "direct:fetch-all-s4-years-and-months-from-db";
 
-        //  TODO: fetch from TOSITERIVI AND S4TOSITERIVI
+        String fetchECCYearsAndMonthsUri = "direct:fetch-all-years-and-months-from-db";
+        String fetchECCANDS4YearsAndMonthsUri = "direct:fetch-ecc-and-s4-years-and-months-from-db";
+        from(fetchECCANDS4YearsAndMonthsUri)
+            .to(fetchS4YearsAndMonthsUri)
+            .setProperty("s4YearsAndMonths", body())
+            .to(fetchECCYearsAndMonthsUri)
+            .process(e -> {
+                List<LinkedHashMap<String, Object>> eccYearsAndMonths = e.getMessage().getBody(List.class);
+                List<LinkedHashMap<String, Object>> s4YearsAndMonths = e.getProperty("s4YearsAndMonths", List.class);
+                List<LinkedHashMap<String, Object>> all = eccYearsAndMonths == null ? new ArrayList<>() : new ArrayList<>(eccYearsAndMonths);
+                if (s4YearsAndMonths != null) {
+                    s4YearsAndMonths.forEach(y -> {
+                        Optional<LinkedHashMap<String, Object>> found = all.stream().filter(a ->
+                                y.get("GJAHR").equals(a.get("GJAHR")) && y.get("POPER").equals(a.get("POPER"))).findFirst();
+                        if (found.isEmpty()) {
+                            all.add(y);
+                        }
+                    });
+                }
+                e.getMessage().setBody(all);
+                e.removeProperty("s4YearsAndMonths");
+            });
+
         buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
-                "direct:fetch-all-s4-years-and-months-from-db",initDbFetchParamsAndFileNameUri,
-                marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", appendFromS4DbRouteUri, sendFileToAzureUri);
-
-        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
+                fetchECCANDS4YearsAndMonthsUri, initDbFetchParamsAndFileNameUri,
+                marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", appendFromBothS4AndEccRouteUri, sendFileToAzureUri);
     }
 
     @Override
@@ -186,6 +243,10 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         if (mainConfig.palkeS4SFTPToteumatEnabled()) {
             buildMainRoute(s4SftpToteumatIn("palke"), "palke");
+        } else if (mainConfig.palkeFTPToteumatEnabled()) {
+            // ECC needs to write both S4 and ECC files from db
+            buildFetchingRoutes("palke");
+            buildSS4AndECCFetchingRoute();
         }
 
         if (mainConfig.kaskoS4SFTPToteumatEnabled()) {

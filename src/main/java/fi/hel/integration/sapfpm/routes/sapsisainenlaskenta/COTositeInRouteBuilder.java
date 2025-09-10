@@ -64,9 +64,6 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
         String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-Cotosite-%s".formatted(toimiala);
         from(marshalWithHeaderCsvURI).marshal(csvDataFormatWithHeader);
 
-        String initRouteUri = "direct:init-cototeumat-route";
-        from(initRouteUri).setHeader("toimiala", constant(toimiala)).to("direct:init-cotositerivi-db");
-
         String processFileRouteUri = "direct:process-cotosite-file";
         from(processFileRouteUri)
             .to("direct:unmarshal-xml")
@@ -87,7 +84,9 @@ public class COTositeInRouteBuilder extends CoToteumatRouteBuilder {
                 marshalWithHeaderCsvURI, "direct:fetch-cotosite-years-and-months-count-from-db",
                 appendFromDbRouteUri, sendFileToAzureUri);
 
-        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "cotositeIn", initRouteUri, processFileRouteUri, fetchCoToteumatRouteUri);
+        String initDbUri = "direct:init-cotositerivi-db";
+
+        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "cotositeIn", toimiala, initDbUri, processFileRouteUri, fetchCoToteumatRouteUri);
 
         from("file:trigger/cotosite-write-" + toimiala + "?delete=true").to(fetchCoToteumatRouteUri);
     }

@@ -45,18 +45,15 @@ Send kasko toteumat
     ${AUFNR}     Set Variable    AUFNR
     ${PS_PSPID}     Set Variable    PS_PSPID
     ${RASSC}     Set Variable    RASSC
-    # TODO: check SEGMENT in S4, doesn't exist in SEC
     ${SEGMENT}     Set Variable    ${EMPTY}
     ${SGTXT}     Set Variable    SGTXT
     ${DRCRK}     Set Variable    DRCRK
     ${MWSKZ}     Set Variable    MWSKZ
-    # TODO: check VAT_PERCENT in S4, doesn't exist in SEC
     ${VAT_PERCENT}     Set Variable    ${EMPTY}
     ${HSL}     Set Variable      50.80
     ${PPRCTR}     Set Variable    PPRCTR
     ${MATNR}     Set Variable    MATNR
     ${EBELP}     Set Variable    EBELP
-    # TODO: check LAST_CHANGE_DATETIME in S4, doesn't exist in SEC
     ${LAST_CHANGE_DATETIME}     Set Variable    ${EMPTY}
     ${AUGBL}     Set Variable    AUGBL
     ${AWTYP}     Set Variable    AWTYP
@@ -72,7 +69,7 @@ Send kasko toteumat
     Set Ftp Connection As Up
 
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
-    Wait Until Keyword Succeeds     2 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}

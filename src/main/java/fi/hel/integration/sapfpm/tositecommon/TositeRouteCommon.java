@@ -5,18 +5,25 @@ import org.apache.camel.component.file.FileConstants;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class TositeRouteCommon extends RouteBuilder {
 
-    public void buildFtpBatchingRoute(String fromUri, String routeId, String initRouteUri,
+    public void buildFtpBatchingRoute(String fromUri, String routeId, String toimiala, String initDbUri,
          String processFileUri, String onBatchCompletionUri) {
 
         AtomicInteger initialBatchSize = new AtomicInteger(-1);
         AtomicInteger processedFileAmount = new AtomicInteger(0);
 
-        // TODO: call initRouteUri only once at start
-        from(fromUri).routeId(routeId).to(initRouteUri)
+        from(fromUri).routeId(routeId)
+            .setHeader("toimiala", constant(toimiala))
+            .choice()
+                .when(variable("route:dbInited").isNotEqualTo(Boolean.TRUE))
+                .log("initing db")
+                .to(initDbUri)
+                .setVariable("route:dbInited", constant(true))
+            .end()
             .onException(Exception.class)
                 .maximumRedeliveries(10).redeliveryDelay(10000)
             .end()
@@ -64,7 +71,6 @@ public abstract class TositeRouteCommon extends RouteBuilder {
             .setProperty("fileExist", constant("Append"))
             .setHeader("pageLimit", constant(dbPageLimit))
             .setProperty("dbHasMoreResults", constant(true))
-            // .to(fetchCountUri) // TODO: not needed
             .setHeader("pageLimit", constant(dbPageLimit))
             .setProperty("dbHasMoreResults", constant(true))
             .loopDoWhile(exchangeProperty("dbHasMoreResults").isEqualTo(true))
@@ -112,7 +118,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                     .to(fetchCountUri)
                     .to(appendFromDbToFileUri)
                     .log("appending done, enriching and sending to azure")
-                .to(sendFileToAzureUri)
+                    .to(sendFileToAzureUri)
                     .setBody(constant(""))
                 .end()
             .log("${headers.toimiala} all months and years sent to Azure from db");

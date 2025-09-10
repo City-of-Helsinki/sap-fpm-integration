@@ -2,6 +2,7 @@ package fi.hel.integration.sapfpm.routes.sapactual;
 
 
 import fi.hel.integration.sapfpm.Profiles;
+import fi.hel.integration.sapfpm.TestDbHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
@@ -20,12 +21,15 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static fi.hel.integration.sapfpm.routes.sapactual.TositeDBTest.createTositeMeta;
 import static org.apache.camel.builder.Builder.header;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,6 +39,9 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
 
     @Inject
     ProducerTemplate producerTemplate;
+
+    @Inject
+    TestDbHelper dbHelper;
 
     @EndpointInject("mock:jdbc:s4Sapactual")
     private MockEndpoint mockJdbcS4SapActual;
@@ -52,7 +59,9 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
     public void beforeEach() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
+        dbHelper.dropTables();
         producerTemplate.send("direct:init-s4-tositerivi-db", new DefaultExchange(producerTemplate.getCamelContext()));
+        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(producerTemplate.getCamelContext()));
 
         mockS4TositeRivitFetch.reset();
         mockJdbcS4SapActual.reset();
@@ -60,7 +69,7 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         mockFetchS4TositeRivitFromDb.reset();
 
         AdviceWith.adviceWith(ctx, "insertS4TositeSapFileIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("FI_TOSITE")).to(mockJdbcS4SapActual.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcS4SapActual.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertS4TositeRiviIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual?*").to(mockJdbcS4SapActual.getEndpointUri());
@@ -214,6 +223,9 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         mockJdbcS4SapActual.whenAnyExchangeReceived(e -> {
             String sqlBody = e.getMessage().getBody(String.class);
             Map<String, String> jdbcParams = e.getMessage().getHeader(JdbcConstants.JDBC_PARAMETERS, Map.class);
+            if (jdbcParams == null) {
+                return; // was a fetch
+            }
             assertNotEquals(tosite3.get("BELNR"), jdbcParams.get("BELNR")); // shouldn't proceed to inserting tosite3
             if (sqlBody.contains("S4TOSITERIVI") && tosite2.get("BELNR").equals(jdbcParams.get("BELNR"))) {
                 e.setException(thrownException);
@@ -239,7 +251,7 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         fetchEx = new DefaultExchange(ctx);
         fetchEx.getMessage().setBody("SELECT fileName FROM S4TOSITESAPFILE WHERE toimiala = '" + toimiala + "'");
         producerTemplate.send("jdbc:sapactual", fetchEx);
-        List<Map<String, String>> fileNameRes = fetchEx.getMessage().getBody(List.class);
+        List<Map<String, String>> fileNameRes =  fetchEx.getMessage().getBody(List.class);
         assertTrue(fileNameRes.isEmpty());
     }
 
@@ -272,15 +284,56 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
     }
 
     @Test
+    void fetchEccAndS4TositeRivitFromDbTest() throws Exception {
+        CamelContext ctx = producerTemplate.getCamelContext();
+
+        String POPER = "02",
+                GJAHR = "2027",
+                eccTosite1BELNR = "BELNR123",
+                s4tosite1BELNR = "BELNR234";
+
+        Exchange ex = new DefaultExchange(ctx);
+        String toimiala = "palke";
+        ex.getMessage().setHeader("CamelFileName", toimiala + "_s4.xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+        LinkedHashMap<String, Object> s4Tosite1 = createS4TositeRow("BUKRS", s4tosite1BELNR, GJAHR, POPER, "DOCLN1");
+        ex.getMessage().setBody(List.of(s4Tosite1));
+        producerTemplate.send("direct:insert-s4-tosite-file-and-contents-into-db", ex);
+
+        ex = new DefaultExchange(ctx);
+        ex.getMessage().setHeader("CamelFileName", toimiala + "_ecc.xml");
+        ex.getMessage().setHeader("toimiala", toimiala);
+        LinkedHashMap<String, Object> eccTosite1 = createTositeMeta(eccTosite1BELNR, eccTosite1BELNR, GJAHR, POPER);
+        eccTosite1.put("BLDAT", "bldat");
+        ex.getMessage().setBody(List.of(List.of(eccTosite1)));
+        producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
+
+        mockAnyS4FileOut.expectedMessageCount(2); // header and then S4 and ECC content appended to it
+        mockAnyS4FileOut.whenExchangeReceived(2, e -> {
+            assertTrue(e.getMessage().getBody(String.class).contains(s4tosite1BELNR));
+        });
+        mockAnyS4FileOut.whenExchangeReceived(3, e -> {
+            assertTrue(e.getMessage().getBody(String.class).contains(eccTosite1BELNR));
+        });
+
+        mockFetchS4TositeRivitFromDb.expectedMessageCount(2); // fetch attempts
+
+        producerTemplate.send("direct:fetch-s4-tositteet-from-db-and-write-to-azure-palke", new DefaultExchange(ctx));
+        mockAnyS4FileOut.assertIsSatisfied();
+        mockFetchS4TositeRivitFromDb.assertIsSatisfied();
+    }
+
+    @Test
     void fetchTositeRivitFromDbErrorTest() throws Exception {
         CamelContext ctx = producerTemplate.getCamelContext();
 
         SQLException thrownException = new SQLException("sql exception!");
 
-        mockFetchS4TositeRivitFromDb.whenExchangeReceived(1, e -> e.setException(thrownException));
-
+        mockFetchS4TositeRivitFromDb.whenExchangeReceived(1, e -> {
+            e.setException(thrownException);
+        });
         String POPER = "02",
-                GJAHR = "2027",
+                GJAHR = "2028",
                 tosite1BELNR = "BELNR123",
                 tosite1DOCLN = "DOCLN1",
                 tosite2BELNR = "BELNR234",
@@ -306,6 +359,7 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
                 tosite2Count.incrementAndGet();
             }
         });
+
         mockAnyS4FileOut.expectedMessageCount(3); // header + two tosite
         mockFetchS4TositeRivitFromDb.expectedMessageCount(4);
 
@@ -326,8 +380,8 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         ex = new DefaultExchange(ctx);
         producerTemplate.send("direct:fetch-s4-tositteet-from-db-and-write-to-azure-palke", ex);
 
-        mockAnyS4FileOut.assertIsSatisfied();
         mockFetchS4TositeRivitFromDb.assertIsSatisfied();
+        mockAnyS4FileOut.assertIsSatisfied();
         assertNotNull(ex.getException());
         assertEquals(thrownException, ex.getException(SQLException.class));
     }
@@ -407,7 +461,7 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(created.getLast().POPER(), resBody.getFirst().get("POPER").toString());
     }
 
-    public LinkedHashMap<String, Object> createS4TositeRow(String BUKRS, String BELNR, String GJAHR, String POPER, String DOCLN) {
+    public static LinkedHashMap<String, Object> createS4TositeRow(String BUKRS, String BELNR, String GJAHR, String POPER, String DOCLN) {
         LinkedHashMap<String, Object> tosite = new LinkedHashMap<>();
         tosite.put("BUKRS", BUKRS);
         tosite.put("BELNR", BELNR);

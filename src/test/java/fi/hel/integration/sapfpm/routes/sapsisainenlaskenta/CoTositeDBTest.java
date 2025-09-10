@@ -48,7 +48,7 @@ public class CoTositeDBTest extends CamelQuarkusTestSupport {
         producerTemplate.send("direct:init-cotositerivi-db", new DefaultExchange(ctx));
 
         AdviceWith.adviceWith(ctx,"insertCoTositeSapFileIntoDb", b -> {
-            b.interceptSendToEndpoint("jdbc:sapactual*").onWhen(header(FileConstants.FILE_NAME).contains("CO_TOSITE")).to(mockJdbcSapActualCo.getEndpointUri());
+            b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActualCo.getEndpointUri());
         });
         AdviceWith.adviceWith(ctx, "insertCoTositeIntoDb", b -> {
             b.interceptSendToEndpoint("jdbc:sapactual*").to(mockJdbcSapActualCo.getEndpointUri());

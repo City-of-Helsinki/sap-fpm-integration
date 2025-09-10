@@ -10,6 +10,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
+import static fi.hel.integration.sapfpm.routes.sapactual.S4FITositeInRouteBuilder.palkeFetchECCAndS4ToteumatRouteUri;
+
 
 // BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
 @ApplicationScoped
@@ -102,9 +104,6 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-Tosite-%s".formatted(toimiala);
         from(marshalWithHeaderCsvURI).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
 
-        String initRouteUri = "direct:init-toteumat-route";
-        from(initRouteUri).setHeader("toimiala", constant(toimiala)).to("direct:init-tositerivi-db");
-
         String processFileRouteUri = "direct:process-tosite-file";
         from(processFileRouteUri)
             .to("direct:unmarshal-xml")
@@ -119,15 +118,28 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         log.info("Tosite DB page limit: " + DB_PAGE_LIMIT);
 
-        String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
-        buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+        if ("palke".equals(toimiala)) {
+            // palke data fetched via S4 that fetches both ECC and S4
+            from(fetchToteumatRouteUri).errorHandler(noErrorHandler())
+                .to(palkeFetchECCAndS4ToteumatRouteUri);
+        } else {
+            String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
+            buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
 
-        buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
-            "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
-            marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", appendFromDbRouteUri
-            , sendFileToAzureUri);
+            buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
+                    "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
+                    marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", appendFromDbRouteUri
+                    , sendFileToAzureUri);
+        }
 
-        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", initRouteUri, processFileRouteUri, fetchToteumatRouteUri);
+        String initDbUri = "direct:init-tositerivi-route";
+        from(initDbUri)
+            .to("direct:init-tositerivi-db")
+            .choice().when(constant(toimiala).isEqualTo("palke"))
+                .to("direct:init-s4-tositerivi-db")
+            .end();
+
+        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", toimiala, initDbUri, processFileRouteUri, fetchToteumatRouteUri);
 
         from("file:trigger/tosite-write-" + toimiala + "?delete=true").to(fetchToteumatRouteUri);
     }

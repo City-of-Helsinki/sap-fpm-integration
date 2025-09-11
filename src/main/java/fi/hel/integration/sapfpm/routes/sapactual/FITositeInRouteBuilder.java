@@ -1,19 +1,13 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
-import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import fi.hel.integration.sapfpm.routes.ToteumatRouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.apache.camel.component.file.FileConstants;
-import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
-import static fi.hel.integration.sapfpm.routes.sapactual.S4FITositeInRouteBuilder.palkeFetchECCAndS4ToteumatRouteUri;
 
-
-// BKPF, BSEG ja FMGLEXA tulevat jatkossa kaikki yhdessä ja samassa tiedostossa eli tässä uudessa toteutettavassa toteumatiedostossa.
+// tosite id: BUKRS, BELNR, POPER, GJAHR
 @ApplicationScoped
 public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
     @ConfigProperty(name = "tosite-db.page-limit", defaultValue = "1000")
@@ -121,7 +115,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         if ("palke".equals(toimiala)) {
             // palke data fetched via S4 that fetches both ECC and S4
             from(fetchToteumatRouteUri).errorHandler(noErrorHandler())
-                .to(palkeFetchECCAndS4ToteumatRouteUri);
+                .to(S4FITositeInRouteBuilder.getFetchToteumatRouteUri("palke"));
         } else {
             String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
             buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
@@ -193,17 +187,5 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
                 e.getMessage().setBody(receipts);
             }).id("ProcessTositeOut");
     }
-
-    public String getReceiptIdWithoutTime(Map<String, Object> receipt) {
-        return receipt.get("BUKRS") + "_" + receipt.get("BELNR");
-    }
-
-    public String getReceiptId(Map<String, Object> receipt) {
-        return getReceiptIdWithoutTime(receipt) + "_" +
-                receipt.get("GJAHR") + "_" + receipt.get("POPER");
-    }
-
-    // S4 rivin id ehkä: BUKRS + BELNR + GJAHR + POPER + DOCLN
-    // BUZEI tai CO_BUZEI ei toimi koska joissain aina 000
 }
 

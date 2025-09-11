@@ -38,8 +38,6 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
         };
     }
 
-    public static final String palkeFetchECCAndS4ToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-palke";
-
     public static final String appendFromS4DbRouteUri = "direct:fetch-and-append-s4-tositteet-from-db";
 
     // <ROWS><ROW>...</ROW></ROWS>
@@ -112,11 +110,7 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             .to("direct:process-s4-tosite-file-contents")
             .to("direct:insert-s4-tosite-file-and-contents-into-db");
 
-        String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
-        String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
-        String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
-
-        String fetchToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-" + toimiala;
+        String fetchToteumatRouteUri = getFetchToteumatRouteUri(toimiala);
 
         buildFetchingRoutes(toimiala);
 
@@ -124,6 +118,9 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             buildSS4AndECCFetchingRoute();
         } else {
             String fetchS4YearsAndMonthsUri = "direct:fetch-all-s4-years-and-months-from-db";
+            String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
+            String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
+            String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
 
             buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
                     fetchS4YearsAndMonthsUri, initDbFetchParamsAndFileNameUri,
@@ -140,7 +137,6 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
         String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
         from(marshalHeaderlessCsvURI).routeId("s4tositeHeaderlessCsv")
             .marshal(createCsvDataFormat().setSkipHeaderRecord(true));
-
         buildAppendDbToExistingFileRoute(appendFromS4DbRouteUri,"appendS4TositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-s4-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
 
         String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
@@ -160,7 +156,6 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
     // fetches from both ECC and S4 and creates and sends SAPACTUAL_ files from them
     public void buildSS4AndECCFetchingRoute() {
         String toimiala = "palke";
-        String fetchToteumatRouteUri = "direct:fetch-s4-tositteet-from-db-and-write-to-azure-" + toimiala;
         String appendFromECCDbRouteUri = "direct:fetch-and-append-ecc-tositteet-from-db";
 
         String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
@@ -168,7 +163,8 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
         String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
 
-        buildAppendDbToExistingFileRoute(appendFromECCDbRouteUri, "appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT, "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI);
+        buildAppendDbToExistingFileRoute(appendFromECCDbRouteUri, "appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,
+                "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI);
 
         String appendFromBothS4AndEccRouteUri = "direct:fetch-and-append-s4-and-ecc-tositteet-from-db";
         from(appendFromBothS4AndEccRouteUri)
@@ -201,7 +197,7 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
                 e.removeProperty("s4YearsAndMonths");
             });
 
-        buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
+        buildFileAppendingFromDbPageRoute(getFetchToteumatRouteUri(toimiala), "fetchS4TositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
                 fetchECCANDS4YearsAndMonthsUri, initDbFetchParamsAndFileNameUri,
                 marshalWithHeaderCsvURI, "direct:fetch-s4-years-and-months-count-from-db", appendFromBothS4AndEccRouteUri, sendFileToAzureUri);
     }
@@ -265,6 +261,10 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
             buildSupportingRoutes();
         }
 
+    }
+
+    public static String getFetchToteumatRouteUri(String toimiala) {
+        return "direct:fetch-s4-tositteet-from-db-and-write-to-azure-" + toimiala;
     }
 }
 

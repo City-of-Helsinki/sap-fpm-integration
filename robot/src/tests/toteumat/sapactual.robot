@@ -67,7 +67,7 @@ Send kasko toteumat
     Set Ftp Connection As Down
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml   content=${TOSITE}
     Set Ftp Connection As Up
-
+    # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
     Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}

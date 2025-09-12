@@ -14,8 +14,8 @@ Test Tags       toteumat    s4   sapactual
 Send S4 kasko toteumat
     [Documentation]     S4 KASKO toteumat
     [Tags]     kasko
+    Set Log Level   DEBUG
     ${KaskoToteumatFtpDir}   Get SFTP Dir For     %{KASKO_S4_SFTP_USER_TOTEUMAT}
-    Wait Until Keyword Succeeds    2 Minutes   3 Seconds      Check SFTP User
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
@@ -67,6 +67,7 @@ Send S4 kasko toteumat
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
     #Set Sftp Connection As Down
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml   content=${TOSITE}
+    Log To Console     File ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml created
     #Set Sftp Connection As Up
     # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv

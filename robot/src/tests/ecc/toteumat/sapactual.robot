@@ -2,10 +2,10 @@
 Documentation   Luo FTP-palvelimen, luo toteumia palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
 
 
-Library      ../../resources/FTPServer.py
+Library      ../../../resources/FTPServer.py
 Library     OperatingSystem
-Resource     ../../resources/CreateTestFilesCommon.resource
-Resource    ../../resources/CreateToteumatTestFiles.resource
+Resource     ../../../resources/CreateTestFilesCommon.resource
+Resource    ../../../resources/CreateToteumatTestFiles.resource
 
 
 Test Tags       toteumat     sapactual

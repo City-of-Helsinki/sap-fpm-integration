@@ -2,10 +2,10 @@
 Documentation   Luo FTP-palvelimen, luo co-toteumia palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
 
 
-Library      ../../resources/FTPServer.py
+Library      ../../../resources/FTPServer.py
 Library     OperatingSystem
-Resource     ../../resources/CreateTestFilesCommon.resource
-Resource    ../../resources/CreateCoToteumatTestFiles.resource
+Resource     ../../../resources/CreateTestFilesCommon.resource
+Resource    ../../../resources/CreateCoToteumatTestFiles.resource
 
 
 Test Tags       cototeumat     sapsisainenlaskenta

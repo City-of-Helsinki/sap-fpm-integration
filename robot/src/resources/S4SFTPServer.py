@@ -44,25 +44,32 @@ class S4SFTPServerHandler (SFTPServerInterface):
         super().__init__(server, *args, **kwargs)
 
     def _realpath(self, path):
+        print("PATH: " + path, " -> " + self.server.logged_in_user_dir + self.canonicalize(path))
         return self.server.logged_in_user_dir + self.canonicalize(path)
 
     def list_folder(self, path):
+        print("list_folder: {}".format(path))
         path = self._realpath(path)
         try:
             out = [ ]
             flist = os.listdir(path)
+            print("list_folder, flist: {}".format(flist))
             for fname in flist:
+                print("list_folder, fname: {}".format(fname))
                 attr = SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
                 attr.filename = fname
                 out.append(attr)
             return out
         except OSError as e:
+            print("oserror in list_folder: {}",format(e))
             return SFTPServer.convert_errno(e.errno)
 
     def _stat(self, path, run_stat):
+        print("_stat: {}".format(path))
         try:
             return SFTPAttributes.from_stat(run_stat(self._realpath(path)))
         except OSError as e:
+            print("os error in stat: {}".format(e))
             return SFTPServer.convert_errno(e.errno)
 
     def stat(self, path):
@@ -73,6 +80,7 @@ class S4SFTPServerHandler (SFTPServerInterface):
 
     def open(self, path, flags, attr):
         path = self._realpath(path)
+        print("open, path: {}".format(path))
         try:
             binary_flag = getattr(os, 'O_BINARY',  0)
             flags |= binary_flag
@@ -115,6 +123,7 @@ class S4SFTPServerHandler (SFTPServerInterface):
         try:
             exec()
         except OSError as e:
+            print("OSERROR {}".format(e))
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
 
@@ -171,6 +180,7 @@ class S4SFTPServer(object):
             self.channel = transport.accept()
             while transport.is_active():
                 time.sleep(1)
+            print("transport is no longer active!")
 
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir

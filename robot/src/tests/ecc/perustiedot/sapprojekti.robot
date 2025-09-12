@@ -2,11 +2,11 @@
 Documentation   Luo FTP-palvelimen, luo perustietoja palvelimelle, tarkistaa FTP-palvelimelle integraation lähettämät tiedostot
 
 
-Library      ../../resources/FTPServer.py
+Library      ../../../resources/FTPServer.py
 Library         DateTime
 Library     OperatingSystem
-Resource    ../../resources/CreatePerustiedotTestFiles.resource
-Resource    ../../resources/CreateTestFilesCommon.resource
+Resource    ../../../resources/CreatePerustiedotTestFiles.resource
+Resource    ../../../resources/CreateTestFilesCommon.resource
 
 
 Test Tags       perustiedot     sapprojekti

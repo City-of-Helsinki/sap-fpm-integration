@@ -31,7 +31,7 @@
             co_toteumat:
                 user: "${PALKE_SFTP_USER_ID166}"
                 password: "${PALKE_SFTP_PASSWORD_ID166}"
-        sftp:
+        s4_sftp:
             host: "${PALKE_S4_SFTP_HOST}"
             passiveMode: "${PALKE_S4_SFTP_PASSIVE_MODE:true}"
             perustiedot:
@@ -55,7 +55,7 @@
             toteumat:
                 user: "${KASKO_SFTP_USER_ID023}"
                 password: "${KASKO_SFTP_PASSWORD_ID023}"
-        sftp:
+        s4_sftp:
             host: "${KASKO_S4_SFTP_HOST}"
             passiveMode: "${KASKO_S4_SFTP_PASSIVE_MODE:true}"
             perustiedot:
@@ -79,7 +79,7 @@
             toteumat:
                 user: "${SOTEPE_SFTP_USER_ID022}"
                 password: "${SOTEPE_SFTP_PASSWORD_ID022}"
-        sftp:
+        s4_sftp:
             host: "${SOTEPE_S4_SFTP_HOST}"
             passiveMode: "${SOTEPE_S4_SFTP_PASSIVE_MODE:true}"
             perustiedot:

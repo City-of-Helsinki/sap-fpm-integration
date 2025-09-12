@@ -52,11 +52,11 @@ public class InRouteBuilder extends RouteBuilder {
     }
 
     public static String buildS4SftpIn(String perusOrToteumat, String toimiala, String ftpDir, String filePrefix, String sortBy) {
-        return buildFtpIn("sftp", "{{%s.sftp.%s.user}}".formatted(toimiala, perusOrToteumat),
-                "{{%s.sftp.%s.password}}".formatted(toimiala, perusOrToteumat),
-                "{{%s.sftp.host}}".formatted(toimiala),
+        return buildFtpIn("sftp", "{{%s.s4_sftp.%s.user}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.s4_sftp.%s.password}}".formatted(toimiala, perusOrToteumat),
+                "{{%s.s4_sftp.host}}".formatted(toimiala),
                 ftpDir,
-                filePrefix, "{{%s.sftp.passiveMode}}".formatted(toimiala), sortBy) +
+                filePrefix, "{{%s.s4_sftp.passiveMode}}".formatted(toimiala), sortBy) +
                 "&autoCreateKnownHostsFile=true&knownHostsFile=/deployments/known_hosts&useUserKnownHostsFile=false" + // TODO: replace with knownHostsFile=#hostsFromCamelRegisterThatReadsFromEnv
                 idempotentRepositoryParam("s4_" + perusOrToteumat, toimiala);
     }

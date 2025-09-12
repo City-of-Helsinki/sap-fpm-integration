@@ -40,8 +40,6 @@ Setup S4SFtp Server
     Add Sftp User    %{SOTEPE_S4_SFTP_USER_TOTEUMAT}   %{SOTEPE_S4_SFTP_PASSWORD_TOTEUMAT}   sotepe/toteumat     ${toteumatDirs}
     Add Sftp User    %{SOTEPE_S4_SFTP_USER_PERUSTIEDOT}   %{SOTEPE_S4_SFTP_PASSWORD_PERUSTIEDOT}   sotepe/perustiedot  ${perustiedotDirs}
     Add Sftp User    %{PALKE_S4_SFTP_USER_TOTEUMAT}    %{PALKE_S4_SFTP_PASSWORD_TOTEUMAT}    palke/toteumat      ${toteumatDirs}
-    # cototeumat result files get uploaded to palke/toteumat to mimic how azure upload works
-    Add Sftp User    %{PALKE_S4_SFTP_USER_TOTEUMAT}    %{PALKE_S4_SFTP_PASSWORD_TOTEUMAT}    palke/cototeumat    ${toteumatDirs}
     Add Sftp User    %{PALKE_S4_SFTP_USER_PERUSTIEDOT}    %{PALKE_S4_SFTP_PASSWORD_PERUSTIEDOT}    palke/perustiedot   ${perustiedotDirs}
     Start Sftp Server
 

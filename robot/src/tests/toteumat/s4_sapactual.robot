@@ -15,6 +15,7 @@ Send S4 kasko toteumat
     [Documentation]     S4 KASKO toteumat
     [Tags]     kasko
     ${KaskoToteumatFtpDir}   Get SFTP Dir For     %{KASKO_S4_SFTP_USER_TOTEUMAT}
+    Wait Until Keyword Succeeds    2 Minutes   3 Seconds      Check SFTP User
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
@@ -75,3 +76,9 @@ Send S4 kasko toteumat
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
+
+*** Keywords ***
+
+Check SFTP User
+    ${LoggedInUser}     Get Logged In User
+    Should Be Equal     ${LoggedInUser}     %{KASKO_S4_SFTP_USER_TOTEUMAT}

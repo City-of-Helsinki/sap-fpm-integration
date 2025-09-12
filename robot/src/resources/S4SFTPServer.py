@@ -199,6 +199,10 @@ class S4SFTPServer(object):
         return self.ftp_dir
 
     @keyword()
+    def get_logged_in_user(self):
+        return self.server.logged_in_user_dir
+
+    @keyword()
     def close_sftp_server(self):
         self.channel.close()
 

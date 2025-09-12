@@ -8,7 +8,7 @@ Suite Teardown  Teardown Servers
 
 *** Keywords ***
 Setup Servers
-    Setup Ftp Server
+    #Setup Ftp Server
     Setup S4SFtp Server
 
 
@@ -44,5 +44,5 @@ Setup S4SFtp Server
     Start Sftp Server
 
 Teardown Servers
-    Close Ftp Server
+    #Close Ftp Server
     Close Sftp Server

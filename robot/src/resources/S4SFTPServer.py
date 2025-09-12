@@ -1,6 +1,7 @@
 import os
 import socket
 import paramiko
+import time
 from paramiko import ServerInterface, SFTPServerInterface, SFTPServer, SFTPAttributes, \
     SFTPHandle, SFTP_OK, AUTH_SUCCESSFUL, OPEN_SUCCEEDED, AUTH_FAILED
 
@@ -40,7 +41,7 @@ class S4SFTPServerHandler (SFTPServerInterface):
 
     def __init__(self, server, *args, **kwargs):
         self.server = server
-        super().__init__(*args, **kwargs)
+        super().__init__(server, *args, **kwargs)
 
     def _realpath(self, path):
         return self.server.logged_in_user_dir + self.canonicalize(path)

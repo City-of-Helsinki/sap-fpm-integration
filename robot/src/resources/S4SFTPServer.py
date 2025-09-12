@@ -160,7 +160,7 @@ class S4SFTPServer(object):
         server_socket.bind((host, port))
         server_socket.listen(10)
 
-        def serve_forever(server):
+        def serve_forever(self, server):
             conn, addr = server_socket.accept()
             host_key = paramiko.RSAKey.from_private_key_file("/tmp/robot_id_rsa")
             transport = paramiko.Transport(conn)
@@ -175,7 +175,7 @@ class S4SFTPServer(object):
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir
         self.server.user_dirs = self.user_dirs
-        self.ftp_thread = Thread(target=serve_forever, args=(self.server, ))
+        self.ftp_thread = Thread(target=serve_forever, args=(self, self.server, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
 

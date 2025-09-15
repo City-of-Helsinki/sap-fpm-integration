@@ -36,6 +36,17 @@ public class DevFakeAzureUpload extends AzureBlobOut {
         createUploadLocalFileRoute(toimiala, uploadUri);
     }
 
+    public void createUploadLocalFileToFakeS4SFtpRoute(String perustiedotOrToteumat, String toimiala) {
+        String uploadUri = "direct:upload-local-file-to-fake-s4-sftp-%s-%s".formatted(perustiedotOrToteumat, toimiala);
+        from(uploadUri)
+            .onException(Exception.class)
+            .maximumRedeliveries(10).redeliveryDelay(10000)
+            .end()
+            .to("sftp://{{%s.s4_sftp.%s.user}}@{{%s.s4_sftp.host}}?password={{%s.s4_sftp.%s.password}}".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
+
+        createUploadLocalFileRoute(toimiala, uploadUri);
+    }
+
     @Override
     public void configure() throws Exception {
         if (devConfig.ftpUploadEnabled().isPresent() && "true".equals(devConfig.ftpUploadEnabled().get())) {
@@ -57,6 +68,25 @@ public class DevFakeAzureUpload extends AzureBlobOut {
             // use the same ftp account for toteumat & cototeumat to mimic azure account
             if (mainConfig.palkeFTPToteumatEnabled() || mainConfig.palkeFTPCoToteumatEnabled()) {
                 createUploadLocalFileToFakeFtpRoute("toteumat", "palke");
+            }
+
+            if (mainConfig.kaskoS4SFTPPerustiedotEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("perustiedot", "kasko");
+            }
+            if (mainConfig.kaskoS4SFTPToteumatEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("toteumat", "kasko");
+            }
+            if (mainConfig.sotepeS4SFTPPerustiedotEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("perustiedot", "sotepe");
+            }
+            if (mainConfig.sotepeS4SFTPToteumatEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("toteumat", "sotepe");
+            }
+            if (mainConfig.palkeS4SFTPPerustiedotEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("perustiedot", "palke");
+            }
+            if (mainConfig.palkeS4SFTPToteumatEnabled()) {
+                createUploadLocalFileToFakeS4SFtpRoute("toteumat", "palke");
             }
         }
 

@@ -168,19 +168,21 @@ class S4SFTPServer(object):
         port = 2122
         server_socket.bind((host, port))
         server_socket.listen(10)
+        host_key = paramiko.RSAKey.from_private_key_file("/tmp/robot_id_rsa")
 
         def serve_forever(self, server):
-            conn, addr = server_socket.accept()
-            host_key = paramiko.RSAKey.from_private_key_file("/tmp/robot_id_rsa")
-            transport = paramiko.Transport(conn)
-            transport.add_server_key(host_key)
-            transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
+            keepServing = True
+            while keepServing:
+                conn, addr = server_socket.accept()
+                transport = paramiko.Transport(conn)
+                transport.add_server_key(host_key)
+                transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
 
-            transport.start_server(server=server)
-            self.channel = transport.accept()
-            while transport.is_active():
-                time.sleep(1)
-            print("transport is no longer active!")
+                transport.start_server(server=server)
+
+                self.channel = transport.accept()
+                while transport.is_active():
+                    time.sleep(1)
 
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir

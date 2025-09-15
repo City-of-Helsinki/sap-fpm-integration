@@ -5,7 +5,8 @@ Documentation   Luo SFTP-palvelimen, luo toteumia palvelimelle, tarkistaa SFTP-p
 Library      ../../resources/S4SFTPServer.py
 Library     OperatingSystem
 Resource     ../../resources/CreateTestFilesCommon.resource
-Resource    ../../resources/CreateToteumatTestFiles.resource
+Resource     ../../resources/CheckToteumatTestFiles.resource
+Resource    ../../resources/CreateS4ToteumatTestFiles.resource
 
 
 Test Tags       toteumat    s4   sapactual
@@ -59,7 +60,7 @@ Send S4 kasko toteumat
     ${AUGBL}     Set Variable    AUGBL
     ${AWTYP}     Set Variable    AWTYP
 
-    ${TOSITE}      Create TOSITEFILE     BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    ${TOSITE}      Create S4TOSITEFILE         BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
@@ -67,7 +68,6 @@ Send S4 kasko toteumat
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
     #Set Sftp Connection As Down
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml   content=${TOSITE}
-    Log To Console     File ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml created
     #Set Sftp Connection As Up
     # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
@@ -77,9 +77,3 @@ Send S4 kasko toteumat
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
-
-*** Keywords ***
-
-Check SFTP User
-    ${LoggedInUser}     Get Logged In User
-    Should Be Equal     ${LoggedInUser}     %{KASKO_S4_SFTP_USER_TOTEUMAT}

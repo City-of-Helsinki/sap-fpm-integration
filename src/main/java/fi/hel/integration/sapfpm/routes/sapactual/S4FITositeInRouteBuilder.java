@@ -130,6 +130,8 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         String initDbUri = "direct:init-s4-toteumat-route";
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", toimiala, initDbUri, processFileRouteUri, fetchToteumatRouteUri);
+
+        from("file:trigger/s4-tosite-write-" + toimiala + "?delete=true").to(fetchToteumatRouteUri);
     }
 
     //

@@ -115,6 +115,7 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
         if ("palke".equals(toimiala)) {
             // palke data fetched via S4 that fetches both ECC and S4
             from(fetchToteumatRouteUri).errorHandler(noErrorHandler())
+                .to("direct:init-s4-tositerivi-db") // in palke S4 files may not have been inserted before fetch of ECC files
                 .to(S4FITositeInRouteBuilder.getFetchToteumatRouteUri("palke"));
         } else {
             String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";

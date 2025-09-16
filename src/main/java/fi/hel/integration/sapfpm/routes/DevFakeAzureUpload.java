@@ -40,9 +40,9 @@ public class DevFakeAzureUpload extends AzureBlobOut {
         String uploadUri = "direct:upload-local-file-to-fake-s4-sftp-%s-%s".formatted(perustiedotOrToteumat, toimiala);
         from(uploadUri)
             .onException(Exception.class)
-            .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(10).redeliveryDelay(10000)
             .end()
-            .to("sftp://{{%s.s4_sftp.%s.user}}@{{%s.s4_sftp.host}}?passiveMode=true&password={{%s.s4_sftp.%s.password}}".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
+            .to("sftp://{{%s.s4_sftp.%s.user}}@{{%s.s4_sftp.host}}?passiveMode=true&knownHostsFile=/deployments/known_hosts&useUserKnownHostsFile=false&password={{%s.s4_sftp.%s.password}}".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
 
         createUploadLocalFileRoute(toimiala, uploadUri);
     }

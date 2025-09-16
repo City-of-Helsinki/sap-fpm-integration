@@ -128,12 +128,15 @@ class S4SFTPServerHandler (SFTPServerInterface):
         return SFTP_OK
 
     def remove(self, path):
+        print("remove")
         return self._OK_or_ERR(lambda: os.remove(self._realpath(path)))
 
     def rename(self, oldpath, newpath):
+        print("rename")
         return self._OK_or_ERR(lambda: os.rename(self._realpath(oldpath), self._realpath(newpath)))
 
     def mkdir(self, path, attr):
+        print("mkdir")
         path = self._realpath(path)
         def do_exec():
             os.mkdir(path)
@@ -142,9 +145,11 @@ class S4SFTPServerHandler (SFTPServerInterface):
         return self._OK_or_ERR(do_exec)
 
     def rmdir(self, path):
+        print("rmdir")
         return self._OK_or_ERR(lambda: os.rmdir(self._realpath(path)))
 
     def chattr(self, path, attr):
+        print("chattr")
         return self._OK_or_ERR(lambda: SFTPServer.set_file_attr(self._realpath(path), attr))
 
 class S4SFTPServer(object):
@@ -153,6 +158,7 @@ class S4SFTPServer(object):
 
     def __init__(self):
         self.user_dirs = {}
+        self.channels = []
 
     @keyword(types=['string'])
     def init_sftp_server(self, relative_ftp_dir):
@@ -177,12 +183,8 @@ class S4SFTPServer(object):
                 transport = paramiko.Transport(conn)
                 transport.add_server_key(host_key)
                 transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
-
                 transport.start_server(server=server)
-
-                self.channel = transport.accept()
-                while transport.is_active():
-                    time.sleep(1)
+                self.channels.append(transport.accept())
 
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir
@@ -216,7 +218,7 @@ class S4SFTPServer(object):
 
     @keyword()
     def close_sftp_server(self):
-        self.channel.close()
+        for c in self.channels: c.close()
 
     @keyword()
     def set_sftp_connection_as_down(self):

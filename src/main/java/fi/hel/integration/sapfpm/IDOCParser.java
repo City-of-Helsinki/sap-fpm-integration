@@ -32,22 +32,4 @@ public class IDOCParser {
             return List.of(parseValues.apply(v));
         }
     }
-
-    public static Map<String, List<LinkedHashMap<String, Object>>> addToByYearAndMonthIfExistsOrCreate(Map<String, List<LinkedHashMap<String, Object>>> byYearAndMonth, String yearAndMonth, List<LinkedHashMap<String, Object>> valueLines) {
-        Map<String, List<LinkedHashMap<String, Object>>> existing = byYearAndMonth;
-        if (existing == null) existing = new HashMap<>(1);
-
-        List<LinkedHashMap<String, Object>> prevLines = existing.get(yearAndMonth);
-        if (prevLines == null) {
-            existing.put(yearAndMonth, valueLines);
-        } else {
-            existing.put(yearAndMonth, concatNewLinesToOld(prevLines, valueLines));
-        }
-        return existing;
-    }
-
-    public static <T> List<T> concatNewLinesToOld(List<T> prevLines, List<T> workBreakDownLines) {
-        return Stream.concat(prevLines.stream(), workBreakDownLines.stream()).toList();
-    }
-
 }

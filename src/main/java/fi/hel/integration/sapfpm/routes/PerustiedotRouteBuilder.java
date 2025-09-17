@@ -2,13 +2,10 @@ package fi.hel.integration.sapfpm.routes;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
 import jakarta.inject.Inject;
-import org.apache.camel.builder.DefaultErrorHandlerBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
-import org.apache.camel.model.errorhandler.DefaultErrorHandlerDefinition;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -172,6 +169,46 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             });
     }
 
+    public void buildLatestFileReadingRoute(String fromURI, String idPrefix, String toimiala, String processRouteURI, String outFinalFileName) {
+        String processFileUri = "direct:process-and-send-to-azure-" + idPrefix + "-" + toimiala,
+                processFileRouteId = idPrefix + "-" + toimiala + "-process";
+
+        from(fromURI).id(idPrefix + "-" + toimiala)
+            .onException(Exception.class)
+                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
+            .end()
+            .log("%s %s read ${headers.CamelFileName}, last modified ${headers.CamelFileLastModified}".formatted(idPrefix, toimiala))
+            .process(e -> {
+                String lastSentFile = e.getVariable("route:%s:lastSentFile".formatted(processFileRouteId), String.class);
+                if (lastSentFile != null) {
+                    String fileName = e.getMessage().getHeader(FileConstants.FILE_NAME, String.class);
+                    if (lastSentFile.compareTo(fileName) > 0) {
+                        log.info("Last sent file %s is newer than currently processed %s, not processing it".formatted(lastSentFile, fileName));
+                        e.setProperty("lastSentFileWasNewer", true);
+                    }
+                }
+            })
+            .choice()
+            .when(exchangeProperty("lastSentFileWasNewer").isNotEqualTo(true))
+            .to(processFileUri);
+
+        // csv with header as only 1 file is read and written instead of appending from multiple files into one
+        String marshalUri = "direct:marshal-csv-" + idPrefix + "-" + toimiala;
+        from(marshalUri).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
+
+        from(processFileUri)
+            .id(processFileRouteId)
+            .to("direct:unmarshal-xml")
+            .to(processRouteURI)
+            .to(marshalUri)
+            .setHeader("readFileName", header(FileConstants.FILE_NAME))
+            .setHeader(FileConstants.FILE_NAME, constant(outFinalFileName))
+            .setProperty("outDir", constant(toimiala))
+            .to("direct:any-file-out")
+            .to("direct:enrich-and-send-file-to-azure-" + toimiala)
+            .setVariable("route:lastSentFile", header("readFileName"));
+
+    }
 
 }
 

@@ -12,10 +12,10 @@ Resource    ../../../resources/CreateToteumatTestFiles.resource
 Test Tags       toteumat     sapactual
 
 *** Test Cases ***
-Send kasko toteumat
-    [Documentation]     KASKO toteumat
-    [Tags]   kasko
-    ${KaskoToteumatFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID023}
+Send palke toteumat
+    [Documentation]     PALKE toteumat
+    [Tags]   palke
+    ${ToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID025}
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
@@ -66,22 +66,21 @@ Send kasko toteumat
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
     Set Ftp Connection As Down
-    Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml   content=${TOSITE}
+    Create File     ${ToteumatFtpDir}/ID022_FI_TOSITE_palke_${CUR_DATE_STR}.xml   content=${TOSITE}
     Set Ftp Connection As Up
     # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
-    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
-    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
+    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
 
-Send kasko toteumat and cut FTP connection for a long time
-    [Documentation]     KASKO toteumat, FTP connection is cut, files should be sent after connection recovers
-    [Tags]   kasko      toteumat     sapactual
-    [Timeout]    NONE
-    ${KaskoToteumatFtpDir}   Get FTP Dir For     %{KASKO_SFTP_USER_ID023}
+Send palke toteumat and cut FTP connection for a long time
+    [Documentation]     PALKE toteumat, FTP connection is cut, files should be sent after connection recovers
+    [Tags]   palke      toteumat     sapactual
+    ${ToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID025}
     ${TOSITE_YEAR}    Set Variable    2024
     ${TOSITE_MONTH}    Set Variable   11
     ${CUR_DATE_STR}      Get Current Time Text
@@ -130,14 +129,14 @@ Send kasko toteumat and cut FTP connection for a long time
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
 
-    Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}_long_wait.xml   content=${TOSITE}
+    Create File     ${ToteumatFtpDir}/ID022_FI_TOSITE_palke_${CUR_DATE_STR}_long_wait.xml   content=${TOSITE}
     Sleep    30 seconds
     Set Ftp Connection As Down
     Sleep    1 minutes
     Set Ftp Connection As Up
 
-    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv
-    Wait Until Keyword Succeeds     2 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    Wait Until Keyword Succeeds     2 minutes   15 seconds    Should Exist       ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv
+    Wait Until Keyword Succeeds     2 minutes   15 Seconds     Check SAPACTUAL ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}

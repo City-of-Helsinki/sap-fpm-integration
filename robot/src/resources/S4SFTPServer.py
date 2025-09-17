@@ -42,70 +42,40 @@ class S4SFTPServerHandler (SFTPServerInterface):
         super().__init__(server, *args, **kwargs)
 
     def _realpath(self, path):
-        print("PATH: " + path, " -> " + self.server.logged_in_user_dir + self.canonicalize(path))
         return self.server.logged_in_user_dir + self.canonicalize(path)
 
     def list_folder(self, path):
-        print("list_folder: {}".format(path))
         path = self._realpath(path)
         try:
             out = [ ]
             flist = os.listdir(path)
-            print("list_folder, flist: {}".format(flist))
             for fname in flist:
-                print("list_folder, fname: {}".format(fname))
                 attr = SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
                 attr.filename = fname
                 out.append(attr)
             return out
         except OSError as e:
-            print("oserror in list_folder: {}",format(e))
-            return SFTPServer.convert_errno(e.errno)
-
-    def _stat(self, path, run_stat):
-        print("_stat: {}".format(path))
-        try:
-            return SFTPAttributes.from_stat(run_stat(self._realpath(path)))
-        except OSError as e:
-            print("os error in stat: {}".format(e))
             return SFTPServer.convert_errno(e.errno)
 
     def stat(self, path):
-       return self._stat(path, os.stat)
-
-    def lstat(self, path):
-        return self._stat(path, os.lstat)
+        try:
+            return SFTPAttributes.from_stat(os.stat(self._realpath(path)))
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
 
     def open(self, path, flags, attr):
         path = self._realpath(path)
-        print("open, path: {}".format(path))
         try:
-            binary_flag = getattr(os, 'O_BINARY',  0)
-            flags |= binary_flag
-            mode = getattr(attr, 'st_mode', None)
-            if mode is not None:
-                fd = os.open(path, flags, mode)
-            else:
-                # os.open() defaults to 0777 which is
-                # an odd default mode for files
-                fd = os.open(path, flags, 0o666)
+            fd = os.open(path, flags, 0o666)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         if (flags & os.O_CREAT) and (attr is not None):
             attr._flags &= ~attr.FLAG_PERMISSIONS
             SFTPServer.set_file_attr(path, attr)
+
         if flags & os.O_WRONLY:
-            if flags & os.O_APPEND:
-                fstr = 'ab'
-            else:
-                fstr = 'wb'
-        elif flags & os.O_RDWR:
-            if flags & os.O_APPEND:
-                fstr = 'a+b'
-            else:
-                fstr = 'r+b'
+            fstr = 'wb'
         else:
-            # O_RDONLY (== 0)
             fstr = 'rb'
         try:
             f = os.fdopen(fd, fstr)
@@ -121,34 +91,8 @@ class S4SFTPServerHandler (SFTPServerInterface):
         try:
             exec()
         except OSError as e:
-            print("OSERROR {}".format(e))
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
-
-    def remove(self, path):
-        print("remove")
-        return self._OK_or_ERR(lambda: os.remove(self._realpath(path)))
-
-    def rename(self, oldpath, newpath):
-        print("rename")
-        return self._OK_or_ERR(lambda: os.rename(self._realpath(oldpath), self._realpath(newpath)))
-
-    def mkdir(self, path, attr):
-        print("mkdir")
-        path = self._realpath(path)
-        def do_exec():
-            os.mkdir(path)
-            if attr is not None:
-                SFTPServer.set_file_attr(path, attr)
-        return self._OK_or_ERR(do_exec)
-
-    def rmdir(self, path):
-        print("rmdir")
-        return self._OK_or_ERR(lambda: os.rmdir(self._realpath(path)))
-
-    def chattr(self, path, attr):
-        print("chattr")
-        return self._OK_or_ERR(lambda: SFTPServer.set_file_attr(self._realpath(path), attr))
 
 class S4SFTPServer(object):
 

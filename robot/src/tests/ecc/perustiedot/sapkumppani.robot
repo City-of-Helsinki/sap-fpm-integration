@@ -11,16 +11,7 @@ Resource    ../../../resources/CreateTestFilesCommon.resource
 Test Tags       perustiedot     sapkumppani
 
 *** Test Cases ***
-Lähetä kasko perustiedot SAPKUMPPANI
-    ${RCOMP}    Generate Random String  20
-    ${NAME1}     Generate Random String  20
-    Lähetä kasko perustiedot SAPKUMPPANI    %{KASKO_SFTP_USER_ID137}   ${RCOMP}    ${NAME1}
-
-Lähetä sotepe perustiedot SAPKUMPPANI
-    ${RCOMP}    Generate Random String  20
-    ${NAME1}    Generate Random String  20
-    Lähetä sotepe perustiedot SAPKUMPPANI    %{SOTEPE_SFTP_USER_ID167}   ${RCOMP}    ${NAME1}
-
+# sotepe and kasko will move directly to S4
 Lähetä palke perustiedot SAPKUMPPANI
     ${RCOMP}    Generate Random String  20
     ${NAME1}    Generate Random String  20

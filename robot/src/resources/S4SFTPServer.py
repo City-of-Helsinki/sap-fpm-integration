@@ -2,7 +2,7 @@ import os
 import socket
 import paramiko
 from paramiko import ServerInterface, SFTPServerInterface, SFTPServer, SFTPAttributes, \
-    SFTPHandle, SFTP_OK, AUTH_SUCCESSFUL, OPEN_SUCCEEDED, AUTH_FAILED
+    SFTPHandle, SFTP_FAILURE, AUTH_SUCCESSFUL, OPEN_SUCCEEDED, AUTH_FAILED
 
 from robot.api.deco import keyword, not_keyword
 from threading import Thread, current_thread
@@ -58,12 +58,17 @@ class S4SFTPServerHandler (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
 
     def stat(self, path):
+        if (self.server.connection_is_down):
+            return SFTP_FAILURE
         try:
             return SFTPAttributes.from_stat(os.stat(self._realpath(path)))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
 
     def open(self, path, flags, attr):
+        if (self.server.connection_is_down):
+            return SFTP_FAILURE
+
         path = self._realpath(path)
         try:
             fd = os.open(path, flags, 0o666)
@@ -86,13 +91,6 @@ class S4SFTPServerHandler (SFTPServerInterface):
         fobj.readfile = f
         fobj.writefile = f
         return fobj
-
-    def _OK_or_ERR(self, exec):
-        try:
-            exec()
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
-        return SFTP_OK
 
 class S4SFTPServer(object):
 
@@ -131,6 +129,7 @@ class S4SFTPServer(object):
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir
         self.server.user_dirs = self.user_dirs
+        self.server.connection_is_down = False
         self.ftp_thread = Thread(target=serve_forever, args=(self, self.server, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
@@ -150,21 +149,13 @@ class S4SFTPServer(object):
         return self.user_dirs.get(user)
 
     @keyword()
-    def get_main_sftp_dir(self):
-        return self.ftp_dir
-
-    @keyword()
-    def get_logged_in_user(self):
-        return self.server.logged_in_user_dir
-
-    @keyword()
     def close_sftp_server(self):
         for c in self.channels: c.close()
 
     @keyword()
     def set_sftp_connection_as_down(self):
-        self.connection_is_down = True
+        self.server.connection_is_down = True
 
     @keyword()
     def set_sftp_connection_as_up(self):
-        self.connection_is_down = False
+        self.server.connection_is_down = False

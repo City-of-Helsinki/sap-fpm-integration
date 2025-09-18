@@ -10,7 +10,7 @@ Setup S4SFtp Server
     Set Log Level   DEBUG
     Remove Directory    ${CURDIR}/robot/sap_s4_sftp    recursive=True
     Init Sftp Server        robot/sap_s4_sftp
-    ${perustiedotDirs}		Create List		203 	204     210
+    ${perustiedotDirs}		Create List		203 	204     210     213
     ${toteumatDirs}      Create List
     Add Sftp User    %{KASKO_S4_SFTP_USER_TOTEUMAT}    %{KASKO_S4_SFTP_PASSWORD_TOTEUMAT}    kasko/toteumat      ${toteumatDirs}
     Add Sftp User    %{KASKO_S4_SFTP_USER_PERUSTIEDOT}    %{KASKO_S4_SFTP_PASSWORD_PERUSTIEDOT}    kasko/perustiedot   ${perustiedotDirs}

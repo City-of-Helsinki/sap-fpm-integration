@@ -7,6 +7,7 @@ import org.apache.camel.builder.RouteBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.component.file.FileConstants;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import static fi.hel.integration.sapfpm.IdempotentRepositoryProvider.idempotentRepositoryParam;
@@ -112,6 +113,11 @@ public class InRouteBuilder extends RouteBuilder {
     @Inject
     IsConfigEnabled mainConfig;
 
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    public int DEFAULT_REDELIVERY_DELAY;
+
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
 
     @Override
     public void configure() throws Exception {
@@ -131,7 +137,7 @@ public class InRouteBuilder extends RouteBuilder {
                 .setProperty("fileExist", constant("Override"))
             .end()
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(1000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
                 .log("Failed to write the file to Azure: ${exchangeProperty.CamelExceptionCaught}")
             .end()
             .toD("file:${exchangeProperty.outDir}?fileExist=${exchangeProperty.fileExist}")

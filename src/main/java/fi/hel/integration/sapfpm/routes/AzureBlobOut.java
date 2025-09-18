@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.azure.storage.blob.BlobConstants;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 
@@ -22,11 +23,17 @@ public class AzureBlobOut extends RouteBuilder {
     @Inject
     Logger log;
 
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    public int DEFAULT_REDELIVERY_DELAY;
+
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
+
     public void createAzureBlobUploadingRoute(String toimiala) {
         // check for local here
         from("direct:upload-blob-to-azure-" + toimiala).id("upload-blob-to-azure-" + toimiala)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("uploading ${headers.CamelFileName} to Azure {{%s.azure.directory}}".formatted(toimiala))
             .setHeader(BlobConstants.BLOB_NAME, simple("{{%s.azure.directory}}/${header.CamelFileName}".formatted(toimiala)))

@@ -22,6 +22,9 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
     @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
     int DEFAULT_REDELIVERY_DELAY;
 
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
+
     abstract public String[] createCsvHeader();
 
     public CsvDataFormat createCsvDataFormat() {
@@ -110,7 +113,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
         from(fromURI).id(idPrefix + "-" + toimiala)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("%s %s read ${headers.CamelFileName}, batch: ${exchangeProperty.CamelBatchIndex}/${exchangeProperty.CamelBatchSize}, complete: ${exchangeProperty.CamelBatchComplete}".formatted(idPrefix, toimiala))
             .choice()
@@ -175,7 +178,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
         from(fromURI).id(idPrefix + "-" + toimiala)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("%s %s read ${headers.CamelFileName}, last modified ${headers.CamelFileLastModified}".formatted(idPrefix, toimiala))
             .process(e -> {

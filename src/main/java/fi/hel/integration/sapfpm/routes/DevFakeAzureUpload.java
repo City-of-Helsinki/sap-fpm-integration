@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.azure.storage.blob.BlobConstants;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.util.Optional;
@@ -25,11 +26,17 @@ public class DevFakeAzureUpload extends AzureBlobOut {
     @Inject
     IsConfigEnabled mainConfig;
 
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    public int DEFAULT_REDELIVERY_DELAY;
+
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
+
     public void createUploadLocalFileToFakeFtpRoute(String perustiedotOrToteumat, String toimiala) {
         String uploadUri = "direct:upload-local-file-to-fake-ftp-%s-%s".formatted(perustiedotOrToteumat, toimiala);
         from(uploadUri)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .to("ftp://{{%s.ftp.%s.user}}@{{%s.ftp.host}}?password={{%s.ftp.%s.password}}&passiveMode=false&ftpClient.remoteVerificationEnabled=false".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
 
@@ -40,7 +47,7 @@ public class DevFakeAzureUpload extends AzureBlobOut {
         String uploadUri = "direct:upload-local-file-to-fake-s4-sftp-%s-%s".formatted(perustiedotOrToteumat, toimiala);
         from(uploadUri)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .to("sftp://{{%s.s4_sftp.%s.user}}@{{%s.s4_sftp.host}}?passiveMode=true&knownHostsFile=/deployments/known_hosts&useUserKnownHostsFile=false&password={{%s.s4_sftp.%s.password}}".formatted(toimiala, perustiedotOrToteumat, toimiala, toimiala, perustiedotOrToteumat));
 

@@ -2,6 +2,7 @@ package fi.hel.integration.sapfpm.tositecommon;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.file.FileConstants;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,6 +10,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class TositeRouteCommon extends RouteBuilder {
+
+    @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
+    public int DEFAULT_REDELIVERY_DELAY;
+
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
 
     public void buildFtpBatchingRoute(String fromUri, String routeId, String toimiala, String initDbUri,
          String processFileUri, String onBatchCompletionUri) {
@@ -25,7 +32,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                 .setVariable("route:dbInited", constant(true))
             .end()
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(10000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .choice()
                 .when(simple("${exchangeProperty.CamelBatchIndex} == 0"))
@@ -103,7 +110,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
         from(fromUri)
             .routeId(routeId)
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(1000)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .setHeader("toimiala", constant(toimiala))
             .log("Writing db out to azure for ${headers.toimiala}")

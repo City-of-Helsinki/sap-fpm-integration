@@ -19,6 +19,9 @@ public abstract class TositeDbCommon extends RouteBuilder {
     @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
     public int DEFAULT_REDELIVERY_DELAY;
 
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
+    public int DEFAULT_MAX_REDELIVERIES;
+
     public ProcessorDefinition<?> buildFileAndContentsDbRoute(String fromUri, String routeId, String insertFileUri, String insertTositeAndRivitUri) {
         return from(fromUri).routeId(routeId)
             .onException(SQLIntegrityConstraintViolationException.class)
@@ -29,7 +32,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
                 .continued(true)
             .end()
             .onException(Exception.class)
-                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .log("receipts to insert: ${body.size()}")
             //.transacted("PROPAGATION_REQUIRES_NEW")
@@ -68,7 +71,7 @@ public abstract class TositeDbCommon extends RouteBuilder {
                     .removeHeader(JdbcConstants.JDBC_PARAMETERS)
             .end()
             .onException(Exception.class) // due to transaction, will retry in calling route and also this whole route
-                .maximumRedeliveries(10).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
+                .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .process(e -> {
                 List<LinkedHashMap<String, Object>> receiptMetadata =  e.getMessage().getBody(List.class);

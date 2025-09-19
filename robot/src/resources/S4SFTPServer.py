@@ -102,7 +102,8 @@ class S4SFTPServer(object):
 
     @keyword(types=['string'])
     def init_sftp_server(self, relative_ftp_dir):
-        self.ftp_dir = os.path.join(os.getcwd(), relative_ftp_dir)
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.ftp_dir = os.path.join(dir_path, '../../', relative_ftp_dir)
         if not os.path.exists(self.ftp_dir): os.makedirs(self.ftp_dir)
 
     @keyword()

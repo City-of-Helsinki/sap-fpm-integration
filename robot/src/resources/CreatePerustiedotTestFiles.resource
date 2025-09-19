@@ -124,12 +124,12 @@ Lähetä ${TOIMIALA} perustiedot SAPPROJEKTI
     ${NonToimialaWBS}      Create WBS   10    ${PSPNR}    ${POSID}   ${POST1}  ${STUFE}  ${ERDAT}  ${AEDAT}   ${TXT40}
 
     Run Keyword     ${FTPDownKeyword}
-    Create File     ${PerustiedotFtpDir}/204/WBS_OUT_non_palke_${CUR_DATE_STR}.xml   content=${NonToimialaWBS}
+    Create File     ${PerustiedotFtpDir}/204/WBS_OUT_non_${TOIMIALA}_${CUR_DATE_STR}.xml   content=${NonToimialaWBS}
     Run Keyword     ${FTPUpKeyword}
     Create File     ${PerustiedotFtpDir}/204/WBS_OUT_1_${CUR_DATE_STR}.xml   content=${WBS}
 
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${PerustiedotFtpDir}/SAPPROJEKTI.csv
-    Check SAPPROJEKTI ${PerustiedotFtpDir}/SAPPROJEKTI.csv
+    Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPPROJEKTI ${PerustiedotFtpDir}/SAPPROJEKTI.csv
         ...     ${PBUKR}    ${PSPNR}    ${POSID}   ${POST1}   ${STUFE}   ${ERDAT}   ${AEDAT}   ${TXT40}
 
 
@@ -164,7 +164,7 @@ Check SAPPROJEKTI ${FilePath}
     ${CSV_ESCAPED_TXT40}    Escape CSV Value      ${TXT40}
     ${Lines}    Get Lines Containing String    ${File}   ${PBUKR};${PSPNR};${POSID};${CSV_ESCAPED_POST1};${CSV_ESCAPED_STUFE};${ERDAT};${AEDAT};${CSV_ESCAPED_TXT40}
     ${LineCount}    Get Line Count  ${Lines}
-    Should Be Equal As Numbers   ${LineCount}     10
+    Should Be Equal As Numbers   ${LineCount}     10    msg=Not found: ${PBUKR};${PSPNR};${POSID};${CSV_ESCAPED_POST1};${CSV_ESCAPED_STUFE};${ERDAT};${AEDAT};${CSV_ESCAPED_TXT40}
     ${AllLinesCount}    Get Line Count  ${File}
     # can contain lines from previous runs
     Should Be True   ${AllLinesCount} >= 11

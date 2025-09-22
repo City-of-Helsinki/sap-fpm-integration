@@ -68,7 +68,6 @@ class S4SFTPServerHandler (SFTPServerInterface):
     def open(self, path, flags, attr):
         if (self.server.connection_is_down):
             return SFTP_FAILURE
-
         path = self._realpath(path)
         try:
             fd = os.open(path, flags, 0o666)

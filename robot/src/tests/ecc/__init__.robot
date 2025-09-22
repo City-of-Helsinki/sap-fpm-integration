@@ -7,7 +7,6 @@ Suite Teardown  Close Ftp Server
 
 *** Keywords ***
 Setup Ftp Server
-    Log to Console      FTP CURDIR: ${CURDIR}
     Remove Directory    ${CURDIR}/robot/sap_ftp    recursive=True
     Init Ftp Server     %{SAP_FPM_INTEGRATION_ROBOT_SERVICE_HOST}       robot/sap_ftp
     ${perustiedotDirs}		Create List		203 	204     210
@@ -20,6 +19,4 @@ Setup Ftp Server
     # cototeumat result files get uploaded to palke/toteumat to mimic how azure upload works
     Add Ftp User    %{PALKE_SFTP_USER_ID166}    %{PALKE_SFTP_PASSWORD_ID166}    palke/cototeumat    ${toteumatDirs}
     Add Ftp User    %{PALKE_SFTP_USER_ID138}    %{PALKE_SFTP_PASSWORD_ID138}    palke/perustiedot   ${perustiedotDirs}
-    Log to Console      FTP CURDIR AFTER USERS ADDED: ${CURDIR}
     Start Ftp Server
-    Log to Console      FTP CURDIR AFTER SERVER START: ${CURDIR}

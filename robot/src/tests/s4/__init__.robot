@@ -8,7 +8,6 @@ Suite Teardown  Close Sftp Server
 *** Keywords ***
 Setup S4SFtp Server
     Set Log Level   DEBUG
-    Log to Console      CURDIR: ${CURDIR}
     Remove Directory    ${CURDIR}/robot/sap_s4_sftp    recursive=True
     Init Sftp Server        robot/sap_s4_sftp
     ${perustiedotDirs}		Create List		203 	204     210     213
@@ -19,6 +18,4 @@ Setup S4SFtp Server
     Add Sftp User    %{SOTEPE_S4_SFTP_USER_PERUSTIEDOT}   %{SOTEPE_S4_SFTP_PASSWORD_PERUSTIEDOT}   sotepe/perustiedot  ${perustiedotDirs}
     Add Sftp User    %{PALKE_S4_SFTP_USER_TOTEUMAT}    %{PALKE_S4_SFTP_PASSWORD_TOTEUMAT}    palke/toteumat      ${toteumatDirs}
     Add Sftp User    %{PALKE_S4_SFTP_USER_PERUSTIEDOT}    %{PALKE_S4_SFTP_PASSWORD_PERUSTIEDOT}    palke/perustiedot   ${perustiedotDirs}
-    Log to Console      S4 CURDIR AFTER ADDING USERS: ${CURDIR}
     Start Sftp Server
-    Log to Console      S4 CURDIR AFTER STARTING SERVER: ${CURDIR}

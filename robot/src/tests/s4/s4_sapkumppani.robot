@@ -14,7 +14,6 @@ Lähetä S4 palke perustiedot SAPKUMPPANI
     ${RCOMP}    Generate Random String  20
     ${NAME1}    Generate Random String  20
     ${FtpDir}     Get SFtp Dir For     %{PALKE_S4_SFTP_USER_PERUSTIEDOT}
-    Log To Console    S4 sapkumppani dir: ${FtpDir}
     Lähetä palke perustiedot SAPKUMPPANI   ${FtpDir}   ${RCOMP}    ${NAME1}    FTPDownKeyword=Set SFtp Connection As Down     FTPUpKeyword=Set SFtp Connection As Up
 
 

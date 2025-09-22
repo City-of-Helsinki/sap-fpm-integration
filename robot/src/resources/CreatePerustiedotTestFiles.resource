@@ -66,6 +66,27 @@ Create Segment Kumppaniyhtiö
     [Arguments]     ${RCOMP}    ${NAME1}
     RETURN        <Kumppaniyhtiö><RCOMP>${RCOMP}</RCOMP><NAME1>${NAME1}</NAME1></Kumppaniyhtiö>
 
+Create SAPTOIMINTOALUE
+    [Arguments]       ${Toiminto-alue}     ${Kuvaus}
+
+    ${SEG}=  catenate  SEPARATOR=
+    ...    <SI_FunctionalArea_OUT><Functional_area>
+    ...    <Line>
+    ...    <Nimi>Nimi</Nimi><Hierarkiataso>0</Hierarkiataso><Joukko>X</Joukko><Ylahierarkia/><Toiminto-alue/><Kuvaus>ylätaso.</Kuvaus><alku>00000000</alku><Loppu>00000000</Loppu>
+    ...    </Line>
+    ...    <Line>
+    ...    <Nimi/><Hierarkiataso>0</Hierarkiataso><Joukko/><Ylahierarkia>ZZZ</Ylahierarkia><Toiminto-alue>Z001</Toiminto-alue><Kuvaus>Bla</Kuvaus><alku>20110101</alku><Loppu>99991231</Loppu>
+    ...    </Line>
+    ...    <Line>
+    ...    <Nimi/><Hierarkiataso>1</Hierarkiataso><Joukko/><Ylahierarkia>123</Ylahierarkia><Toiminto-alue>1001</Toiminto-alue><Kuvaus>Kaikille yhteinen</Kuvaus><alku>123</alku><Loppu>456</Loppu>
+    ...    </Line>
+    ...    <Line>
+    ...    <Nimi/><Hierarkiataso>1</Hierarkiataso><Joukko/><Ylahierarkia>10H</Ylahierarkia><Toiminto-alue>${Toiminto-alue}</Toiminto-alue><Kuvaus>${Kuvaus}</Kuvaus><alku>123</alku><Loppu>456</Loppu>
+    ...    </Line>
+    ...    </Functional_area></SI_FunctionalArea_OUT>
+
+    RETURN       ${SEG}
+
 
 # for both ECC and S4
 Lähetä ${TOIMIALA} perustiedot sapsistilaus
@@ -151,6 +172,19 @@ Lähetä ${TOIMIALA} perustiedot SAPKUMPPANI
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${PerustiedotFtpDir}/SAPKUMPPANI.csv
     Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPKUMPPANI ${PerustiedotFtpDir}/SAPKUMPPANI.csv      ${RCOMP}    ${NAME1}
 
+Lähetä ${TOIMIALA} perustiedot SAPTOIMINTOALUE
+    [Documentation]     ${TOIMIALA} perustiedot   saptoimintoalue
+    [Tags]   ${TOIMIALA}      perustiedot     saptoimintoalue     h_func_out
+    [Arguments]   ${PerustiedotFtpDir}       ${Toiminto-alue}     ${Kuvaus}   ${FTPDownKeyword}   ${FTPUpKeyword}
+    ${HFUNC}      Create SAPTOIMINTOALUE      ${Toiminto-alue}    ${Kuvaus}
+
+    ${CUR_DATE_STR}      Get Current Time Text
+    Run Keyword     ${FTPDownKeyword}
+    Create File     ${PerustiedotFtpDir}/213/H_FUNC_OUT_${CUR_DATE_STR}.xml   content=${HFUNC}
+    Run Keyword     ${FTPUpKeyword}
+
+    Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${PerustiedotFtpDir}/SAPTOIMINTOALUE.csv
+    Wait Until Keyword Succeeds     1 minute   5 seconds    Check SAPTOIMINTOALUE ${PerustiedotFtpDir}/SAPTOIMINTOALUE.csv      ${Toiminto-alue}    ${Kuvaus}
 
 Check SAPPROJEKTI ${FilePath}
     [Documentation]     Opens SAPPROJEKTI.csv sent to the FTP and checks it contains the correct lines
@@ -199,3 +233,18 @@ Check SAPKUMPPANI ${FilePath}
     Should Be Equal As Numbers    ${LineCount}     10
     ${AllLinesCount}    Get Line Count  ${File}
     Should Be Equal As Numbers    ${AllLinesCount}    11
+
+Check SAPTOIMINTOALUE ${FilePath}
+    [Documentation]     Opens SAPTOIMINTOALUE.csv and checks it contains correct lines
+    [Arguments]      ${Toiminto-alue}       ${Kuvaus}
+    ${File}     Get File    ${FilePath}
+    ${ExpHeader}    Set Variable    Nimi;Hierarkiataso;Joukko;Ylahierarkia;Toiminto-alue;Kuvaus;alku;Loppu
+    ${FirstLine}   Get Line    ${File}     0
+    Should Be Equal    ${FirstLine}     ${ExpHeader}
+    ${Lines}    Get Lines Containing String     ${File}     "";1;;10H;${Toiminto-alue};${Kuvaus};123;456
+    ${LineCount}    Get Line Count   ${Lines}
+    Should Be Equal As Numbers     ${LineCount}     1
+    ${Lines}    Get Lines Containing String     ${File}     "";1;;123;1001;"Kaikille yhteinen";123;456
+    Should Be Equal As Numbers     ${LineCount}      1
+    ${AllLinesCount}    Get Line Count  ${File}
+    Should Be Equal As Numbers      ${AllLinesCount}   3

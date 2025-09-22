@@ -11,19 +11,23 @@ from threading import Thread, current_thread
 class S4Server (ServerInterface):
     def check_auth_password(self, username, password):
         self.logged_in_user = username
+        print("setting logged in user: {}".format(username))
         self.logged_in_user_dir = self.user_dirs.get(username)
         return AUTH_SUCCESSFUL
 
     def check_auth_publickey(self, username, key):
+        print("check_auth_publickey, username: {}, key: {}".format(username, key))
         return AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
+        print("check_channel_request, kind: {}, chanid: {}".format(kind, chanid))
         return OPEN_SUCCEEDED
 
     def get_allowed_auths(self, username):
         return "password"
 
     def check_channel_shell_request(self, channel):
+        print("check_channel_shell_request, channel: {}".format(channel))
         return True
 
 
@@ -68,6 +72,7 @@ class S4SFTPServerHandler (SFTPServerInterface):
     def open(self, path, flags, attr):
         if (self.server.connection_is_down):
             return SFTP_FAILURE
+        print("open {}, user: {}".format(path, self.server.logged_in_user))
         path = self._realpath(path)
         try:
             fd = os.open(path, flags, 0o666)
@@ -124,7 +129,9 @@ class S4SFTPServer(object):
                 transport.add_server_key(host_key)
                 transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
                 transport.start_server(server=server)
-                self.channels.append(transport.accept())
+                chan = transport.accept()
+                print("adding a new channel")
+                self.channels.append(chan)
 
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir

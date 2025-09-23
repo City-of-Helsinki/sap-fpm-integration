@@ -1,15 +1,20 @@
 import os
 import socket
 import paramiko
+import time
 from paramiko import ServerInterface, SFTPServerInterface, SFTPServer, SFTPAttributes, \
     SFTPHandle, SFTP_FAILURE, AUTH_SUCCESSFUL, OPEN_SUCCEEDED, AUTH_FAILED
 
 from robot.api.deco import keyword, not_keyword
 from threading import Thread, current_thread
 
+
 # can pass in user dirs here
 class S4Server (ServerInterface):
     def check_auth_password(self, username, password):
+        if (self.current_user != username):
+            print("preventing current_user: {}, log in user: {}".format(self.current_user, username))
+            #return AUTH_FAILED
         self.logged_in_user = username
         print("setting logged in user: {}".format(username))
         self.logged_in_user_dir = self.user_dirs.get(username)
@@ -42,6 +47,7 @@ class S4SFTPHandle (SFTPHandle):
 class S4SFTPServerHandler (SFTPServerInterface):
 
     def __init__(self, server, *args, **kwargs):
+        print("init S4SFTPServerHandler")
         self.server = server
         super().__init__(server, *args, **kwargs)
 
@@ -127,11 +133,16 @@ class S4SFTPServer(object):
                 conn, addr = server_socket.accept()
                 transport = paramiko.Transport(conn)
                 transport.add_server_key(host_key)
+                self.server = S4Server()
+                self.server.ftp_dir = self.ftp_dir
+                self.server.user_dirs = self.user_dirs
+                self.server.connection_is_down = False
                 transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
                 transport.start_server(server=server)
                 chan = transport.accept()
-                print("adding a new channel")
+                print("adding a new channel {}".format(chan))
                 self.channels.append(chan)
+                #time.sleep(10)
 
         self.server = S4Server()
         self.server.ftp_dir = self.ftp_dir
@@ -154,6 +165,10 @@ class S4SFTPServer(object):
     @keyword(types=['string'])
     def get_sftp_dir_for(self, user):
         return self.user_dirs.get(user)
+
+    @keyword(types=['string'])
+    def set_current_sftp_user(self, user):
+        self.server.current_user = user
 
     @keyword()
     def close_sftp_server(self):

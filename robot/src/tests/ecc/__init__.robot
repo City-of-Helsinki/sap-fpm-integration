@@ -9,7 +9,7 @@ Suite Teardown  Close Ftp Server
 Setup Ftp Server
     Remove Directory    ${CURDIR}/robot/sap_ftp    recursive=True
     Init Ftp Server     %{SAP_FPM_INTEGRATION_ROBOT_SERVICE_HOST}       robot/sap_ftp
-    ${perustiedotDirs}		Create List		203 	204     210
+    ${perustiedotDirs}		Create List		203 	204     210     213
     ${toteumatDirs}      Create List
     Add Ftp User    %{KASKO_SFTP_USER_ID023}    %{KASKO_SFTP_PASSWORD_ID023}    kasko/toteumat      ${toteumatDirs}
     Add Ftp User    %{KASKO_SFTP_USER_ID137}    %{KASKO_SFTP_PASSWORD_ID137}    kasko/perustiedot   ${perustiedotDirs}

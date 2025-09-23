@@ -16,7 +16,6 @@ Send S4 kasko toteumat
     [Documentation]     S4 KASKO toteumat
     [Tags]     kasko
     Set Log Level   DEBUG
-    Set Current SFTP USER   %{KASKO_S4_SFTP_USER_TOTEUMAT}
     ${KaskoToteumatFtpDir}   Get SFTP Dir For     %{KASKO_S4_SFTP_USER_TOTEUMAT}
     ${TOSITE_YEAR}    Set Variable    2025
     ${TOSITE_MONTH}    Set Variable   01

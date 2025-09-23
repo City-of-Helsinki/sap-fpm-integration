@@ -14,4 +14,4 @@ RUN pip install paramiko
 
 EXPOSE 2121 2122 40000 40001 40002
 
-ENTRYPOINT robot --xunit xunitoutput.xml --log /tmp/robot-results/robot.log --outputdir /tmp/robot-results -i s4 . && sleep infinity
+ENTRYPOINT robot --xunit xunitoutput.xml --log /tmp/robot-results/robot.log --outputdir /tmp/robot-results . && sleep infinity

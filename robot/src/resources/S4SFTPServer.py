@@ -1,7 +1,6 @@
 import os
 import socket
 import paramiko
-import time
 from paramiko import ServerInterface, SFTPServerInterface, SFTPServer, SFTPAttributes, \
     SFTPHandle, SFTP_FAILURE, AUTH_SUCCESSFUL, OPEN_SUCCEEDED, AUTH_FAILED
 
@@ -12,28 +11,24 @@ from threading import Thread, current_thread
 # can pass in user dirs here
 class S4Server (ServerInterface):
     def check_auth_password(self, username, password):
-        if (self.current_user != username):
-            print("preventing current_user: {}, log in user: {}".format(self.current_user, username))
-            #return AUTH_FAILED
         self.logged_in_user = username
-        print("setting logged in user: {}".format(username))
         self.logged_in_user_dir = self.user_dirs.get(username)
         return AUTH_SUCCESSFUL
 
     def check_auth_publickey(self, username, key):
-        print("check_auth_publickey, username: {}, key: {}".format(username, key))
         return AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
-        print("check_channel_request, kind: {}, chanid: {}".format(kind, chanid))
         return OPEN_SUCCEEDED
 
     def get_allowed_auths(self, username):
         return "password"
 
     def check_channel_shell_request(self, channel):
-        print("check_channel_shell_request, channel: {}".format(channel))
         return True
+
+    def get_logged_in_user(self):
+        return self.logged_in_user
 
 
 class S4SFTPHandle (SFTPHandle):
@@ -47,7 +42,6 @@ class S4SFTPHandle (SFTPHandle):
 class S4SFTPServerHandler (SFTPServerInterface):
 
     def __init__(self, server, *args, **kwargs):
-        print("init S4SFTPServerHandler")
         self.server = server
         super().__init__(server, *args, **kwargs)
 
@@ -78,7 +72,6 @@ class S4SFTPServerHandler (SFTPServerInterface):
     def open(self, path, flags, attr):
         if (self.server.connection_is_down):
             return SFTP_FAILURE
-        print("open {}, user: {}".format(path, self.server.logged_in_user))
         path = self._realpath(path)
         try:
             fd = os.open(path, flags, 0o666)
@@ -108,7 +101,8 @@ class S4SFTPServer(object):
 
     def __init__(self):
         self.user_dirs = {}
-        self.channels = []
+        self.servers = {}
+        self.transports = []
 
     @keyword(types=['string'])
     def init_sftp_server(self, relative_ftp_dir):
@@ -127,28 +121,24 @@ class S4SFTPServer(object):
         server_socket.listen(10)
         host_key = paramiko.RSAKey.from_private_key_file("/tmp/robot_id_rsa")
 
-        def serve_forever(self, server):
+        def serve_forever(self):
             keepServing = True
             while keepServing:
                 conn, addr = server_socket.accept()
                 transport = paramiko.Transport(conn)
+                self.transports.append(transport)
                 transport.add_server_key(host_key)
-                self.server = S4Server()
-                self.server.ftp_dir = self.ftp_dir
-                self.server.user_dirs = self.user_dirs
-                self.server.connection_is_down = False
+                serv = S4Server()
+                serv.ftp_dir = self.ftp_dir
+                serv.user_dirs = self.user_dirs
+                serv.connection_is_down = False
                 transport.set_subsystem_handler('sftp', paramiko.SFTPServer, S4SFTPServerHandler)
-                transport.start_server(server=server)
-                chan = transport.accept()
-                print("adding a new channel {}".format(chan))
-                self.channels.append(chan)
-                #time.sleep(10)
+                transport.start_server(server=serv)
+                transport.accept()
+                self.servers[serv.get_logged_in_user()].append(serv)
 
-        self.server = S4Server()
-        self.server.ftp_dir = self.ftp_dir
-        self.server.user_dirs = self.user_dirs
-        self.server.connection_is_down = False
-        self.ftp_thread = Thread(target=serve_forever, args=(self, self.server, ))
+
+        self.ftp_thread = Thread(target=serve_forever, args=(self, ))
         self.ftp_thread.setDaemon(True)
         self.ftp_thread.start()
 
@@ -160,24 +150,26 @@ class S4SFTPServer(object):
             dir = os.path.join(self.ftp_dir, dir_name, subdir_name)
             if not os.path.exists(dir): os.makedirs(dir)
         self.user_dirs[user] = user_dir
+        self.servers[user] = []
         return user_dir
 
     @keyword(types=['string'])
     def get_sftp_dir_for(self, user):
         return self.user_dirs.get(user)
 
-    @keyword(types=['string'])
-    def set_current_sftp_user(self, user):
-        self.server.current_user = user
-
     @keyword()
     def close_sftp_server(self):
-        for c in self.channels: c.close()
+        for t in self.transports:
+            t.close()
 
     @keyword()
     def set_sftp_connection_as_down(self):
-        self.server.connection_is_down = True
+        for user in self.servers:
+            for s in self.servers[user]:
+                s.connection_is_down = True
 
     @keyword()
     def set_sftp_connection_as_up(self):
-        self.server.connection_is_down = False
+        for user in self.servers:
+            for s in self.servers[user]:
+                s.connection_is_down = False

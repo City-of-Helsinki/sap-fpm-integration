@@ -24,7 +24,7 @@ parameters:
 - name: buildRobot
   displayName: Build Robot tests image
   type: boolean
-  default: false
+  default: true
 
 resources:
   repositories:

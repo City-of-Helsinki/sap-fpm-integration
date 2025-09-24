@@ -7,6 +7,7 @@ import org.apache.camel.*;
 import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.support.DefaultExchange;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,11 +52,13 @@ public class WbsInTest {
         );
     }
 
-    String testWbsFileName = "WBS_OUT_read_exception.xml";
+    String testWbsFileName = "WBS_OUT_read_exception.xml",
+        testWbsFileName2 =  "WBS_OUT_read_exception_2.xml";
 
     @AfterEach
     public void afterEach() throws IOException {
         Files.deleteIfExists(Paths.get("in/sotepe/" + testWbsFileName));
+        Files.deleteIfExists(Paths.get("in/sotepe/" + testWbsFileName2));
     }
 
     @Test
@@ -80,26 +84,37 @@ public class WbsInTest {
         assertEquals(PBUKR, vals.getFirst().get("PBUKR"));
     }
 
+    @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "0")
+    public int DEFAULT_MAX_REDELIVERIES;
+
     @Test
     void WBS_OUT_retryWhenExceptionThrownDuringFileReading() throws Exception {
         URL fileUrl = getClass().getResource("/" + testWbsFileName);
         assertNotNull(fileUrl);
         Path testFilePath = Paths.get(fileUrl.toURI());
-        Path inTestFilePath = Paths.get("in/sotepe/" + testWbsFileName);
+        Path inTestFilePath = Paths.get("in/sotepe/" + testWbsFileName),
+                inTestFilePath2 = Paths.get("in/sotepe/" + testWbsFileName2);
 
-        String expectedFileName = testWbsFileName.replace(".xml", ".csv");
+        String expectedFileName1 = testWbsFileName.replace(".xml", ".csv"),
+                expectedFileName2 = testWbsFileName2.replace(".xml", ".csv");
 
-        mockWbsSotepeExceptionThrower.whenExchangeReceived(1, e -> {
-            e.setException(new Exception("wbsSotepeReadException"));
+        AtomicInteger exceptionsThrown = new AtomicInteger(0);
+        mockWbsSotepeExceptionThrower.whenAnyExchangeReceived(e -> {
+            // go 1 over max redeliveries, triggering file rollback strategy
+            if (exceptionsThrown.getAndIncrement() <= DEFAULT_MAX_REDELIVERIES) {
+                e.setException(new Exception("wbsSotepeReadException"));
+            }
         });
         mockUploadBlobToAzureSotepeAnyFileOutWbs.expectedMessageCount(1);
-        mockUploadBlobToAzureSotepeAnyFileOutWbs.whenAnyExchangeReceived(e -> {
+        mockUploadBlobToAzureSotepeAnyFileOutWbs.whenExchangeReceived(1, e -> {
             Set<String> allProcessedFileNames =  e.getProperty("allProcessedFileNames", Set.class);
-            assertEquals(1, allProcessedFileNames.size());
-            assertTrue(allProcessedFileNames.contains(expectedFileName));
+            assertEquals(2, allProcessedFileNames.size());
+            assertTrue(allProcessedFileNames.contains(expectedFileName1));
+            assertTrue(allProcessedFileNames.contains(expectedFileName2));
         });
         try {
             Files.copy(testFilePath, inTestFilePath);
+            Files.copy(testFilePath, inTestFilePath2);
         } catch (FileAlreadyExistsException existsException) { /* file already copied, ok */ }
 
         mockUploadBlobToAzureSotepeAnyFileOutWbs.assertIsSatisfied();
@@ -145,37 +160,37 @@ public class WbsInTest {
     String createProjektiRakenteenosaSegment(String PBUKR) {
         return """
     <ZHKI_PROJEKTIRAKENTEENOSA SEGMENT="1">
-                            <PBUKR>""" + PBUKR + """
-                            </PBUKR>
-                            <PSPNR>00004047</PSPNR>
-                            <POSID>posid</POSID>
-                            <POST1>Post1 text öää</POST1>
-                            <PSPHI>00000380</PSPHI>
-                            <UP>00000000</UP>
-                            <STUFE> 1</STUFE>
-                            <VERNR>00000000</VERNR>
-                            <ASTNR>00000000</ASTNR>
-                            <PRCTR>0001000000</PRCTR>
-                            <PSTRT>20120101</PSTRT>
-                            <PENDE>20201231</PENDE>
-                            <ESTRT>00000000</ESTRT>
-                            <EENDE>00000000</EENDE>
-                            <ISTRT>00000000</ISTRT>
-                            <IENDE>00000000</IENDE>
-                            <PLAKZ>X</PLAKZ>
-                            <USR04> 0.000</USR04>
-                            <USR05> 0.000</USR05>
-                            <USR06> 0.000</USR06>
-                            <USR07> 0.000</USR07>
-                            <USR08>20110101</USR08>
-                            <USR09>20131231</USR09>
-                            <ERDAT>20111231</ERDAT>
-                            <AEDAT>20250218</AEDAT>
-                            <TXT40>VAPA</TXT40>
-                            <BELKZ>X</BELKZ>
-                            <OBJNR>PR00004047</OBJNR>
-                            </ZHKI_PROJEKTIRAKENTEENOSA>
-                            """;
+        <PBUKR>""" + PBUKR + """
+        </PBUKR>
+        <PSPNR>00004047</PSPNR>
+        <POSID>posid</POSID>
+        <POST1>Post1 text öää</POST1>
+        <PSPHI>00000380</PSPHI>
+        <UP>00000000</UP>
+        <STUFE> 1</STUFE>
+        <VERNR>00000000</VERNR>
+        <ASTNR>00000000</ASTNR>
+        <PRCTR>0001000000</PRCTR>
+        <PSTRT>20120101</PSTRT>
+        <PENDE>20201231</PENDE>
+        <ESTRT>00000000</ESTRT>
+        <EENDE>00000000</EENDE>
+        <ISTRT>00000000</ISTRT>
+        <IENDE>00000000</IENDE>
+        <PLAKZ>X</PLAKZ>
+        <USR04> 0.000</USR04>
+        <USR05> 0.000</USR05>
+        <USR06> 0.000</USR06>
+        <USR07> 0.000</USR07>
+        <USR08>20110101</USR08>
+        <USR09>20131231</USR09>
+        <ERDAT>20111231</ERDAT>
+        <AEDAT>20250218</AEDAT>
+        <TXT40>VAPA</TXT40>
+        <BELKZ>X</BELKZ>
+        <OBJNR>PR00004047</OBJNR>
+        </ZHKI_PROJEKTIRAKENTEENOSA>
+        """;
     }
 
 }

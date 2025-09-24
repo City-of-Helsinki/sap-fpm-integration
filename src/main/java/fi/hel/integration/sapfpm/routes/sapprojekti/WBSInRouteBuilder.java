@@ -6,9 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.*;
 
 import static fi.hel.integration.sapfpm.IDOCParser.*;
-// WBS_OUT:n käsittelee Projektit ja projektin rakenneosat  (SAPPROJEKTI_PRPS, WBS_OUT.xml)
-// tuplat: xml ehkä järjestyksessä, eli jos saman filun sisällä tulee useampi, valitse jälkimmäinen?
-// PRPS = projekti, tälle toimiva perustietoliittymä tulee kaikkiin FPM Cloudeihin
+// WBS_OUT: SAP Projektit
 @ApplicationScoped
 public class WBSInRouteBuilder extends PerustiedotRouteBuilder {
     public String[] createCsvHeader() {

@@ -149,6 +149,8 @@ Kasko and Sotepe will probably skip ECC and go directly to S4
                         log.info(idPrefix + " " + toimiala  + " writeOut was true after  processing " +
                                         batchProcessedFileNames.size() + " / " + initialBatchSize.get() + ": " +
                                 e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
+                    } else {
+                        log.info(idPrefix + " " + toimiala  + " batch: " + batchProcessedFileNames.size() + " initial: " + initialBatchSize.get());
                     }
                 })
                 .choice().when(simple("${exchangeProperty.writeOut} == true"))

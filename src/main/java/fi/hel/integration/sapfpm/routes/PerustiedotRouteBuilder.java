@@ -11,13 +11,15 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 
 public abstract class PerustiedotRouteBuilder extends RouteBuilder implements FtpOrFileRouteBuilder {
     @Inject
     IsConfigEnabled mainConfig;
+
+    @Inject
+    DefaultErrorHandlerBuilder defaultErrorHandlerBuilder;
 
     @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
     int DEFAULT_REDELIVERY_DELAY;
@@ -45,7 +47,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
 
     @Override
     public void configure() throws Exception {
-        errorHandler(buildDefaultErrorHandler(this, log));
+        errorHandler(defaultErrorHandlerBuilder.buildDefaultErrorHandler(this, log));
 
         if (mainConfig.palkeFTPPerustiedotEnabled()) {
             log.info("Starting palke ftp perustiedot");

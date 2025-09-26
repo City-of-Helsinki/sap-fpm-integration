@@ -1,10 +1,12 @@
 package fi.hel.integration.sapfpm.routes;
 
+import fi.hel.integration.sapfpm.SentrySender;
 import fi.hel.integration.sapfpm.config.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.azure.storage.blob.BlobConstants;
+import org.apache.camel.component.file.FileConstants;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -22,6 +24,9 @@ public class AzureBlobOut extends RouteBuilder {
 
     @Inject
     Logger log;
+
+    @Inject
+    public SentrySender sentrySender;
 
     @ConfigProperty(name = "default-route-redelivery-delay", defaultValue = "10000")
     public int DEFAULT_REDELIVERY_DELAY;
@@ -47,6 +52,7 @@ public class AzureBlobOut extends RouteBuilder {
     public void createUploadLocalFileRoute(String toimiala, String uploadUri) {
         from("direct:enrich-and-send-file-to-azure-" + toimiala)
             .id("enrichAndSendToAzure-" + toimiala)
+            .setHeader("toimiala", constant(toimiala)) // for sentry sending
             .log(toimiala + " enriching ${exchangeProperty.outDir}/${headers.CamelFileName}")
             .pollEnrich()
             .simple("file:${exchangeProperty.outDir}?fileName=RAW(${headers.CamelFileName})&autoCreate=false&noop=true&idempotent=false")
@@ -66,7 +72,8 @@ public class AzureBlobOut extends RouteBuilder {
                     .log("SENDING ${headers.CamelFileName} to %s AZURE!".formatted(toimiala))
                     .setProperty("fileExist", constant("Override"))
                     .to(uploadUri)
-                    .log("Uploading done! ${headers.CamelFileName} was sent to AZURE!")
+                    .log("Uploading done! ${headers.toimiala} ${headers.CamelFileName} was sent to AZURE!")
+                    .process(e -> sentrySender.send("%s file %s sent".formatted(e.getMessage().getHeader("toimiala", String.class), e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)), e))
                 .end()
             .end();
 

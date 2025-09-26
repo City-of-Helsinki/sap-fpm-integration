@@ -1,6 +1,7 @@
 package fi.hel.integration.sapfpm.routes.sapactual;
 
 import fi.hel.integration.sapfpm.config.IsConfigEnabled;
+import fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder;
 import fi.hel.integration.sapfpm.routes.FtpOrFileRouteBuilder;
 import fi.hel.integration.sapfpm.tositecommon.TositeRouteCommon;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,7 +11,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.*;
 
-import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildLocalS4ToteumatIn;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.buildS4SFtpToteumatIn;
 
@@ -21,6 +21,9 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
     @Inject
     IsConfigEnabled mainConfig;
+
+    @Inject
+    DefaultErrorHandlerBuilder defaultErrorHandlerBuilder;
 
     public CsvDataFormat createCsvDataFormat() {
         return new CsvDataFormat().setQuoteDisabled(false).setDelimiter(';').setHeader(createCsvHeader());
@@ -237,7 +240,7 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
     @Override
     public void configure() throws Exception {
-        errorHandler(buildDefaultErrorHandler(this, log));
+        errorHandler(defaultErrorHandlerBuilder.buildDefaultErrorHandler(this, log));
 
         if (mainConfig.palkeS4SFTPToteumatEnabled()) {
             buildMainRoute(s4SftpToteumatIn("palke"), "palke");

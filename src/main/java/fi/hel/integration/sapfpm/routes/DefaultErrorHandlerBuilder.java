@@ -1,11 +1,20 @@
 package fi.hel.integration.sapfpm.routes;
 
+import fi.hel.integration.sapfpm.SentrySender;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.errorhandler.DefaultErrorHandlerDefinition;
 import org.slf4j.Logger;
 
+@ApplicationScoped
 public class DefaultErrorHandlerBuilder {
-    public static DefaultErrorHandlerDefinition buildDefaultErrorHandler(RouteBuilder routeBuilder, Logger log) {
+    @Inject
+    SentrySender sentrySender;
+
+
+
+    public DefaultErrorHandlerDefinition buildDefaultErrorHandler(RouteBuilder routeBuilder, Logger log) {
         return routeBuilder.defaultErrorHandler()
             .maximumRedeliveries(5)
             .redeliveryDelay(5000)
@@ -17,6 +26,7 @@ public class DefaultErrorHandlerBuilder {
                     Exception exc = e.getException(Exception.class);
                     if (exc != null) {
                         log.error(exc.getMessage());
+                        sentrySender.sendException(e);
                     }
                 }
             });

@@ -6,7 +6,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class TositeRouteCommon extends RouteBuilder {

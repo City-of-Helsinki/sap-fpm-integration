@@ -5,13 +5,15 @@ import fi.hel.integration.sapfpm.tositecommon.TositeRouteCommon;
 import jakarta.inject.Inject;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 
-import static fi.hel.integration.sapfpm.routes.DefaultErrorHandlerBuilder.buildDefaultErrorHandler;
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
 
 public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements FtpOrFileRouteBuilder {
     @Inject
     IsConfigEnabled mainConfig;
+
+    @Inject
+    DefaultErrorHandlerBuilder defaultErrorHandlerBuilder;
 
     abstract public String[] createCsvHeader();
     public CsvDataFormat createCsvDataFormat() {
@@ -24,7 +26,7 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
 
     @Override
     public void configure() throws Exception {
-        errorHandler(buildDefaultErrorHandler(this, log));
+        errorHandler(defaultErrorHandlerBuilder.buildDefaultErrorHandler(this, log));
 
         if (mainConfig.palkeFTPToteumatEnabled()) {
             buildMainRoute(ftpToteumatIn("palke"), "palke");

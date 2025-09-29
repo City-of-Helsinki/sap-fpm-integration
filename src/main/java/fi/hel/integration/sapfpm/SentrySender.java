@@ -2,6 +2,7 @@ package fi.hel.integration.sapfpm;
 
 import io.quarkus.runtime.Startup;
 import io.sentry.Sentry;
+import io.sentry.SentryLevel;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Singleton;
 import org.apache.camel.Exchange;
@@ -25,6 +26,7 @@ public class SentrySender {
         String toimiala = exchange.getMessage().getHeader("toimiala", String.class);
         Sentry.captureMessage(sentryMsg, scope -> {
             if (toimiala != null) scope.setContexts("toimiala", toimiala);
+            scope.setLevel(SentryLevel.INFO);
         });
     }
 
@@ -32,6 +34,7 @@ public class SentrySender {
         String toimiala = exchange.getMessage().getHeader("toimiala", String.class);
         Sentry.captureException(exchange.getException(), scope -> {
             if (toimiala != null) scope.setContexts("toimiala", toimiala);
+            scope.setLevel(SentryLevel.ERROR);
         });
     }
 }

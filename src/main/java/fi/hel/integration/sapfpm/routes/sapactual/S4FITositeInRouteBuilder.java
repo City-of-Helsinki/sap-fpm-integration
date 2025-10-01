@@ -190,11 +190,17 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
                 List<LinkedHashMap<String, Object>> s4YearsAndMonths = e.getProperty("s4YearsAndMonths", List.class);
                 List<LinkedHashMap<String, Object>> all = eccYearsAndMonths == null ? new ArrayList<>() : new ArrayList<>(eccYearsAndMonths);
                 if (s4YearsAndMonths != null) {
-                    s4YearsAndMonths.forEach(y -> {
+                    s4YearsAndMonths.forEach(s4 -> {
+                        String s4POPER = (String)s4.get("POPER");
+                        // ECC POPER: "02", S4 POPER: "002"
+                        if (s4POPER.length() == 3 && s4POPER.startsWith("0")) {
+                            s4POPER = s4POPER.substring(1);
+                        }
+                        final String s4POPERInECCFormat = s4POPER;
                         Optional<LinkedHashMap<String, Object>> found = all.stream().filter(a ->
-                                y.get("GJAHR").equals(a.get("GJAHR")) && y.get("POPER").equals(a.get("POPER"))).findFirst();
+                                s4.get("GJAHR").equals(a.get("GJAHR")) && s4POPERInECCFormat.equals(a.get("POPER"))).findFirst();
                         if (found.isEmpty()) {
-                            all.add(y);
+                            all.add(s4);
                         }
                     });
                 }

@@ -131,11 +131,19 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("${headers.toimiala} s4 all years and months: ${body}");
 
-        String tositeRiviSelect = "SELECT * FROM S4TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?POPER ";
+        String tositeRiviSelect = "SELECT * FROM S4TOSITERIVI WHERE toimiala = :?toimiala AND GJAHR = :?GJAHR AND POPER = :?NORMALIZED_POPER ";
         String tositeRiviSelectOrderBy = " ORDER BY id DESC LIMIT :?pageLimit";
 
         from("direct:fetch-s4-tositerivit-from-db-by-year-and-month")
             .routeId("fetchS4TositeRivitFromDbByYearAndMonth")
+            .process(e -> {
+                String POPER = e.getMessage().getHeader("POPER", String.class);
+                // POPER in ECC format
+                if (POPER.length() == 2) {
+                    POPER = "0" + POPER;
+                }
+                e.getMessage().setHeader("NORMALIZED_POPER", POPER);
+            })
             .choice().when(header("lastId").isNull())
                 .setBody(constant(tositeRiviSelect + tositeRiviSelectOrderBy))
             .otherwise()

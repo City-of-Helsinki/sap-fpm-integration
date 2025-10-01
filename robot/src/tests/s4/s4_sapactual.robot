@@ -18,7 +18,7 @@ Send S4 kasko toteumat
     Set Log Level   DEBUG
     ${KaskoToteumatFtpDir}   Get SFTP Dir For     %{KASKO_S4_SFTP_USER_TOTEUMAT}
     ${TOSITE_YEAR}    Set Variable    2025
-    ${TOSITE_MONTH}    Set Variable   01
+    ${TOSITE_MONTH}    Set Variable   001
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
     ${CUR_DATE_STR}      Get Current Time Text
     ${BUKRS}    Set Variable    3900
@@ -88,7 +88,7 @@ Send S4 palke toteumat
     [Tags]     palke
     ${ToteumatFtpDir}   Get SFTP Dir For     %{PALKE_S4_SFTP_USER_TOTEUMAT}
     ${TOSITE_YEAR}    Set Variable    2025
-    ${TOSITE_MONTH}    Set Variable   01
+    ${TOSITE_MONTH}    Set Variable   001
     ${TOSITE_SIMPLE_MONTH}     Set Variable    1
     ${CUR_DATE_STR}      Get Current Time Text
     ${BUKRS}    Set Variable    3900

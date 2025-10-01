@@ -19,6 +19,7 @@ public class SentrySender {
             options.setDsn(sentryUrlOpt.orElse(""));
             options.setEnvironment(appEnv);
             options.setAttachStacktrace(false);
+            options.setDebug(false);
         });
     }
 

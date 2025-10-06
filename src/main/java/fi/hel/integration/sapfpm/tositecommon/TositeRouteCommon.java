@@ -139,6 +139,9 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                 e.getMessage().setHeader("GJAHR", year);
                 e.getMessage().setHeader(monthValName, month);
                 String simpleMonth = month.replaceFirst("^0+", "");
+                if (simpleMonth.isEmpty()) {
+                    simpleMonth = "0";
+                }
                 e.getMessage().setHeader(FileConstants.FILE_NAME, fileNamePrefix + "_" + year + "_" + simpleMonth + ".csv");
             });
     }

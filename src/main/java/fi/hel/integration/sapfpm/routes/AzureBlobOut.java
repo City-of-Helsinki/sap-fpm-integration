@@ -73,7 +73,7 @@ public class AzureBlobOut extends RouteBuilder {
                     .setProperty("fileExist", constant("Override"))
                     .to(uploadUri)
                     .log("Uploading done! ${headers.toimiala} ${headers.CamelFileName} was sent to AZURE!")
-                    .process(e -> sentrySender.send("%s file %s sent".formatted(e.getMessage().getHeader("toimiala", String.class), e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)), e))
+                    .process(e -> sentrySender.send("%s %s".formatted(e.getMessage().getHeader("toimiala", String.class), e.getMessage().getHeader(FileConstants.FILE_NAME, String.class)), e))
                 .end()
             .end();
 

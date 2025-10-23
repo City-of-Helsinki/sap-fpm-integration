@@ -1,8 +1,7 @@
 package fi.hel.integration.sapfpm;
 
 import io.quarkus.runtime.Startup;
-import io.sentry.Sentry;
-import io.sentry.SentryLevel;
+import io.sentry.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Singleton;
 import org.apache.camel.Exchange;
@@ -20,15 +19,15 @@ public class SentrySender {
             options.setEnvironment(appEnv);
             options.setAttachStacktrace(false);
             options.setDebug(false);
+            options.setTracesSampleRate(1.0);
         });
     }
 
     public void send(String sentryMsg, Exchange exchange) {
         String toimiala = exchange.getMessage().getHeader("toimiala", String.class);
-        Sentry.captureMessage(sentryMsg, scope -> {
-            if (toimiala != null) scope.setContexts("toimiala", toimiala);
-            scope.setLevel(SentryLevel.INFO);
-        });
+        ITransaction transaction = Sentry.startTransaction(sentryMsg, "sendfile");
+        transaction.setContext("toimiala", toimiala);
+        transaction.finish(SpanStatus.OK);
     }
 
     public void sendException(Exchange exchange) {

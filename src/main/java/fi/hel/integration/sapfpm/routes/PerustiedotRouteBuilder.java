@@ -7,9 +7,12 @@ import org.apache.camel.component.file.FileConstants;
 import org.apache.camel.dataformat.csv.CsvDataFormat;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static fi.hel.integration.sapfpm.routes.InRouteBuilder.*;
 
@@ -91,6 +94,7 @@ Kasko and Sotepe will probably skip ECC and go directly to S4
         }
     }
 
+    // reads in multiple files from ftp and appends them into one CSV
     public void buildFtpFileReadingRoute(String fromURI, String idPrefix, String toimiala, String processRouteURI, String outFinalFileName) {
         // an exception thrown during file processing will create a new batch, so keep track of initial batch size
         // and send only after the whole batch has been processed
@@ -162,7 +166,11 @@ Kasko and Sotepe will probably skip ECC and go directly to S4
             .id("append-wip-main-" + idPrefix + "-" + toimiala)
             .log(idPrefix + " " + toimiala + ", writing out")
             .to("direct:init-csv-file-" + idPrefix + "-" + toimiala)
-            .setBody(exchangeProperty("allProcessedFileNames"))
+            .setBody(e -> {
+                Set<String> all = e.getProperty("allProcessedFileNames", Set.class);
+                // TODO: now is newest first and oldest last
+                return all.stream().sorted(Comparator.reverseOrder()).toList();
+            })
             .log("Appending wip/ files to main csv: ${body}")
             .setProperty("fileExist", constant("Append"))
             .split(body())

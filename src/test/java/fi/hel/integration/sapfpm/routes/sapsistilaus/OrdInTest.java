@@ -144,11 +144,10 @@ public class OrdInTest {
         mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
-            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("3900;3901;00000X;Bla;VAPA")).findFirst();
-            assertTrue(foundFirstPart.isPresent());
-            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("3900;3901;00000Y;Second;VAPA")).findFirst();
-            assertTrue(foundSecPart.isPresent());
             assertEquals(3, lines.size());
+            // file should be ordered newest first, oldest last
+            assertEquals("3900;3901;00000Y;Second;VAPA", lines.get(1));
+            assertEquals("3900;3901;00000X;Bla;VAPA", lines.get(2));
         });
         try {
             Files.copy(firstTestFilePath, inFirstTestFilePath);
@@ -165,13 +164,11 @@ public class OrdInTest {
         mockUploadBlobToAzureKaskoAnyFileOut.whenExchangeReceived(1, e -> {
             String fileContent = e.getMessage().getBody(String.class);
             List<String> lines = fileContent.lines().toList();
-            Optional<String> foundFirstPart = lines.stream().filter(l -> l.equals("3900;3901;00000X;Bla;VAPA")).findFirst();
-            assertTrue(foundFirstPart.isPresent());
-            Optional<String> foundSecPart = lines.stream().filter(l -> l.equals("3900;3901;00000Y;Second;VAPA")).findFirst();
-            assertTrue(foundSecPart.isPresent());
-            Optional<String> thirdSecPart = lines.stream().filter(l -> l.equals("3900;3901;00000Z;Third;VAPA")).findFirst();
-            assertTrue(thirdSecPart.isPresent());
             assertEquals(4, lines.size());
+            // file should be ordered newest first, oldest last
+            assertEquals("3900;3901;00000Z;Third;VAPA", lines.get(1));
+            assertEquals("3900;3901;00000Y;Second;VAPA", lines.get(2));
+            assertEquals("3900;3901;00000X;Bla;VAPA", lines.get(3));
         });
         try {
             Files.copy(thirdTestFilePath, inThirdTestFilePath);

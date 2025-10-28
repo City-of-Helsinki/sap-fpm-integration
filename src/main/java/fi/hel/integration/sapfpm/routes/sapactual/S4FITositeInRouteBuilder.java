@@ -168,6 +168,10 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
         String marshalHeaderlessCsvURI = "direct:marshal-headerless-csv-s4-Tosite-%s".formatted(toimiala);
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
 
+        // TODO: to normalize ECC to S4, build a new route instead of marshalHeaderlessCsvURI that does:
+        // from("direct:normalize-ecc-and-marshal-headerless-csv-s4-Tosite-%s")
+        // .errorHandler(noErrorHandler()).process(e -> e.getMessage().getBody().get("DRCRK") equals 'H' and .get("HSL").doesntContain("-") .replaceFirst(" *([0-9])", "-$1"))
+        // .to(marshalHeaderlessCsvURI);
         buildAppendDbToExistingFileRoute(appendFromECCDbRouteUri, "appendECCTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,
                 "direct:fetch-tositerivit-from-db-by-year-and-month", marshalHeaderlessCsvURI);
 

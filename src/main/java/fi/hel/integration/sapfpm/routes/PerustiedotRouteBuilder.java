@@ -57,6 +57,7 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");
         }
 /*
+Only ECC Palke and S4 Sotepe enabled for now
 Kasko and Sotepe will probably skip ECC and go directly to S4
         if (mainConfig.kaskoFTPPerustiedotEnabled()) {
             //log.info("Kasko ftp perustiedot disabled!");
@@ -70,14 +71,18 @@ Kasko and Sotepe will probably skip ECC and go directly to S4
             buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
         }
 */
+
+        /* Palke S4 skipped until ECC can be switched off
         if (mainConfig.palkeS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("palke"), "palke");
         }
+        */
 
+        /* Kasko skipped until S4 can be turned on
         if (mainConfig.kaskoS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
         }
-
+        */
         if (mainConfig.sotepeS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
         }

@@ -31,7 +31,7 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
         if (mainConfig.palkeFTPToteumatEnabled()) {
             buildMainRoute(ftpToteumatIn("palke"), "palke");
         }
-
+/* Kasko and Sotepe will skip ECC and go directly to S4
         if (mainConfig.kaskoFTPToteumatEnabled()) {
             buildMainRoute(ftpToteumatIn("kasko"), "kasko");
         }
@@ -39,7 +39,7 @@ public abstract class ToteumatRouteBuilder extends TositeRouteCommon implements 
         if (mainConfig.sotepeFTPToteumatEnabled()) {
             buildMainRoute(ftpToteumatIn("sotepe"), "sotepe");
         }
-
+*/
         if (mainConfig.localToteumatEnabled()) {
             buildMainRoute("file:in?" + buildLocalToteumatIn("palke", getFilePrefix()), "palke");
         }

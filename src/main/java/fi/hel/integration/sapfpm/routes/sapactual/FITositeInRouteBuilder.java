@@ -112,27 +112,15 @@ public class FITositeInRouteBuilder extends ToteumatRouteBuilder {
 
         log.info("Tosite DB page limit: " + DB_PAGE_LIMIT);
 
-        if ("palke".equals(toimiala)) {
-            // palke data fetched via S4 that fetches both ECC and S4
-            from(fetchToteumatRouteUri).errorHandler(noErrorHandler())
-                .to("direct:init-s4-tositerivi-db") // in palke S4 files may not have been inserted before fetch of ECC files
-                .to(S4FITositeInRouteBuilder.getFetchToteumatRouteUri("palke"));
-        } else {
-            String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
-            buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
+        String appendFromDbRouteUri = "direct:fetch-and-append-tositteet-from-db";
+        buildAppendDbToExistingFileRoute(appendFromDbRouteUri,"appendTositeFromDb-%s".formatted(toimiala), DB_PAGE_LIMIT,"direct:fetch-tositerivit-from-db-by-year-and-month",  marshalHeaderlessCsvURI);
 
-            buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
-                    "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
-                    marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", appendFromDbRouteUri
-                    , sendFileToAzureUri);
-        }
+        buildFileAppendingFromDbPageRoute(fetchToteumatRouteUri, "fetchTositeAllYearsAndMonthsAndWriteToAzure-%s".formatted(toimiala), toimiala,
+                "direct:fetch-all-years-and-months-from-db", initDbFetchParamsAndFileNameUri,
+                marshalWithHeaderCsvURI, "direct:fetch-years-and-months-count-from-db", appendFromDbRouteUri
+                , sendFileToAzureUri);
 
-        String initDbUri = "direct:init-tositerivi-route";
-        from(initDbUri)
-            .to("direct:init-tositerivi-db")
-            .choice().when(constant(toimiala).isEqualTo("palke"))
-                .to("direct:init-s4-tositerivi-db")
-            .end();
+        String initDbUri = "direct:init-tositerivi-db";
 
         buildFtpBatchingRoute(fileOrFtpIn, toimiala + "tositeIn", toimiala, initDbUri, processFileRouteUri, fetchToteumatRouteUri);
 

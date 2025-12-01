@@ -25,8 +25,7 @@ public class S4FITositeDB extends TositeDbCommon {
     // s4 tosite rivi unique by BUKRS, BELNR, GJAHR, POPER, DOCLN
     @Override
     public void configure() throws Exception {
-        // palke FTP toteumat needs to send both ECC and S4 data
-        if (!mainConfig.localOrSFTPS4ToteumatEnabled() && !mainConfig.localOrFTPToteumatEnabled() && !mainConfig.palkeFTPToteumatEnabled()) {
+        if (!mainConfig.localOrSFTPS4ToteumatEnabled()) {
             return;
         }
 

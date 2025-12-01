@@ -16,6 +16,6 @@ Setup S4SFtp Server
     Add Sftp User    %{KASKO_S4_SFTP_USER_PERUSTIEDOT}    %{KASKO_S4_SFTP_PASSWORD_PERUSTIEDOT}    kasko/perustiedot   ${perustiedotDirs}
     Add Sftp User    %{SOTEPE_S4_SFTP_USER_TOTEUMAT}   %{SOTEPE_S4_SFTP_PASSWORD_TOTEUMAT}   sotepe/toteumat     ${toteumatDirs}
     Add Sftp User    %{SOTEPE_S4_SFTP_USER_PERUSTIEDOT}   %{SOTEPE_S4_SFTP_PASSWORD_PERUSTIEDOT}   sotepe/perustiedot  ${perustiedotDirs}
-    Add Sftp User    %{PALKE_S4_SFTP_USER_TOTEUMAT}    %{PALKE_S4_SFTP_PASSWORD_TOTEUMAT}    palke/toteumat      ${toteumatDirs}
+    Add Sftp User    %{PALKE_S4_SFTP_USER_TOTEUMAT}    %{PALKE_S4_SFTP_PASSWORD_TOTEUMAT}    palke/s4_toteumat      ${toteumatDirs}
     Add Sftp User    %{PALKE_S4_SFTP_USER_PERUSTIEDOT}    %{PALKE_S4_SFTP_PASSWORD_PERUSTIEDOT}    palke/perustiedot   ${perustiedotDirs}
     Start Sftp Server

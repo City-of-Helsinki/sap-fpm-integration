@@ -61,7 +61,6 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
 
         dbHelper.dropTables();
         producerTemplate.send("direct:init-s4-tositerivi-db", new DefaultExchange(producerTemplate.getCamelContext()));
-        producerTemplate.send("direct:init-tositerivi-db", new DefaultExchange(producerTemplate.getCamelContext()));
 
         mockS4TositeRivitFetch.reset();
         mockJdbcS4SapActual.reset();
@@ -281,51 +280,6 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         List<String> expMonths = List.of("01", "12", "05", "01");
         assertIterableEquals(expYears, resYears);
         assertIterableEquals(expMonths, resMonths);
-    }
-
-    @Test
-    void fetchEccAndS4TositeRivitFromDbTest() throws Exception {
-        CamelContext ctx = producerTemplate.getCamelContext();
-
-        String ECCPOPER = "02",
-                S4POPER = "002",
-                GJAHR = "2027",
-                eccTosite1BELNR = "BELNR123",
-                s4tosite1BELNR = "BELNR234";
-
-        Exchange ex = new DefaultExchange(ctx);
-        String toimiala = "palke";
-        ex.getMessage().setHeader("CamelFileName", toimiala + "_s4.xml");
-        ex.getMessage().setHeader("toimiala", toimiala);
-        LinkedHashMap<String, Object> s4Tosite1 = createS4TositeRow("BUKRS", s4tosite1BELNR, GJAHR, S4POPER, "DOCLN1");
-        ex.getMessage().setBody(List.of(s4Tosite1));
-        producerTemplate.send("direct:insert-s4-tosite-file-and-contents-into-db", ex);
-
-        ex = new DefaultExchange(ctx);
-        ex.getMessage().setHeader("CamelFileName", toimiala + "_ecc.xml");
-        ex.getMessage().setHeader("toimiala", toimiala);
-        LinkedHashMap<String, Object> eccTosite1 = createTositeMeta(eccTosite1BELNR, eccTosite1BELNR, GJAHR, ECCPOPER);
-        eccTosite1.put("BLDAT", "bldat");
-        ex.getMessage().setBody(List.of(List.of(eccTosite1)));
-        producerTemplate.send("direct:insert-tosite-file-and-contents-into-db", ex);
-
-        mockAnyS4FileOut.expectedMessageCount(2); // header and then S4 and ECC content appended to it
-        // "02" and "002" should be appended to the same file
-        String expFileName = "SAPACTUAL_" + GJAHR + "_" + ECCPOPER.replaceAll("^0*", "") + ".csv";
-        mockAnyS4FileOut.whenExchangeReceived(2, e -> {
-            assertEquals(expFileName, e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
-            assertTrue(e.getMessage().getBody(String.class).contains(s4tosite1BELNR));
-        });
-        mockAnyS4FileOut.whenExchangeReceived(3, e -> {
-            assertEquals(expFileName, e.getMessage().getHeader(FileConstants.FILE_NAME, String.class));
-            assertTrue(e.getMessage().getBody(String.class).contains(eccTosite1BELNR));
-        });
-
-        mockFetchS4TositeRivitFromDb.expectedMessageCount(2); // fetch attempts
-
-        producerTemplate.send("direct:fetch-s4-tositteet-from-db-and-write-to-azure-palke", new DefaultExchange(ctx));
-        mockAnyS4FileOut.assertIsSatisfied();
-        mockFetchS4TositeRivitFromDb.assertIsSatisfied();
     }
 
     @Test

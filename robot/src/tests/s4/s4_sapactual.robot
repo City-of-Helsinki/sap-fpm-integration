@@ -59,6 +59,7 @@ Send S4 kasko toteumat
     ${LAST_CHANGE_DATETIME}     Set Variable    ${EMPTY}
     ${AUGBL}     Set Variable    AUGBL
     ${AWTYP}     Set Variable    AWTYP
+    ${PS_POSID}     Set Variable    PS_POSID
 
     ${TOSITE}      Create S4TOSITEFILE         BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
@@ -66,6 +67,7 @@ Send S4 kasko toteumat
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
+    ...   PS_POSID=${PS_POSID}
 
     Create File     ${KaskoToteumatFtpDir}/ID022_FI_TOSITE_kasko_${CUR_DATE_STR}.xml   content=${TOSITE}
     Sleep    15 seconds
@@ -74,13 +76,13 @@ Send S4 kasko toteumat
     Set SFtp Connection As Up
     # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
-    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check S4 SAPACTUAL ${KaskoToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
-
+    ...   PS_POSID=${PS_POSID}
 
 
 Send S4 palke toteumat
@@ -128,6 +130,7 @@ Send S4 palke toteumat
     ${LAST_CHANGE_DATETIME}     Set Variable    ${EMPTY}
     ${AUGBL}     Set Variable    AUGBL
     ${AWTYP}     Set Variable    AWTYP
+    ${PS_POSID}   Set Variable     PS_POSID
 
     ${TOSITE}      Create S4TOSITEFILE         BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
@@ -135,6 +138,7 @@ Send S4 palke toteumat
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
+    ...   PS_POSID=${PS_POSID}
 
     Create File     ${ToteumatFtpDir}/ID022_FI_TOSITE_palke_${CUR_DATE_STR}.xml   content=${TOSITE}
     Sleep    15 seconds
@@ -143,9 +147,10 @@ Send S4 palke toteumat
     Set SFtp Connection As Up
     # TODO: it takes a long time to send the other SAPACTUAL_ file(s) as well, and before they arrive, the next test is already started
     Wait Until Keyword Succeeds     3 minutes   15 seconds    Should Exist       ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv
-    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check SAPACTUAL ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
+    Wait Until Keyword Succeeds     3 minutes   15 Seconds     Check S4 SAPACTUAL ${ToteumatFtpDir}/SAPACTUAL_${TOSITE_YEAR}_${TOSITE_SIMPLE_MONTH}.csv      BUKRS=${BUKRS}     BELNR=${BELNR}    CO_BELNR=${CO_BELNR}    GJAHR=${GJAHR}    POPER=${TOSITE_MONTH}   BLART=${BLART}
     ...   BLDAT=${BLDAT}   BUDAT=${BUDAT}    CPUDT=${CPUDT}   TCODE=${TCODE}   XBLNR=${XBLNR}   KUNNR=${KUNNR}   LIFNR=${LIFNR}   LIFNR_NAME1=${LIFNR_NAME1}
     ...   EBELN=${EBELN}   Attachment=${Attachment}    BUZEI=${BUZEI}   CO_BUZEI=${CO_BUZEI}   RACCT=${RACCT}    RCNTR=${RCNTR}
     ...   PRCTR=${PRCTR}    RFAREA=${RFAREA}    AUFNR=${AUFNR}    PS_PSPID=${PS_PSPID}    RASSC=${RASSC}     SEGMENT=${SEGMENT}
     ...   SGTXT=${SGTXT}    DRCRK=${DRCRK}   MWSKZ=${MWSKZ}    VAT_PERCENT=${VAT_PERCENT}    HSL=${HSL}    PPRCTR=${PPRCTR}
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
+    ...   PS_POSID=${PS_POSID}

@@ -176,7 +176,7 @@ public class S4TositeInTest {
                 <PS_PRJ_PNR>00000000</PS_PRJ_PNR>
                 <PS_PSPID/>
                 <PS_PSP_PNR>00000000</PS_PSP_PNR>
-                <PS_POSID/>
+                <PS_POSID>123</PS_POSID>
                 <NPLNR/>
                 <NPLNR_VORGN/>
                 <RASSC/>
@@ -231,6 +231,8 @@ public class S4TositeInTest {
         assertEquals("", secReceipt.get("AUGBL")); // TODO: seems to be empty?
         assertEquals("1234.56", secReceipt.get("HSL"));
         assertEquals("BKPFF", secReceipt.get("AWTYP"));
+        assertEquals("123", secReceipt.get("PS_POSID"));
+
 
         ex.getMessage().setBody(vals);
         Exchange resCsv = producerTemplate.send("direct:marshal-headerless-csv-s4-Tosite-palke", ex);
@@ -243,7 +245,7 @@ public class S4TositeInTest {
                 ";0001400000;;001400000010;" + //AUFNR
                 ";;" + // PS_PSPID;RASSC
                 "S12;\" sg txt 1\";H;4Z;0.00%;-1234.56;" + // SEGMENT;SGTXT;DRCRK;VAT_PERCENT;
-                ";000000000000000123;00000;202508190508;;BKPFF", splitData[0]);
+                ";000000000000000123;00000;202508190508;;BKPFF;", splitData[0]);
     }
 
     @Test

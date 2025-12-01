@@ -14,12 +14,14 @@ Create S4TOSITEFILE
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
     ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
     ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
+    ...      ${PS_POSID}
 
     ${Tositteet}   Create S4 Tosite Row      0    ${BUKRS}    ${BELNR}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
     ...      ${BLDAT}   ${BUDAT}   ${CPUDT}   ${TCODE}   ${XBLNR}   ${KUNNR}    ${LIFNR}    ${LIFNR_NAME1}
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
     ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
     ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
+    ...      ${PS_POSID}
 
     FOR     ${index}    IN RANGE    99
         ${NewTosite}    Create S4 Tosite Row     ${index}    ${BUKRS}    ${BELNR}_${index}    ${CO_BELNR}    ${GJAHR}    ${POPER}   ${BLART}
@@ -27,6 +29,7 @@ Create S4TOSITEFILE
           ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
           ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
           ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}    ${AWTYP}
+          ...      ${PS_POSID}
 
         ${Tositteet}  Catenate    ${Tositteet}     ${NewTosite}
     END
@@ -41,6 +44,7 @@ Create S4 Tosite Row
     ...      ${EBELN}   ${Attachment}   ${BUZEI}    ${CO_BUZEI}    ${RACCT}    ${RCNTR}     ${PRCTR}
     ...      ${RFAREA}    ${AUFNR}     ${PS_PSPID}     ${RASSC}     ${SEGMENT}    ${SGTXT}      ${DRCRK}     ${MWSKZ}
     ...      ${VAT_PERCENT}     ${HSL}    ${PPRCTR}    ${MATNR}     ${EBELP}     ${LAST_CHANGE_DATETIME}    ${AUGBL}   ${AWTYP}
+    ...      ${PS_POSID}
 
     ${ROW}  catenate  SEPARATOR=
     ...    <ROW>
@@ -94,7 +98,7 @@ Create S4 Tosite Row
     ...    <PS_PRJ_PNR>00000000</PS_PRJ_PNR>
     ...    <PS_PSPID>${PS_PSPID}</PS_PSPID>
     ...    <PS_PSP_PNR>00000000</PS_PSP_PNR>
-    ...    <PS_POSID/>
+    ...    <PS_POSID>${PS_POSID}</PS_POSID>
     ...    <NPLNR/>
     ...    <NPLNR_VORGN/>
     ...    <RASSC>${RASSC}</RASSC>

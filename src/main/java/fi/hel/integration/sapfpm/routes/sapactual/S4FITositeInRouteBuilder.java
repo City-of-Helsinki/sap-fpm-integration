@@ -37,7 +37,8 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
         return new String[]{
             "BUKRS", "BELNR", "CO_BELNR", "GJAHR", "POPER", "BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
             "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
-            "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP"
+            "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP",
+            "PS_POSID" // new
         };
     }
 
@@ -76,7 +77,8 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         r.put("RFAREA", tositeRow.get("RFAREA") == null ? (tositeRow.get("FKBER") == null ? tositeRow.get("FKBER_LONG") : tositeRow.get("FKBER")) : tositeRow.get("RFAREA"));
         r.put("AUFNR", tositeRow.get("AUFNR")); // sisäinen tilaus
-        r.put("PS_PSPID", tositeRow.get("PS_PSPID") == null ? tositeRow.get("PROJK") : tositeRow.get("PS_PSPID")); // Projekti, tyhjä?
+        r.put("PS_PSPID", tositeRow.get("PS_PSPID") == null ? tositeRow.get("PROJK") : tositeRow.get("PS_PSPID")); // projekti
+        r.put("PS_POSID", tositeRow.get("PS_POSID")); // projektirivi
         r.put("RASSC", tositeRow.get("RASSC") == null ? tositeRow.get("VBUND") : tositeRow.get("RASSC"));
         r.put("SEGMENT", tositeRow.get("SEGMENT")); // not in s4
 

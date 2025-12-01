@@ -45,7 +45,8 @@ POPER varchar(10) not null,
 DOCLN varchar(50) not null,""" +
 Stream.of("BLART", "BLDAT", "BUDAT", "CPUDT", "TCODE", "XBLNR", "KUNNR", "LIFNR", "LIFNR_NAME1",
                 "EBELN", "Attachment", "BUZEI", "CO_BUZEI", "RACCT", "RCNTR", "PRCTR", "RFAREA", "AUFNR", "PS_PSPID", "RASSC", "SEGMENT", "SGTXT", "DRCRK", "MWSKZ",
-                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP"
+                "VAT_PERCENT", "HSL", "PPRCTR", "MATNR", "EBELP", "LAST_CHANGE_DATETIME", "AUGBL", "AWTYP",
+        "PS_POSID" // new
 ).map(csvVal -> csvVal + " varchar(255) default null").collect(Collectors.joining(", "))
                     // ALTER TABLE S4TOSITERIVI ADD COLUMN new_csv_val varchar(255) default null;
 + ", primary key (id), S4_ID varchar(255) as (CONCAT_WS( '_', toimiala, GJAHR, POPER, BUKRS, BELNR, DOCLN )) not null," +
@@ -60,6 +61,16 @@ CREATE TABLE IF NOT EXISTS S4TOSITESAPFILE(
   primary key (fileName)
 );
                 """))
+                .to("jdbc:sapactual")
+                .doTry()
+                    .setBody(constant("""
+ALTER TABLE S4TOSITERIVI ADD COLUMN PS_POSID varchar(255) default null
+                    """))
+                    .to("jdbc:sapactual")
+                .endDoTry()
+                .doCatch(Exception.class)
+                    .log("PS_POSID already existed, continuing")
+                .end()
                 .to("jdbc:sapactual")
                 .setBody(exchangeProperty("originalBody"));
 

@@ -130,8 +130,7 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         log.info("S4 Tosite DB page limit: " + DB_PAGE_LIMIT);
 
-        String initDbUri = "direct:init-s4-toteumat-route";
-        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", toimiala, initDbUri, processFileRouteUri, fetchToteumatRouteUri);
+        buildFtpBatchingRoute(fileOrFtpIn, toimiala + "s4TositeIn", toimiala, "direct:init-s4-tositerivi-db", processFileRouteUri, fetchToteumatRouteUri);
 
         from("file:trigger/s4-tosite-write-" + toimiala + "?delete=true").to(fetchToteumatRouteUri);
     }
@@ -145,13 +144,6 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);
         from(marshalWithHeaderCsvURI).marshal(createCsvDataFormat().setSkipHeaderRecord(false));
-
-        String initDbUri = "direct:init-s4-toteumat-route";
-        from(initDbUri)
-            .choice().when(constant(mainConfig.palkeS4SFTPToteumatEnabled() || mainConfig.localOrFTPToteumatEnabled()))
-                .to("direct:init-tositerivi-db")
-            .end()
-            .to("direct:init-s4-tositerivi-db");
 
         String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
         buildDbFetchAndFileNameInitializer(initDbFetchParamsAndFileNameUri, "s4InitTositeDbFetchParams-%s".formatted(toimiala), "POPER", "SAPACTUAL");

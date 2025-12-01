@@ -27,8 +27,7 @@ public class FITositeDB extends TositeDbCommon {
     // to allow from multiple files: PRIMARY KEY (fileName, toimiala, BUKRS, ...
     @Override
     public void configure() throws Exception {
-        //
-        if (!mainConfig.localOrFTPToteumatEnabled() && !mainConfig.localOrSFTPS4ToteumatEnabled()) {
+        if (!mainConfig.localOrFTPToteumatEnabled()) {
             return;
         }
 

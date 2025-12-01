@@ -420,6 +420,15 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(created.getLast().POPER(), resBody.getFirst().get("POPER").toString());
     }
 
+    @Test
+    void initDbTest() {
+        CamelContext ctx = producerTemplate.getCamelContext();
+        Exchange ex = new DefaultExchange(ctx);
+        Exchange res = producerTemplate.send("direct:init-s4-tositerivi-db", ex);
+        assertNull(ex.getException());
+        assertNull(res.getException());
+    }
+
     public static LinkedHashMap<String, Object> createS4TositeRow(String BUKRS, String BELNR, String GJAHR, String POPER, String DOCLN) {
         LinkedHashMap<String, Object> tosite = new LinkedHashMap<>();
         tosite.put("BUKRS", BUKRS);

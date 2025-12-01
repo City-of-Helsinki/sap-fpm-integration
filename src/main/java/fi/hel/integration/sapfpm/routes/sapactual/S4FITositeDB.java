@@ -71,7 +71,6 @@ ALTER TABLE S4TOSITERIVI ADD COLUMN PS_POSID varchar(255) default null
                 .doCatch(Exception.class)
                     .log("PS_POSID already existed, continuing")
                 .end()
-                .to("jdbc:sapactual")
                 .setBody(exchangeProperty("originalBody"));
 
         buildFileAndContentsDbRoute("direct:insert-s4-tosite-file-and-contents-into-db",

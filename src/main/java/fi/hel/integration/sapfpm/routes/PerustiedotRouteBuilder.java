@@ -48,6 +48,10 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
         return buildS4SFtpPerustiedotIn(toimiala, getFtpDir(toimiala), getFilePrefix(), getSortBy());
     }
 
+    /*
+Only ECC Palke, S4 Sotepe and S4 Kasko enabled for now
+Kasko and Sotepe will skip ECC and go directly to S4
+*/
     @Override
     public void configure() throws Exception {
         errorHandler(defaultErrorHandlerBuilder.buildDefaultErrorHandler(this, log));
@@ -56,21 +60,6 @@ public abstract class PerustiedotRouteBuilder extends RouteBuilder implements Ft
             log.info("Starting palke ftp perustiedot");
             buildMainRoute(ftpPerustiedotIn("palke"), "palke");
         }
-/*
-Only ECC Palke and S4 Sotepe enabled for now
-Kasko and Sotepe will probably skip ECC and go directly to S4
-        if (mainConfig.kaskoFTPPerustiedotEnabled()) {
-            //log.info("Kasko ftp perustiedot disabled!");
-            log.info("Starting kasko ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("kasko"), "kasko");
-        }
-
-        if (mainConfig.sotepeFTPPerustiedotEnabled()) {
-            //log.info("Sotepe ftp perustiedot disabled!");
-            log.info("Starting sotepe ftp perustiedot");
-            buildMainRoute(ftpPerustiedotIn("sotepe"), "sotepe");
-        }
-*/
 
         /* Palke S4 skipped until ECC can be switched off
         if (mainConfig.palkeS4SFTPPerustiedotEnabled()) {
@@ -78,11 +67,9 @@ Kasko and Sotepe will probably skip ECC and go directly to S4
         }
         */
 
-        /* Kasko skipped until S4 can be turned on
         if (mainConfig.kaskoS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("kasko"), "kasko");
         }
-        */
         if (mainConfig.sotepeS4SFTPPerustiedotEnabled()) {
             buildMainRoute(s4SftpPerustiedotIn("sotepe"), "sotepe");
         }

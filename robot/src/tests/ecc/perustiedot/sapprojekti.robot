@@ -10,6 +10,7 @@ Test Tags       perustiedot     sapprojekti
 
 *** Test Cases ***
 Lähetä palke perustiedot SAPPROJEKTI
+    Skip    ECC Perustiedot no longer needed or supported
     ${PerustiedotFtpDir}   Get FTP Dir For      %{PALKE_SFTP_USER_ID138}
     Lähetä palke perustiedot SAPPROJEKTI   ${PerustiedotFtpDir}     PBUKR=9500    PSPNR=9501    FTPDownKeyword=Set Ftp Connection As Down     FTPUpKeyword=Set Ftp Connection As Up
 

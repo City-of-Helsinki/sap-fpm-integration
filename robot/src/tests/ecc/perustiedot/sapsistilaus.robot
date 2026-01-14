@@ -11,6 +11,7 @@ Test Tags       perustiedot     sapsistilaus   ecc
 *** Test Cases ***
 
 Lähetä palke perustiedot sapsistilaus
+    Skip    ECC Perustiedot no longer needed or supported
     ${PerustiedotFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID138}
     Lähetä palke perustiedot sapsistilaus      ${PerustiedotFtpDir}     BUKRS=9500    AUART=9501     FTPDownKeyword=Set Ftp Connection As Down    FTPUpKeyword=Set Ftp Connection As Up
 

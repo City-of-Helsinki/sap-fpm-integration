@@ -9,8 +9,8 @@ Resource    ../../../resources/CreatePerustiedotTestFiles.resource
 Test Tags       perustiedot     sapkumppani
 
 *** Test Cases ***
-# sotepe and kasko will move directly to S4
 Lähetä palke perustiedot SAPKUMPPANI
+    Skip    ECC Perustiedot no longer needed or supported
     ${RCOMP}    Generate Random String  20
     ${NAME1}    Generate Random String  20
     ${FtpDir}     Get Ftp Dir For     %{PALKE_SFTP_USER_ID138}

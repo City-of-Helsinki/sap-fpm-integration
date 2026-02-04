@@ -13,6 +13,7 @@ Test Tags       toteumat     sapactual
 
 *** Test Cases ***
 Send palke toteumat
+     Skip    ECC Toteumat no longer needed or supported
     [Documentation]     PALKE toteumat
     [Tags]   palke
     ${ToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID025}
@@ -78,6 +79,7 @@ Send palke toteumat
     ...   MATNR=${MATNR}    EBELP=${EBELP}   LAST_CHANGE_DATETIME=${LAST_CHANGE_DATETIME}    AUGBL=${AUGBL}   AWTYP=${AWTYP}
 
 Send palke toteumat and cut FTP connection for a long time
+     Skip    ECC Toteumat no longer needed or supported
     [Documentation]     PALKE toteumat, FTP connection is cut, files should be sent after connection recovers
     [Tags]   palke      toteumat     sapactual
     ${ToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID025}

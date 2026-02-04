@@ -10,6 +10,7 @@ import org.apache.camel.component.jdbc.JdbcConstants;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,6 +162,17 @@ ALTER TABLE S4TOSITERIVI ADD COLUMN PS_POSID varchar(255) default null
             .to("jdbc:sapactual?useHeadersAsParameters=true")
             .log("db fetch done, size: ${body.size}, lastId: ${headers.lastId}");
 
+        from("direct:fetch-latest-s4-changed-years-and-months-from-db")
+            .errorHandler(noErrorHandler())
+            .to("direct:fetch-latest-s4-createdtimestamp-from-db")
+            .process(e -> {
+                List<LinkedHashMap<String, Object>> body = e.getMessage().getBody(List.class);
+                if (body != null && !body.isEmpty()) {
+                    e.getMessage().setHeader("latestCreatedTimestamp", body.getFirst().get("createdTimestamp"));
+                }
+            })
+            .to("direct:fetch-s4-changed-years-and-months-from-db");
+
         from("direct:fetch-latest-s4-createdtimestamp-from-db")
             .setBody(constant(
                     "SELECT DISTINCT createdTimestamp FROM S4TOSITERIVI WHERE toimiala = :?toimiala ORDER BY createdTimestamp DESC LIMIT 1"))
@@ -171,6 +183,10 @@ ALTER TABLE S4TOSITERIVI ADD COLUMN PS_POSID varchar(255) default null
             .process(e -> {
                 Integer daysToSubtract = e.getMessage().getHeader("daysToSubtract", Integer.class);
                 Timestamp latest = e.getMessage().getHeader("latestCreatedTimestamp", Timestamp.class);
+                if (latest == null) {
+                    latest = Timestamp.from(Instant.now());
+                    log.info("latestCreatedTimestamp not set, defaulted to %s".formatted(latest.toString()));
+                }
                 if (daysToSubtract == null) {
                     e.getMessage().setHeader("afterOrEqualTime", latest);
                 } else {

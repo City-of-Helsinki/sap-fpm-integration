@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -394,6 +395,13 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(ts.POPER(), resBody.getFirst().get("POPER").toString());
         assertEquals(ts.GJAHR(), resBody.getFirst().get("GJAHR").toString());
 
+        // should do the same as above, but set latestCreatedTimestamp from db
+        ex.getMessage().removeHeader("latestCreatedTimestamp");
+        resCsv = producerTemplate.send("direct:fetch-latest-s4-changed-years-and-months-from-db", ex);
+        assertEquals(resBody, resCsv.getMessage().getBody(List.class));
+        Timestamp createdTimestamp = resCsv.getMessage().getHeader("latestCreatedTimestamp", Timestamp.class);
+        assertEquals(created.getFirst().creationTimestamp(), createdTimestamp.toLocalDateTime());
+
         ex.getMessage().setHeader("latestCreatedTimestamp", toTimestamp(ts.creationTimestamp));
         ex.getMessage().setHeader("daysToSubtract", 1);
         resCsv = producerTemplate.send("direct:fetch-s4-changed-years-and-months-from-db", ex);
@@ -418,6 +426,13 @@ public class S4TositeDBTest extends CamelQuarkusTestSupport {
         assertEquals(created.getFirst().POPER(), resBody.getLast().get("POPER").toString());
         assertEquals(created.get(1).POPER(), resBody.get(1).get("POPER").toString());
         assertEquals(created.getLast().POPER(), resBody.getFirst().get("POPER").toString());
+
+        // should do the same as above, but set latestCreatedTimestamp from db
+        ex.getMessage().removeHeader("latestCreatedTimestamp");
+        resCsv = producerTemplate.send("direct:fetch-latest-s4-changed-years-and-months-from-db", ex);
+        assertEquals(resBody, resCsv.getMessage().getBody(List.class));
+        createdTimestamp = resCsv.getMessage().getHeader("latestCreatedTimestamp", Timestamp.class);
+        assertEquals(created.getFirst().creationTimestamp(), createdTimestamp.toLocalDateTime());
     }
 
     @Test

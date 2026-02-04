@@ -119,7 +119,8 @@ public class S4FITositeInRouteBuilder extends TositeRouteCommon implements FtpOr
 
         buildFetchingRoutes(toimiala);
 
-        String fetchS4YearsAndMonthsUri = "direct:fetch-all-s4-years-and-months-from-db";
+        String fetchS4YearsAndMonthsUri = "direct:fetch-latest-s4-changed-years-and-months-from-db";
+
         String initDbFetchParamsAndFileNameUri = "direct:init-s4-tosite-db-fetch-params";
         String sendFileToAzureUri = "direct:enrich-and-send-file-to-azure-" + toimiala;
         String marshalWithHeaderCsvURI = "direct:marshal-with-header-csv-s4-Tosite-%s".formatted(toimiala);

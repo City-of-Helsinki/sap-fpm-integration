@@ -16,6 +16,9 @@ public abstract class TositeRouteCommon extends RouteBuilder {
     @ConfigProperty(name = "default-route-max-redeliveries", defaultValue = "120")
     public int DEFAULT_MAX_REDELIVERIES;
 
+    @ConfigProperty(name = "fetch-gjahr-poper-if-changed-after-last-change-days", defaultValue = "90")
+    public int FETCH_GJAHR_POPER_IF_CHANGED_DAYS_AFTER_LATEST_TIMESTAMP;
+
     public void buildFtpBatchingRoute(String fromUri, String routeId, String toimiala, String initDbUri,
          String processFileUri, String onBatchCompletionUri) {
 
@@ -112,6 +115,7 @@ public abstract class TositeRouteCommon extends RouteBuilder {
                 .maximumRedeliveries(DEFAULT_MAX_REDELIVERIES).redeliveryDelay(DEFAULT_REDELIVERY_DELAY)
             .end()
             .setHeader("toimiala", constant(toimiala))
+            .setHeader("daysToSubtract", constant(FETCH_GJAHR_POPER_IF_CHANGED_DAYS_AFTER_LATEST_TIMESTAMP))
             .log("Writing db out to azure for ${headers.toimiala}")
             .setProperty("outDir", constant(toimiala))
             .to(fetchYearsAndMonthsFromDbUri)

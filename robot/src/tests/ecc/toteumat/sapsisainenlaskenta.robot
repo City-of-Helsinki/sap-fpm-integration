@@ -12,6 +12,7 @@ Test Tags       cototeumat     sapsisainenlaskenta
 
 *** Test Cases ***
 Send palke cototeumat and cut FTP connection for a long time
+    Skip    ECC Cotoeumat no longer needed or supported
     [Documentation]     Palke  cototeumat, FTP connection is cut, files should be sent after connection recovers
     [Tags]   palke
     ${PalkeCoToteumatFtpDir}   Get FTP Dir For     %{PALKE_SFTP_USER_ID166}
@@ -67,6 +68,7 @@ Send palke cototeumat and cut FTP connection for a long time
 *** Keywords ***
 
 Check SAPSISAINENLASKENTA ${FilePath}
+    Skip    ECC Cotoeumat no longer needed or supported
     [Documentation]     Opens SAPSISAINENLASKENTA_.csv sent to the FTP and checks it contains the correct lines
     [Arguments]       ${BELNR}    ${BLDAT}    ${BUDAT}   ${CPUDT}   ${BLART}
     ...     ${REFBN}   ${VERSN}    ${AWTYP}    ${AWORG}      ${BUZEI}
